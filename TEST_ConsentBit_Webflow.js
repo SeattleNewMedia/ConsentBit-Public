@@ -1,8 +1,7 @@
 // CRITICAL: Initialize consent mode IMMEDIATELY (before IIFE) to prevent blocking
 // This ensures consent mode is set even if script loads asynchronously
 (function() {
-
-  console.log("Edited this doc");
+  console.log("updated");
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag === 'undefined') {
     window.gtag = function() { window.dataLayer.push(arguments); };
@@ -53,6 +52,69 @@
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
   }
+  
+  // Helper function to detect Google scripts (by src or inline content)
+  function isGoogleScript(script) {
+    if (!script) return false;
+    
+    // Check src attribute
+    if (script.src) {
+      var src = script.src.toLowerCase();
+      if (src.includes('googletagmanager.com') ||
+          src.includes('google-analytics.com') ||
+          src.includes('googleapis.com') ||
+          src.includes('gstatic.com') ||
+          src.includes('gtag') ||
+          src.includes('analytics.js') ||
+          src.includes('ga.js') ||
+          src.includes('google.com/recaptcha') ||
+          src.includes('maps.googleapis.com')) {
+        return true;
+      }
+    }
+    
+    // Check inline content for Google scripts
+    if (script.innerHTML) {
+      var content = script.innerHTML.toLowerCase();
+      if (content.includes('googletagmanager') ||
+          content.includes('google-analytics') ||
+          content.includes('gtag') ||
+          content.includes('dataLayer') ||
+          content.includes('googleapis') ||
+          content.includes('grecaptcha')) {
+        return true;
+      }
+    }
+    
+    // Check id attribute
+    if (script.id) {
+      var id = script.id.toLowerCase();
+      if (id.includes('google') || id.includes('gtag') || id.includes('ga')) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  // Function to unblock Google scripts and remove blocking attributes
+  function unblockGoogleScripts() {
+    var allScripts = document.head.querySelectorAll('script');
+    allScripts.forEach(function(script) {
+      if (isGoogleScript(script)) {
+        // Remove type attribute completely (don't set to text/javascript)
+        script.removeAttribute('type');
+        // Remove data-category attribute
+        if (script.hasAttribute('data-category')) {
+          script.removeAttribute('data-category');
+        }
+        // Remove blocking attributes
+        script.removeAttribute('data-blocked-by-consent');
+        script.removeAttribute('data-blocked-by-ccpa');
+      }
+    });
+  }
+  
   function removeDuplicateScripts() {
     const scripts = document.head.querySelectorAll('script[data-category]');
     const scriptMap = new Map();
@@ -135,23 +197,24 @@
   }
 
   function blockScriptsByCategory() {
+    // First, unblock all Google scripts and remove their blocking attributes
+    unblockGoogleScripts();
+    
     removeDuplicateScripts();
     
     var scripts = document.head.querySelectorAll('script[data-category]');
     scripts.forEach(function (script) {
-      // CRITICAL: Never block Google Tag Manager/Google Analytics scripts
-      // Even if they have data-category attribute, they use Consent Mode
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      // Skip Google scripts - they're controlled by Consent Mode, not script blocking
-      if (isGoogleScript) {
-        return; // Exit early for Google scripts - don't process them
+      // CRITICAL: Never block Google scripts - skip them completely
+      if (isGoogleScript(script)) {
+        // Ensure Google scripts are unblocked and have no data-category
+        // Remove type attribute completely (don't set to text/javascript)
+        script.removeAttribute('type');
+        if (script.hasAttribute('data-category')) {
+          script.removeAttribute('data-category');
+        }
+        script.removeAttribute('data-blocked-by-consent');
+        script.removeAttribute('data-blocked-by-ccpa');
+        return; // Exit early for Google scripts
       }
       
       // For NON-Google scripts: Check their category and block if needed
@@ -174,18 +237,28 @@
         // If hasEssentialCategory is true, script remains as 'text/javascript' and will execute
       }
     });
+    
+    // DO NOT block scripts without data-category - they are functionality scripts (YouTube, Maps, etc.)
+    // Scripts without data-category are always allowed to run
   }
   function enableAllScriptsWithDataCategory() {
-    // Enable all scripts with data-category attribute (including Google scripts)
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
+    // Enable all scripts with data-category attribute (except Google scripts)
     var scripts = document.head.querySelectorAll('script[data-category]');
     var blockedScripts = [];
     
     scripts.forEach(function (script) {
+      // Skip Google scripts - they're already unblocked above
+      if (isGoogleScript(script)) {
+        return;
+      }
+      
       var isBlocked = script.type === 'text/plain' || 
                      script.hasAttribute('data-blocked-by-consent') || 
                      script.hasAttribute('data-blocked-by-ccpa');
       
-      // Include Google scripts if they're blocked (they shouldn't be, but just in case)
       if (isBlocked) {
         blockedScripts.push(script);
       }
@@ -635,7 +708,7 @@
       const visitorId = await getOrCreateVisitorId();
       const siteName = await cleanHostname(window.location.hostname);
   
-      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+      const response = await fetch('https://consentbit-test-server.web-8fb.workers.dev/api/visitor-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -658,7 +731,7 @@
         if (response.status === 500 && errorData.retry !== false) {
           clearVisitorSession();
           const newVisitorId = await getOrCreateVisitorId();
-          const retryResponse = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+          const retryResponse = await fetch('https://consentbit-test-server.web-8fb.workers.dev/api/visitor-token', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -705,7 +778,7 @@
     if (!sessionToken) return 180;
     try {
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`;
+      const apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -755,7 +828,7 @@
 
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
 
-      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/v2/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`;
+      const apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/v2/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -835,7 +908,7 @@
 
 
 
-      const response = await fetch("https://cb-server.web-8fb.workers.dev/api/v2/cmp/consent", {
+      const response = await fetch("https://consentbit-test-server.web-8fb.workers.dev/api/v2/cmp/consent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -922,7 +995,7 @@
         return false;
       }
       const siteDomain = window.location.hostname;
-      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
+      const apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -994,9 +1067,21 @@
       mutations.forEach(function (mutation) {
         mutation.addedNodes.forEach(function (node) {
           if (node.nodeType === 1 && node.tagName === 'SCRIPT') {
+            // CRITICAL: Never block Google scripts - unblock them immediately
+            if (isGoogleScript(node)) {
+              // Unblock Google scripts and remove blocking attributes
+              // Remove type attribute completely (don't set to text/javascript)
+              node.removeAttribute('type');
+              if (node.hasAttribute('data-category')) {
+                node.removeAttribute('data-category');
+              }
+              node.removeAttribute('data-blocked-by-consent');
+              node.removeAttribute('data-blocked-by-ccpa');
+              return; // Exit early for Google scripts
+            }
 
             // Only block scripts with data-category attribute
-            // Scripts without data-category are allowed (functionality scripts)
+            // Scripts without data-category are functionality scripts and should always be allowed
             if (!node.hasAttribute('data-category')) {
               return; // Skip blocking scripts without data-category (functionality scripts)
             }
@@ -1005,7 +1090,6 @@
             const marketingConsent = localStorage.getItem("cb-consent-marketing_storage");
             const personalizationConsent = localStorage.getItem("cb-consent-personalization_storage");
             const consentGiven = localStorage.getItem("consent-given");
-
 
             if (node.hasAttribute('data-category')) {
               const category = node.getAttribute('data-category');
@@ -1034,26 +1118,6 @@
                 });
 
                 if (shouldBlock) {
-                  node.type = 'text/plain';
-                  node.setAttribute('data-blocked-by-consent', 'true');
-                }
-              }
-            } else {
-
-              if (node.src && (
-                node.src.includes('facebook.net') ||
-                node.src.includes('fbcdn.net') ||
-                node.src.includes('hotjar.com') ||
-                node.src.includes('mixpanel.com') ||
-                node.src.includes('intercom.io') ||
-                node.src.includes('klaviyo.com') ||
-                node.src.includes('tiktok.com') ||
-                node.src.includes('linkedin.com') ||
-                node.src.includes('twitter.com') ||
-                node.src.includes('adobe.com')
-              )) {
-
-                if (analyticsConsent === "false" && marketingConsent === "false") {
                   node.type = 'text/plain';
                   node.setAttribute('data-blocked-by-consent', 'true');
                 }
@@ -1336,8 +1400,8 @@
         // Block scripts with data-category immediately
         blockScriptsByCategory();
         
-        // Only block scripts with data-category attribute (except Google scripts)
-        // Scripts without data-category are allowed to run (functionality scripts)
+        // Also block ALL other scripts that don't have data-category (except Google scripts)
+        // Block all non-Google scripts in head section
         var allScripts = document.head.querySelectorAll('script[src]');
         allScripts.forEach(function (script) {
           // Check if this is a Google Tag Manager or Google Analytics script
@@ -1349,21 +1413,18 @@
             script.src.includes('ga.js')
           );
           
-          // Skip Google scripts (they use Consent Mode)
-          if (isGoogleScript) {
-            return;
+          // Only block non-Google scripts that don't have data-category
+          // (scripts with data-category are already handled by blockScriptsByCategory)
+          var hasDataCategory = script.hasAttribute('data-category');
+          if (!isGoogleScript && !hasDataCategory && script.type !== 'text/plain') {
+            script.type = 'text/plain';
+            script.setAttribute('data-blocked-by-consent', 'true');
           }
-          
-          // Only block scripts with data-category attribute (already handled by blockScriptsByCategory)
-          // Scripts without data-category are allowed (functionality scripts)
-          // No need to block them here - blockScriptsByCategory handles data-category scripts
         });
         
-        // Block inline scripts in head section (only if they have data-category)
+        // Block inline scripts in head section (but allow dataLayer initialization)
         var inlineScripts = document.head.querySelectorAll('script:not([src])');
         inlineScripts.forEach(function (script) {
-          if (!script.innerHTML) return;
-          
           // Don't block dataLayer initialization or gtag consent commands
           var isGoogleConsentScript = script.innerHTML && (
             script.innerHTML.includes('dataLayer') ||
@@ -1371,12 +1432,11 @@
             script.innerHTML.includes('googletagmanager')
           );
           
-          if (isGoogleConsentScript) {
-            return; // Skip Google consent scripts
+          var hasDataCategory = script.hasAttribute('data-category');
+          if (script.innerHTML && !isGoogleConsentScript && !hasDataCategory && script.type !== 'text/plain') {
+            script.type = 'text/plain';
+            script.setAttribute('data-blocked-by-consent', 'true');
           }
-          
-          // Only block if script has data-category attribute (handled by blockScriptsByCategory)
-          // Scripts without data-category are allowed (functionality scripts)
         });
         
         // Background operations (saving cookies, server calls, etc.)
@@ -2134,9 +2194,17 @@
 
   // --- CCPA-specific script handling functions ---
   function unblockScriptsWithDataCategory() {
-    // CCPA: Unblock ALL scripts with data-category attribute (including Google scripts) in head section only
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
+    // CCPA: Unblock ALL scripts with data-category attribute (except Google scripts) in head section only
     var scripts = document.head.querySelectorAll('script[type="text/plain"][data-category]');
     scripts.forEach(function (script) {
+      // Skip Google scripts - they're already unblocked above
+      if (isGoogleScript(script)) {
+        return;
+      }
+      
       // Re-execute the script if it has a src attribute
       if (script.src) {
         try {
@@ -2190,9 +2258,24 @@
   }
 
   function blockScriptsWithDataCategory() {
-    // CCPA: Block ALL scripts with data-category attribute (including Google scripts) in head section only
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
+    // CCPA: Block ALL scripts with data-category attribute (except Google scripts) in head section only
     var scripts = document.head.querySelectorAll('script[data-category]');
     scripts.forEach(function (script) {
+      // CRITICAL: Never block Google scripts
+      if (isGoogleScript(script)) {
+        // Ensure Google scripts are unblocked and have no data-category
+        // Remove type attribute completely (don't set to text/javascript)
+        script.removeAttribute('type');
+        if (script.hasAttribute('data-category')) {
+          script.removeAttribute('data-category');
+        }
+        script.removeAttribute('data-blocked-by-ccpa');
+        return; // Exit early for Google scripts
+      }
+      
       if (script.type !== 'text/plain') {
         script.type = 'text/plain';
         script.setAttribute('data-blocked-by-ccpa', 'true');
@@ -2234,7 +2317,7 @@
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
 
       // Build API URL with siteName parameter
-      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/v2/cmp/head-scripts?siteName=${encodeURIComponent(siteName)}`;
+      const apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/v2/cmp/head-scripts?siteName=${encodeURIComponent(siteName)}`;
 
       // Add timeout to prevent blocking (5 second max wait)
       const controller = new AbortController();
@@ -2313,10 +2396,18 @@
   }
 
   function blockTargetedAdvertisingScripts() {
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
     const targetedAdvertisingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|doubleclick|adwords|adsense|adservice|pixel|quantserve|scorecardresearch|moat|integral-marketing|comscore|nielsen|quantcast|adobe/i;
 
     const scripts = document.head.querySelectorAll('script[src]');
     scripts.forEach(script => {
+      // CRITICAL: Never block Google scripts
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
+      
       if (targetedAdvertisingPatterns.test(script.src)) {
         if (script.type !== 'text/plain') {
           script.type = 'text/plain';
@@ -2327,10 +2418,18 @@
   }
 
   function blockSaleScripts() {
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
     const salePatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|doubleclick|adwords|adsense|adservice|pixel|quantserve|scorecardresearch|moat|integral-marketing|comscore|nielsen|quantcast|adobe|marketo|hubspot|salesforce|pardot|eloqua|act-on|mailchimp|constantcontact|sendgrid|klaviyo|braze|iterable/i;
 
     const scripts = document.head.querySelectorAll('script[src]');
     scripts.forEach(script => {
+      // CRITICAL: Never block Google scripts
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
+      
       if (salePatterns.test(script.src)) {
         if (script.type !== 'text/plain') {
           script.type = 'text/plain';
@@ -2341,10 +2440,18 @@
   }
 
   function blockProfilingScripts() {
+    // First, unblock all Google scripts (they should never be blocked)
+    unblockGoogleScripts();
+    
     const profilingPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat|clarity|hotjar|mouseflow|fullstory|logrocket|mixpanel|segment|amplitude|heap|kissmetrics|matomo|piwik|plausible|woopra|crazyegg|clicktale|chartbeat|parse\.ly/i;
 
     const scripts = document.head.querySelectorAll('script[src]');
     scripts.forEach(script => {
+      // CRITICAL: Never block Google scripts
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
+      
       if (profilingPatterns.test(script.src)) {
         if (script.type !== 'text/plain') {
           script.type = 'text/plain';
