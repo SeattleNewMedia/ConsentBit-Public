@@ -1,6 +1,7 @@
 // CRITICAL: Initialize consent mode IMMEDIATELY (before IIFE) to prevent blocking
 // This ensures consent mode is set even if script loads asynchronously
 (function() {
+  console.log("updated");
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag === 'undefined') {
     window.gtag = function() { window.dataLayer.push(arguments); };
