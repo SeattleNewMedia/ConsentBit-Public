@@ -1,7 +1,6 @@
 // CRITICAL: Initialize consent mode IMMEDIATELY (before IIFE) to prevent blocking
 // This ensures consent mode is set even if script loads asynchronously
 (function() {
-  console.log("updated");
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag === 'undefined') {
     window.gtag = function() { window.dataLayer.push(arguments); };
@@ -1190,10 +1189,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function () {
-    await hideAllBanners();
-   // await checkConsentExpiration();
-   
-    // Will check banner after required API calls
+    await hideAllBanners(); 
 
     let canPublish = false;
     let isStaging = false;
@@ -1206,7 +1202,6 @@
       toggleConsentBtn.onclick = async function (e) {
         e.preventDefault();
 
-        // Get location data for toggle button
         if (!locationData) {
           locationData = await detectLocationAndGetBannerType();
         }
@@ -1242,7 +1237,6 @@
 
       
       if (!token) {
-        // No token (including when retry: false) - don't retry or reload
         removeConsentElements();
         return;
       } else {
@@ -1252,6 +1246,14 @@
       }
       canPublish = await checkPublishingStatus();
       isStaging = isStagingHostname();
+
+      if (toggleConsentBtn) {
+        if (isStaging || canPublish) {
+          toggleConsentBtn.style.display = '';
+        } else {
+          toggleConsentBtn.style.display = 'none';
+        }
+      }
 
       if (!canPublish && !isStaging) {
         removeConsentElements();
