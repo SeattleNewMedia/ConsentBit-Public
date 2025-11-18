@@ -994,7 +994,29 @@
         return false;
       }
       const siteDomain = window.location.hostname;
-      const apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
+      
+      // Get siteId from data-site-info attribute if available
+      let siteId = null;
+      const siteInfoElement = document.querySelector('[data-site-info]');
+      if (siteInfoElement) {
+        const siteInfo = siteInfoElement.getAttribute('data-site-info');
+        if (siteInfo) {
+          try {
+            // Try to parse as JSON first
+            const parsed = JSON.parse(siteInfo);
+            siteId = parsed.siteId || parsed.id || siteInfo;
+          } catch (e) {
+            // If not JSON, use the value directly
+            siteId = siteInfo;
+          }
+        }
+      }
+      
+      let apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
+      if (siteId) {
+        apiUrl += `&siteId=${encodeURIComponent(siteId)}`;
+      }
+      
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -1249,7 +1271,7 @@
 
       if (toggleConsentBtn) {
         if (isStaging || canPublish) {
-          toggleConsentBtn.style.display = '';
+          toggleConsentBtn.style.display = 'block';
         } else {
           toggleConsentBtn.style.display = 'none';
         }
