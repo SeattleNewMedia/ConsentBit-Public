@@ -853,12 +853,60 @@ async  function hideAllBanners(){
 
  
   document.addEventListener('DOMContentLoaded', async function() {
+    // Set up toggle consent button IMMEDIATELY (no async delays)
+    // Check staging status synchronously first
+    const isStaging = isStagingHostname();
+    const toggleConsentBtn = document.getElementById('toggle-consent-btn');
+    
+    if (toggleConsentBtn) {
+      // Set initial visibility based on staging status (synchronous check)
+      // Will be updated later when canPublish status is determined
+      if (isStaging) {
+        toggleConsentBtn.style.display = 'block';
+      }
+      
+      // Set up click handler immediately
+      toggleConsentBtn.onclick = async function(e) {
+        e.preventDefault();
+        
+        // Find banner elements
+        const consentBanner = document.getElementById("consent-banner");
+        const ccpaBanner = document.getElementById("initial-consent-banner");
+        const mainBanner = document.getElementById("main-banner");
+        
+        // If locationData not available yet, detect it now
+        let locationData = null;
+        const testOverride = getTestLocationOverride();
+        if (testOverride) {
+          locationData = testOverride;
+          country = testOverride.country;
+        } else {
+          locationData = await detectLocationAndGetBannerType();
+        }
+        
+        // Show appropriate banner based on location (if available) or default to GDPR
+        if (locationData && (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType) || locationData.country === "US") && ccpaBanner) {
+          hideAllBanners();
+          showBanner(ccpaBanner);
+          // Update CCPA preference form with saved preferences
+          updateCCPAPreferenceForm(getConsentPreferences());
+        } else if (consentBanner) {
+          hideAllBanners();
+          showBanner(consentBanner);
+        }
+        
+        // Update preferences if function exists
+        if (typeof updatePreferenceForm === 'function') {
+          updatePreferenceForm(getConsentPreferences());
+        }
+      };
+    }
+    
     await hideAllBanners();
     await checkConsentExpiration();
     await disableScrollOnSite();
 
     let canPublish = false;
-    let isStaging = false;
     let locationData = null;
     
     try {
@@ -884,15 +932,18 @@ async  function hideAllBanners(){
       }
       const publishingStatus = await checkPublishingStatus();
       canPublish = publishingStatus.canPublish;
-      isStaging = isStagingHostname();
       
       if (publishingStatus.cookieExpiration !== null && publishingStatus.cookieExpiration !== undefined && !isNaN(publishingStatus.cookieExpiration)) {
         localStorage.setItem('consentExpirationDays', publishingStatus.cookieExpiration.toString());
       }
       
-      if (!canPublish && !isStaging) {
-        removeConsentElements();
-        return;
+      // Update toggle button visibility now that we know canPublish status
+      if (toggleConsentBtn) {
+        if (isStaging || canPublish) {
+          toggleConsentBtn.style.display = 'block';
+        } else {
+          toggleConsentBtn.style.display = 'none';
+        }
       }
     } catch (error) {
       console.error('Error in token/status check:', error);
@@ -902,54 +953,10 @@ async  function hideAllBanners(){
       setTimeout(() => location.reload(), 5000);
       return;
     }
-
-    // Set up toggle consent button AFTER canPublish/isStaging check
-    // Toggle button visibility controlled by staging/publishing status only
-    const toggleConsentBtn = document.getElementById('toggle-consent-btn');
     
-    if (toggleConsentBtn) {
-      // Control visibility based on staging/publishing status
-      if (isStaging || canPublish) {
-        toggleConsentBtn.style.display = 'block';
-      } else {
-        toggleConsentBtn.style.display = 'none';
-      }
-      
-      toggleConsentBtn.onclick = async function(e) {
-        e.preventDefault();
-        
-        // Find banner elements
-        const consentBanner = document.getElementById("consent-banner");
-        const ccpaBanner = document.getElementById("initial-consent-banner");
-        const mainBanner = document.getElementById("main-banner");
-        
-        // If locationData not available yet, detect it now
-        if (!locationData) {
-          const testOverride = getTestLocationOverride();
-          if (testOverride) {
-            locationData = testOverride;
-            country = testOverride.country;
-          } else {
-            locationData = await detectLocationAndGetBannerType();
-          }
-        }
-        
-        // Show appropriate banner based on location (if available) or default to GDPR
-        if (locationData && (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType) || locationData.country === "US") && ccpaBanner) {
-          hideAllBanners();
-          showBanner(ccpaBanner);
-          // Update CCPA preference form with saved preferences
-          updateCCPAPreferenceForm(getConsentPreferences());
-        } else if (consentBanner) {
-          hideAllBanners();
-          showBanner(consentBanner);
-        }
-        
-        // Update preferences if function exists
-        if (typeof updatePreferenceForm === 'function') {
-          updatePreferenceForm(getConsentPreferences());
-        }
-      };
+    if (!canPublish && !isStaging) {
+      removeConsentElements();
+      return;
     }
 
     // Detect location in background (non-blocking for toggle button)
