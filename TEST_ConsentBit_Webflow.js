@@ -902,6 +902,60 @@ async  function hideAllBanners(){
       };
     }
     
+    // Universal close button with consentbit="close" attribute
+    function setupConsentbitCloseButtons() {
+      const closeButtons = document.querySelectorAll('[consentbit="close"]');
+      closeButtons.forEach(function(closeBtn) {
+        // Remove any existing handlers to avoid duplicates
+        closeBtn.onclick = null;
+        
+        // Set up click handler - works for button and child elements (like images)
+        closeBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // First, try to find the parent banner containing this close button
+          let parentBanner = closeBtn.closest('#consent-banner, #initial-consent-banner, #main-banner, #main-consent-banner, #simple-consent-banner, .consentbit-ccpa-banner-div, .consentbit-ccpa_preference, .consentbit-gdpr-banner-div, .consentbit-preference-div');
+          
+          if (parentBanner) {
+            // Hide the parent banner directly
+            hideBanner(parentBanner);
+          } else {
+            // Fallback: Find the currently visible banner by checking all possible banner elements
+            const banners = [
+              document.getElementById("consent-banner"),
+              document.getElementById("initial-consent-banner"),
+              document.getElementById("main-banner"),
+              document.getElementById("main-consent-banner"),
+              document.getElementById("simple-consent-banner"),
+              document.querySelector('.consentbit-ccpa-banner-div'),
+              document.querySelector('.consentbit-ccpa_preference'),
+              document.querySelector('.consentbit-gdpr-banner-div'),
+              document.querySelector('.consentbit-preference-div')
+            ];
+            
+            // Find the currently visible banner
+            let activeBanner = null;
+            banners.forEach(function(banner) {
+              if (banner && window.getComputedStyle(banner).display !== 'none' && 
+                  window.getComputedStyle(banner).visibility !== 'hidden' && 
+                  window.getComputedStyle(banner).opacity !== '0') {
+                activeBanner = banner;
+              }
+            });
+            
+            // Hide the currently active banner
+            if (activeBanner) {
+              hideBanner(activeBanner);
+            }
+          }
+        };
+      });
+    }
+    
+    // Set up universal close buttons immediately
+    setupConsentbitCloseButtons();
+    
     await hideAllBanners();
     await checkConsentExpiration();
     await disableScrollOnSite();
@@ -1082,7 +1136,6 @@ async  function hideAllBanners(){
           // Apply law-specific blocking based on banner type
           if (locationData && ["VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType)) {
             // Enhanced privacy laws with granular opt-out requirements
-            console.log(`[CONSENT-FLOW] Applying granular blocking for ${locationData.bannerType}`);
             blockTargetedAdvertisingScripts();
             blockSaleScripts();
             blockProfilingScripts();
@@ -1090,7 +1143,6 @@ async  function hideAllBanners(){
             blockAutomatedDecisionScripts();
           } else {
             // CCPA - block all scripts  
-            console.log('[CONSENT-FLOW] Applying CCPA script blocking');
             blockScriptsWithDataCategory();
             blockNonGoogleScripts();
           }
@@ -1342,26 +1394,6 @@ async  function hideAllBanners(){
       };
     }
 
-    // Cancel button (go back to main banner)
-    const cancelBtn = document.getElementById('close-consent-banner');
-    if (cancelBtn) {
-      cancelBtn.onclick = async function(e) {
-        e.preventDefault();
-        
-        // Always hide main-consent-banner when cancel is clicked
-        const mainConsentBanner = document.getElementById('main-consent-banner');
-        if (mainConsentBanner) {
-          hideBanner(mainConsentBanner);
-        }
-        
-        // Show initial banner if it exists
-        const initialConsentBanner = document.getElementById('initial-consent-banner');
-        if (initialConsentBanner) {
-          showBanner(initialConsentBanner);
-        }
-      };
-    }
-    
     // CCPA Link Block - Show CCPA Banner
     const ccpaLinkBlock = document.getElementById('consentbit-ccpa-linkblock');
     if (ccpaLinkBlock) {
@@ -1408,6 +1440,9 @@ async  function hideAllBanners(){
       
       // Load consent styles after banners are shown
       loadConsentStyles();
+      
+      // Set up close buttons again after banners are shown (in case they were added dynamically)
+      setupConsentbitCloseButtons();
   });
   
  // End DOMContentLoaded event listener
@@ -1485,11 +1520,6 @@ async function scanAndSendHeadScriptsIfChanged(sessionToken) {
   const scriptDataHash = await hashStringSHA256(scriptDataString);
 
   const cachedHash = localStorage.getItem('_cb_hsh_');
-  console.log('Current scriptDataHash:', scriptDataHash);
-console.log('Cached hash:', cachedHash);
-if (cachedHash !== scriptDataHash) {
-  console.log('Hash changed, sending POST to /api/cmp/head-scripts');
-}
   if (cachedHash === scriptDataHash) {
     return; // No change, do nothing
   }
@@ -1514,7 +1544,6 @@ if (cachedHash !== scriptDataHash) {
     
     if (response.ok) {
       localStorage.setItem('_cb_hsh_', scriptDataHash);
-      console.log('Head scripts processed and cached successfully');
     } else {
       console.error('Failed to send head scripts to API:', response.status);
     }
