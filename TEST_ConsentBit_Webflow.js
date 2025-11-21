@@ -763,12 +763,20 @@
   function showCCPABanner() {
     hideBanner(document.getElementById("consent-banner"));
     showBanner(document.getElementById("initial-consent-banner"));
+    // Set up hover underline for elements in the CCPA banner
+    setTimeout(function() {
+      setupHoverUnderline();
+    }, 100);
   }
   
   // Show GDPR banner  
   function showGDPRBanner() {
     hideBanner(document.getElementById("initial-consent-banner"));
     showBanner(document.getElementById("consent-banner"));
+    // Set up hover underline for elements in the GDPR banner
+    setTimeout(function() {
+      setupHoverUnderline();
+    }, 100);
   }
   
   // Server-side location detection functions removed - using direct server detection only
@@ -1237,6 +1245,102 @@
       };
     }
     
+    // Set up GDPR banner buttons IMMEDIATELY (before async operations)
+    // Preferences button (show preferences panel)
+    const preferencesBtn = document.getElementById('preferences-btn');
+    if (preferencesBtn) {
+      preferencesBtn.onclick = async function (e) {
+        e.preventDefault();
+        // IMMEDIATE UI RESPONSE
+        hideBanner(document.getElementById("consent-banner"));
+        showBanner(document.getElementById("main-banner"));
+        
+        // Set up hover underline for elements in the preferences banner
+        setTimeout(function() {
+          setupHoverUnderline();
+        }, 100);
+        
+        // Background preference loading
+        getConsentPreferences().then(preferences => {
+          updatePreferenceForm(preferences);
+        }).catch(error => {
+          // Silent error handling
+        });
+      };
+    }
+
+    // Cancel button (go back to main banner)
+    const cancelGDPRBtn = document.getElementById('cancel-btn');
+    if (cancelGDPRBtn) {
+      cancelGDPRBtn.onclick = async function (e) {
+        e.preventDefault();
+        // STEP 6: Hide banners
+        hideBanner(document.getElementById("main-banner"));
+        hideBanner(document.getElementById("consent-banner"));
+        // STEP 1: Block all scripts except necessary/essential
+        blockScriptsByCategory();
+
+        // STEP 2: Also block any scripts that are already running by disabling them
+        // Disable Google Analytics if present
+        if (typeof gtag !== 'undefined') {
+          gtag('consent', 'update', {
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied',
+            'ad_personalization': 'denied',
+            'ad_user_data': 'denied',
+            'personalization_storage': 'denied'
+          });
+        }
+
+        // Disable Google Tag Manager if present
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            'event': 'consent_denied',
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied'
+          });
+        }
+
+        // STEP 3: Uncheck all preference checkboxes
+        const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
+        const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
+        const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
+
+        if (analyticsCheckbox) {
+          analyticsCheckbox.checked = false;
+        }
+        if (marketingCheckbox) {
+          marketingCheckbox.checked = false;
+        }
+        if (personalizationCheckbox) {
+          personalizationCheckbox.checked = false;
+        }
+
+        // STEP 4: Save consent state with all preferences as false (like decline behavior)
+        const preferences = {
+          analytics: false,
+          marketing: false,
+          personalization: false,
+          bannerType: locationData ? locationData.bannerType : undefined
+        };
+
+        await setConsentState(preferences, cookieDays);
+        updateGtagConsent(preferences);
+
+        // STEP 5: Set consent as given and save to server
+        localStorage.setItem("_cb_cg_", "true");
+
+        try {
+          await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
+        } catch (error) {
+          // Silent error handling
+        }
+      };
+    }
+    
+    // Set up close buttons IMMEDIATELY
+    setupConsentbitCloseButtons();
+    
     await hideAllBanners();
   
     // Check consent-given IMMEDIATELY (synchronously, before async operations)
@@ -1476,6 +1580,11 @@
         const mainBanner = document.getElementById('main-consent-banner');
         if (mainBanner) {
           showBanner(mainBanner);
+          
+          // Set up hover underline for elements in the CCPA preference banner
+          setTimeout(function() {
+            setupHoverUnderline();
+          }, 100);
 
           // Update CCPA preference form with saved preferences
           const preferences = await getConsentPreferences();
@@ -1676,24 +1785,6 @@
         };
       }
 
-    // Preferences button (show preferences panel)
-    const preferencesBtn = document.getElementById('preferences-btn');
-    if (preferencesBtn) {
-      preferencesBtn.onclick = async function (e) {
-        e.preventDefault();
-        // IMMEDIATE UI RESPONSE
-        hideBanner(document.getElementById("consent-banner"));
-        showBanner(document.getElementById("main-banner"));
-        
-        // Background preference loading
-        getConsentPreferences().then(preferences => {
-          updatePreferenceForm(preferences);
-        }).catch(error => {
-          // Silent error handling
-        });
-      };
-    }
-
     // Save Preferences button
     const savePreferencesBtn = document.getElementById('save-preferences-btn');
     if (savePreferencesBtn) {
@@ -1794,76 +1885,7 @@
       };
     }
 
-    // Cancel button (go back to main banner)
-    const cancelGDPRBtn = document.getElementById('cancel-btn');
-    if (cancelGDPRBtn) {
-      cancelGDPRBtn.onclick = async function (e) {
-        e.preventDefault();
-  // STEP 6: Hide banners
-        hideBanner(document.getElementById("main-banner"));
-        hideBanner(document.getElementById("consent-banner"));
-        // STEP 1: Block all scripts except necessary/essential
-        blockScriptsByCategory();
-
-        // STEP 2: Also block any scripts that are already running by disabling them
-        // Disable Google Analytics if present
-        if (typeof gtag !== 'undefined') {
-          gtag('consent', 'update', {
-            'analytics_storage': 'denied',
-            'ad_storage': 'denied',
-            'ad_personalization': 'denied',
-            'ad_user_data': 'denied',
-            'personalization_storage': 'denied'
-          });
-        }
-
-        // Disable Google Tag Manager if present
-        if (typeof window.dataLayer !== 'undefined') {
-          window.dataLayer.push({
-            'event': 'consent_denied',
-            'analytics_storage': 'denied',
-            'ad_storage': 'denied'
-          });
-        }
-
-        // STEP 3: Uncheck all preference checkboxes
-        const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
-        const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
-        const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
-
-        if (analyticsCheckbox) {
-          analyticsCheckbox.checked = false;
-        }
-        if (marketingCheckbox) {
-          marketingCheckbox.checked = false;
-        }
-        if (personalizationCheckbox) {
-          personalizationCheckbox.checked = false;
-        }
-
-        // STEP 4: Save consent state with all preferences as false (like decline behavior)
-        const preferences = {
-          analytics: false,
-          marketing: false,
-          personalization: false,
-          bannerType: locationData ? locationData.bannerType : undefined
-        };
-
-        await setConsentState(preferences, cookieDays);
-        updateGtagConsent(preferences);
-
-        // STEP 5: Set consent as given and save to server
-        localStorage.setItem("_cb_cg_", "true");
-
-        try {
-          await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
-        } catch (error) {
-          // Silent error handling
-        }
-
-      
-      };
-    }
+    // Cancel button handler is already set up earlier (before async operations)
 
     // Universal close button handler - handles both consentbit="close" and id="close-consent-banner"
     function setupConsentbitCloseButtons() {
@@ -2006,6 +2028,10 @@
               const ccpaBanner = document.getElementById("main-consent-banner");
               if (ccpaBanner) {
                 showBanner(ccpaBanner);
+                // Set up hover underline for elements in the CCPA preference banner
+                setTimeout(function() {
+                  setupHoverUnderline();
+                }, 100);
                 const preferences = await getConsentPreferences();
                 updateCCPAPreferenceForm(preferences);
               }
@@ -2030,13 +2056,21 @@
         // Mark as handled
         element.setAttribute('data-hover-underline-handler-attached', 'true');
         
-        // Add hover effect using CSS class or inline style
+        // Store original text-decoration to restore it properly
+        const originalTextDecoration = window.getComputedStyle(element).textDecoration;
+        
+        // Add hover effect using inline style with !important to override CSS
         element.addEventListener('mouseenter', function() {
-          element.style.textDecoration = 'underline';
+          element.style.setProperty('text-decoration', 'underline', 'important');
         });
         
         element.addEventListener('mouseleave', function() {
-          element.style.textDecoration = '';
+          // Restore original or remove if it was none
+          if (originalTextDecoration && originalTextDecoration !== 'none') {
+            element.style.setProperty('text-decoration', originalTextDecoration, 'important');
+          } else {
+            element.style.removeProperty('text-decoration');
+          }
         });
       });
     }
