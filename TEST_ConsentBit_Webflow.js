@@ -1239,8 +1239,44 @@
     
     await hideAllBanners();
   
+    // Check consent-given IMMEDIATELY (synchronously, before async operations)
+    const consentGiven = localStorage.getItem("_cb_cg_");
+    
     let canPublish = false;
     let locationData = null;
+    
+    // If consent-given is NOT in localStorage, display banner immediately
+    if (!consentGiven) {
+      // Check for data-all-banners attribute first
+      const allBannersElement = document.querySelector('[data-all-banners]');
+      const allBannersValue = allBannersElement ? allBannersElement.getAttribute('data-all-banners') : null;
+      
+      if (allBannersValue === 'false') {
+        // Force GDPR banner when data-all-banners=false (skip API call)
+        locationData = {
+          country: 'EU',
+          continent: 'Europe',
+          state: null,
+          bannerType: 'GDPR'
+        };
+        country = 'EU';
+        showGDPRBanner();
+      } else {
+        // Wait for location detection, then display appropriate banner (GDPR or CCPA)
+        locationData = await detectLocationAndGetBannerType();
+        if (locationData && locationData.bannerType) {
+          country = locationData.country;
+          if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType)) {
+            showCCPABanner();
+          } else {
+            showGDPRBanner();
+          }
+        } else {
+          // Fallback to GDPR if server detection fails
+          showGDPRBanner();
+        }
+      }
+    }
     
     try {
       const token = await getVisitorSessionToken();
@@ -1274,43 +1310,6 @@
       clearVisitorSession();
       setTimeout(() => location.reload(), 5000);
       return;
-    }
-
-
-    // Check consent first
-    const consentGiven = localStorage.getItem("_cb_cg_");
-    
-    // Only show banner if no consent given
-    if (!consentGiven) {
-      // Check for data-all-banners attribute first
-      const allBannersElement = document.querySelector('[data-all-banners]');
-      const allBannersValue = allBannersElement ? allBannersElement.getAttribute('data-all-banners') : null;
-      
-      if (allBannersValue === 'false') {
-        // Force GDPR banner when data-all-banners=false (skip API call)
-        locationData = {
-          country: 'EU',
-          continent: 'Europe',
-          state: null,
-          bannerType: 'GDPR'
-        };
-        country = 'EU';
-        showGDPRBanner();
-      } else {
-        // Normal API call for location detection when data-all-banners=true or attribute doesn't exist
-        locationData = await detectLocationAndGetBannerType();
-        if (locationData && locationData.bannerType) {
-          country = locationData.country;
-          if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType)) {
-            showCCPABanner();
-          } else {
-            showGDPRBanner();
-          }
-        } else {
-          // Fallback to GDPR if server detection fails
-          showGDPRBanner();
-        }
-      }
     }
     
     // POST-BANNER OPERATIONS (after banner is visible)
