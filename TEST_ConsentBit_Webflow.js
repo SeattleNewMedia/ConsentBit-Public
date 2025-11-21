@@ -2018,9 +2018,33 @@
       });
     }
 
+    // Function to set up hover underline for elements with data-hover-underline="true"
+    function setupHoverUnderline() {
+      const hoverUnderlineElements = document.querySelectorAll('[data-hover-underline="true"]');
+      hoverUnderlineElements.forEach(function (element) {
+        // Check if handler already attached (to avoid duplicates)
+        if (element.hasAttribute('data-hover-underline-handler-attached')) {
+          return;
+        }
+        
+        // Mark as handled
+        element.setAttribute('data-hover-underline-handler-attached', 'true');
+        
+        // Add hover effect using CSS class or inline style
+        element.addEventListener('mouseenter', function() {
+          element.style.textDecoration = 'underline';
+        });
+        
+        element.addEventListener('mouseleave', function() {
+          element.style.textDecoration = '';
+        });
+      });
+    }
+
     // Set up close buttons and do not share links when DOM is ready
     setupConsentbitCloseButtons();
     setupDoNotShareLinks();
+    setupHoverUnderline();
 
     // Monitor for dynamically added close buttons and do not share links
     const closeButtonObserver = new MutationObserver(function (mutations) {
@@ -2044,6 +2068,16 @@
             // Check if the added node is a do not share link
             if (node.hasAttribute && node.hasAttribute('consentbit-data-donotshare') && node.getAttribute('consentbit-data-donotshare') === 'consentbit-link-donotshare') {
               setupDoNotShareLinks();
+            }
+            
+            // Check if the added node has data-hover-underline="true"
+            if (node.hasAttribute && node.hasAttribute('data-hover-underline') && node.getAttribute('data-hover-underline') === 'true') {
+              setupHoverUnderline();
+            }
+            // Check if any child elements have data-hover-underline="true"
+            const hoverUnderlineElements = node.querySelectorAll && node.querySelectorAll('[data-hover-underline="true"]');
+            if (hoverUnderlineElements && hoverUnderlineElements.length > 0) {
+              setupHoverUnderline();
             }
 
           }
