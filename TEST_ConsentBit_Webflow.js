@@ -103,52 +103,20 @@
 
   // CRITICAL: Ensure Google scripts are always unblocked (even if they have type="text/plain" or data-category)
   function unblockGoogleScripts() {
-    // Find all Google scripts (including those with type="text/plain" or data-category)
-    const allScripts = document.head.querySelectorAll('script');
-    allScripts.forEach(function(script) {
+    // Find all Google scripts in head section only (including those with type="text/plain" or data-category)
+    const headScripts = document.head.querySelectorAll('script');
+    headScripts.forEach(function(script) {
       if (isGoogleScript(script)) {
-        // If script has type="text/plain", unblock it
+        // Remove type="text/plain" attribute to allow script to execute
         if (script.type === 'text/plain') {
-          if (script.src) {
-            // For external scripts, create new script element to force reload
-            try {
-              const existingScript = document.querySelector(`script[src="${script.src}"][type="text/javascript"]`);
-              if (existingScript) {
-                script.remove();
-                return;
-              }
-              
-              const newScript = document.createElement('script');
-              for (let attr of script.attributes) {
-                if (attr.name !== 'type' && 
-                    attr.name !== 'data-blocked-by-consent' && 
-                    attr.name !== 'data-blocked-by-ccpa' &&
-                    attr.name !== 'data-blocked-by-targeted-advertising' &&
-                    attr.name !== 'data-blocked-by-sale') {
-                  newScript.setAttribute(attr.name, attr.value);
-                }
-              }
-              newScript.type = 'text/javascript';
-              newScript.onload = function() {
-                ensureGtagInitialization();
-              };
-              script.parentNode.insertBefore(newScript, script);
-              script.remove();
-            } catch (error) {
-              // Fallback: just change type if creating new script fails
-              script.type = 'text/javascript';
-            }
-          } else {
-            // For inline scripts, just change type
-            script.type = 'text/javascript';
-          }
-        } else if (!script.type || script.type === 'text/javascript') {
-          // Ensure Google scripts don't have blocking attributes
-          script.removeAttribute('data-blocked-by-consent');
-          script.removeAttribute('data-blocked-by-ccpa');
-          script.removeAttribute('data-blocked-by-targeted-advertising');
-          script.removeAttribute('data-blocked-by-sale');
+          script.removeAttribute('type');
         }
+        
+        // Remove blocking attributes
+        script.removeAttribute('data-blocked-by-consent');
+        script.removeAttribute('data-blocked-by-ccpa');
+        script.removeAttribute('data-blocked-by-targeted-advertising');
+        script.removeAttribute('data-blocked-by-sale');
         
         // Remove data-category attribute from Google scripts (they use Consent Mode, not category blocking)
         if (script.hasAttribute('data-category')) {
@@ -1230,9 +1198,16 @@
   }
 
 
+  // CRITICAL: Unblock Google scripts immediately when script loads (before DOMContentLoaded)
+  // This ensures Google scripts with type="text/plain" are unblocked as soon as possible
+  unblockGoogleScripts();
+  
   // Load styles and monitor scripts after initial render to avoid blocking
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
+      // Unblock Google scripts again during DOMContentLoaded to catch any scripts added dynamically
+      unblockGoogleScripts();
+      
       // Defer CSS loading slightly to avoid blocking initial render
       requestAnimationFrame(function() {
         loadConsentStyles();
@@ -1240,6 +1215,9 @@
       monitorDynamicScripts();
     });
   } else {
+    // DOM already loaded, unblock Google scripts immediately
+    unblockGoogleScripts();
+    
     // Defer CSS loading slightly to avoid blocking initial render
     requestAnimationFrame(function() {
       loadConsentStyles();
