@@ -68,6 +68,96 @@
     });
   }
 
+  // Global function to check if a script is a Google script
+  function isGoogleScript(script) {
+    if (!script) return false;
+    
+    // Check external scripts by src
+    if (script.src) {
+      return (
+        script.src.includes('googletagmanager.com') ||
+        script.src.includes('google-analytics.com') ||
+        script.src.includes('googleapis.com') ||
+        script.src.includes('gstatic.com') ||
+        script.src.includes('gtag') ||
+        script.src.includes('analytics.js') ||
+        script.src.includes('ga.js') ||
+        script.src.includes('google.com/recaptcha') ||
+        script.src.includes('maps.googleapis.com')
+      );
+    }
+    
+    // Check inline scripts by content
+    if (script.innerHTML) {
+      return (
+        script.innerHTML.includes('googletagmanager') ||
+        script.innerHTML.includes('google-analytics') ||
+        script.innerHTML.includes('gtag') ||
+        script.innerHTML.includes('dataLayer') ||
+        script.innerHTML.includes('GoogleAnalytics')
+      );
+    }
+    
+    return false;
+  }
+
+  // CRITICAL: Ensure Google scripts are always unblocked (even if they have type="text/plain" or data-category)
+  function unblockGoogleScripts() {
+    // Find all Google scripts (including those with type="text/plain" or data-category)
+    const allScripts = document.head.querySelectorAll('script');
+    allScripts.forEach(function(script) {
+      if (isGoogleScript(script)) {
+        // If script has type="text/plain", unblock it
+        if (script.type === 'text/plain') {
+          if (script.src) {
+            // For external scripts, create new script element to force reload
+            try {
+              const existingScript = document.querySelector(`script[src="${script.src}"][type="text/javascript"]`);
+              if (existingScript) {
+                script.remove();
+                return;
+              }
+              
+              const newScript = document.createElement('script');
+              for (let attr of script.attributes) {
+                if (attr.name !== 'type' && 
+                    attr.name !== 'data-blocked-by-consent' && 
+                    attr.name !== 'data-blocked-by-ccpa' &&
+                    attr.name !== 'data-blocked-by-targeted-advertising' &&
+                    attr.name !== 'data-blocked-by-sale') {
+                  newScript.setAttribute(attr.name, attr.value);
+                }
+              }
+              newScript.type = 'text/javascript';
+              newScript.onload = function() {
+                ensureGtagInitialization();
+              };
+              script.parentNode.insertBefore(newScript, script);
+              script.remove();
+            } catch (error) {
+              // Fallback: just change type if creating new script fails
+              script.type = 'text/javascript';
+            }
+          } else {
+            // For inline scripts, just change type
+            script.type = 'text/javascript';
+          }
+        } else if (!script.type || script.type === 'text/javascript') {
+          // Ensure Google scripts don't have blocking attributes
+          script.removeAttribute('data-blocked-by-consent');
+          script.removeAttribute('data-blocked-by-ccpa');
+          script.removeAttribute('data-blocked-by-targeted-advertising');
+          script.removeAttribute('data-blocked-by-sale');
+        }
+        
+        // Remove data-category attribute from Google scripts (they use Consent Mode, not category blocking)
+        if (script.hasAttribute('data-category')) {
+          script.removeAttribute('data-category');
+        }
+      }
+    });
+  }
+
   function ensureGtagInitialization() {
     window.dataLayer = window.dataLayer || [];
     
@@ -135,20 +225,15 @@
   function blockScriptsByCategory() {
     removeDuplicateScripts();
     
+    // CRITICAL: First, ensure all Google scripts are unblocked
+    unblockGoogleScripts();
+    
     var scripts = document.head.querySelectorAll('script[data-category]');
     scripts.forEach(function (script) {
       // CRITICAL: Never block Google Tag Manager/Google Analytics scripts
       // Even if they have data-category attribute, they use Consent Mode
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
       // Skip Google scripts - they're controlled by Consent Mode, not script blocking
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Exit early for Google scripts - don't process them
       }
       
@@ -174,16 +259,23 @@
     });
   }
   function enableAllScriptsWithDataCategory() {
+    // CRITICAL: First, ensure all Google scripts are unblocked
+    unblockGoogleScripts();
+    
     // Enable all scripts with data-category attribute (including Google scripts)
     var scripts = document.head.querySelectorAll('script[data-category]');
     var blockedScripts = [];
     
     scripts.forEach(function (script) {
+      // Skip Google scripts - they're already handled by unblockGoogleScripts()
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
+      
       var isBlocked = script.type === 'text/plain' || 
                      script.hasAttribute('data-blocked-by-consent') || 
                      script.hasAttribute('data-blocked-by-ccpa');
       
-      // Include Google scripts if they're blocked (they shouldn't be, but just in case)
       if (isBlocked) {
         blockedScripts.push(script);
       }
@@ -238,15 +330,12 @@
     // Change type from text/plain to text/javascript and remove blocking attributes
     var allBlockedScripts = document.head.querySelectorAll('script[type="text/plain"]');
     allBlockedScripts.forEach(function (script) {
+      // Google scripts are already handled by unblockGoogleScripts(), but unblock them here too for safety
       // Check if this is a Google script (should not have been blocked, but just in case)
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
+      if (isGoogleScript(script)) {
+        // Google scripts are already unblocked, but ensure they're not in the blocking list
+        return;
+      }
       // Unblock all scripts (including Google scripts)
       if (script.src) {
         // For external scripts, create new script element to force reload
@@ -301,11 +390,18 @@
     setTimeout(ensureGtagInitialization, 100);
   }
   function enableScriptsByCategories(allowedCategories) {
+    // CRITICAL: First, ensure all Google scripts are unblocked
+    unblockGoogleScripts();
+    
     // Enable scripts based on categories (including Google scripts) in head section only
     var scripts = document.head.querySelectorAll('script[data-category]');
     var scriptsToEnable = [];
     
     scripts.forEach(function (script) {
+      // Skip Google scripts - they're already handled by unblockGoogleScripts()
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
       var category = script.getAttribute('data-category');
       if (category) {
         var categories = category.split(',').map(function (cat) { return cat.trim().toLowerCase(); });
@@ -763,20 +859,12 @@
   function showCCPABanner() {
     hideBanner(document.getElementById("consent-banner"));
     showBanner(document.getElementById("initial-consent-banner"));
-    // Set up hover underline for elements in the CCPA banner
-    setTimeout(function() {
-      setupHoverUnderline();
-    }, 100);
   }
   
   // Show GDPR banner  
   function showGDPRBanner() {
     hideBanner(document.getElementById("initial-consent-banner"));
     showBanner(document.getElementById("consent-banner"));
-    // Set up hover underline for elements in the GDPR banner
-    setTimeout(function() {
-      setupHoverUnderline();
-    }, 100);
   }
   
   // Server-side location detection functions removed - using direct server detection only
@@ -1061,16 +1149,14 @@
 
             // CRITICAL: Never block Google Tag Manager/Google Analytics scripts
             // Even if they have data-category attribute, they use Consent Mode
-            var isGoogleScript = node.src && (
-              node.src.includes('googletagmanager.com') ||
-              node.src.includes('google-analytics.com') ||
-              node.src.includes('gtag') ||
-              node.src.includes('analytics.js') ||
-              node.src.includes('ga.js')
-            );
-            
-            // Skip Google scripts - they're controlled by Consent Mode, not script blocking
-            if (isGoogleScript) {
+            // If it's a Google script, ensure it's unblocked immediately
+            if (isGoogleScript(node)) {
+              if (node.type === 'text/plain') {
+                node.type = 'text/javascript';
+              }
+              node.removeAttribute('data-blocked-by-consent');
+              node.removeAttribute('data-blocked-by-ccpa');
+              node.removeAttribute('data-category');
               return; // Exit early for Google scripts - don't block them
             }
 
@@ -1199,6 +1285,9 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function () {
+    // CRITICAL: First, ensure all Google scripts are unblocked (even if they have type="text/plain" or data-category)
+    unblockGoogleScripts();
+    
     // Set up toggle consent button IMMEDIATELY (no async delays)
     // Check staging status synchronously first
     const isStaging = isStagingHostname();
@@ -1249,23 +1338,23 @@
     // Preferences button (show preferences panel)
     const preferencesBtn = document.getElementById('preferences-btn');
     if (preferencesBtn) {
-      preferencesBtn.onclick = async function (e) {
+      preferencesBtn.onclick = function (e) {
         e.preventDefault();
-        // IMMEDIATE UI RESPONSE
-        hideBanner(document.getElementById("consent-banner"));
-        showBanner(document.getElementById("main-banner"));
+        e.stopPropagation();
+        // IMMEDIATE UI RESPONSE - synchronous
+        const consentBanner = document.getElementById("consent-banner");
+        const mainBanner = document.getElementById("main-banner");
+        if (consentBanner) hideBanner(consentBanner);
+        if (mainBanner) showBanner(mainBanner);
         
-        // Set up hover underline for elements in the preferences banner
+        // Background operations (non-blocking)
         setTimeout(function() {
-          setupHoverUnderline();
-        }, 100);
-        
-        // Background preference loading
-        getConsentPreferences().then(preferences => {
-          updatePreferenceForm(preferences);
-        }).catch(error => {
-          // Silent error handling
-        });
+          getConsentPreferences().then(preferences => {
+            updatePreferenceForm(preferences);
+          }).catch(error => {
+            // Silent error handling
+          });
+        }, 0);
       };
     }
 
@@ -1455,10 +1544,11 @@
     // Accept all
     const acceptBtn = document.getElementById('accept-btn');
     if (acceptBtn) {
-      acceptBtn.onclick = async function (e) {
+      acceptBtn.onclick = function (e) {
         e.preventDefault();
+        e.stopPropagation();
         
-        // IMMEDIATE UI RESPONSE: Hide banners and update UI first
+        // IMMEDIATE UI RESPONSE: Hide banners synchronously
         hideBanner(document.getElementById("consent-banner"));
         hideBanner(document.getElementById("initial-consent-banner"));
         hideBanner(document.getElementById("main-banner"));
@@ -1466,35 +1556,38 @@
         hideBanner(document.getElementById("simple-consent-banner"));
         localStorage.setItem("_cb_cg_", "true");
         
-        // Enable scripts immediately for better UX
-        enableAllScriptsWithDataCategory();
-        
-        // Background API calls (non-blocking)
-        const preferences = { 
-          analytics: true, 
-          marketing: true, 
-          personalization: true, 
-          doNotShare: false, 
-          action: 'acceptance', 
-          bannerType: locationData ? locationData.bannerType : undefined 
-        };
-        
-        // Do heavy operations in background
-        Promise.all([
-          setConsentState(preferences, cookieDays),
-          saveConsentStateToServer(preferences, cookieDays, true)
-        ]).catch(error => {
-        });
+        // Background operations (non-blocking)
+        setTimeout(function() {
+          // Enable scripts immediately for better UX
+          enableAllScriptsWithDataCategory();
+          
+          const preferences = { 
+            analytics: true, 
+            marketing: true, 
+            personalization: true, 
+            doNotShare: false, 
+            action: 'acceptance', 
+            bannerType: locationData ? locationData.bannerType : undefined 
+          };
+          
+          // Do heavy operations in background
+          Promise.all([
+            setConsentState(preferences, cookieDays),
+            saveConsentStateToServer(preferences, cookieDays, true)
+          ]).catch(error => {
+          });
+        }, 0);
       };
     }
 
     // Reject all
     const declineBtn = document.getElementById('decline-btn');
     if (declineBtn) {
-      declineBtn.onclick = async function (e) {
+      declineBtn.onclick = function (e) {
         e.preventDefault();
+        e.stopPropagation();
         
-        // IMMEDIATE UI RESPONSE: Hide banners and update UI first
+        // IMMEDIATE UI RESPONSE: Hide banners synchronously
         hideBanner(document.getElementById("consent-banner"));
         hideBanner(document.getElementById("initial-consent-banner"));
         hideBanner(document.getElementById("main-banner"));
@@ -1513,82 +1606,76 @@
         };
         updateGtagConsent(preferences);
         
-        // Block scripts with data-category immediately
-        blockScriptsByCategory();
-        
-        // Only block scripts with data-category attribute (except Google scripts)
-        // Scripts without data-category are allowed to run (functionality scripts)
-        var allScripts = document.head.querySelectorAll('script[src]');
-        allScripts.forEach(function (script) {
-          // Check if this is a Google Tag Manager or Google Analytics script
-          var isGoogleScript = script.src && (
-            script.src.includes('googletagmanager.com') ||
-            script.src.includes('google-analytics.com') ||
-            script.src.includes('gtag') ||
-            script.src.includes('analytics.js') ||
-            script.src.includes('ga.js')
-          );
+        // Background operations (non-blocking)
+        setTimeout(function() {
+          // Block scripts with data-category immediately
+          blockScriptsByCategory();
           
-          // Skip Google scripts (they use Consent Mode)
-          if (isGoogleScript) {
-            return;
-          }
+          // Only block scripts with data-category attribute (except Google scripts)
+          // Scripts without data-category are allowed to run (functionality scripts)
+          var allScripts = document.head.querySelectorAll('script[src]');
+          allScripts.forEach(function (script) {
+            // Skip Google scripts (they use Consent Mode)
+            if (isGoogleScript(script)) {
+              return;
+            }
+            
+            // Only block scripts with data-category attribute (already handled by blockScriptsByCategory)
+            // Scripts without data-category are allowed (functionality scripts)
+            // No need to block them here - blockScriptsByCategory handles data-category scripts
+          });
           
-          // Only block scripts with data-category attribute (already handled by blockScriptsByCategory)
-          // Scripts without data-category are allowed (functionality scripts)
-          // No need to block them here - blockScriptsByCategory handles data-category scripts
-        });
-        
-        // Block inline scripts in head section (only if they have data-category)
-        var inlineScripts = document.head.querySelectorAll('script:not([src])');
-        inlineScripts.forEach(function (script) {
-          if (!script.innerHTML) return;
+          // Block inline scripts in head section (only if they have data-category)
+          var inlineScripts = document.head.querySelectorAll('script:not([src])');
+          inlineScripts.forEach(function (script) {
+            if (!script.innerHTML) return;
+            
+            // Don't block dataLayer initialization or gtag consent commands
+            var isGoogleConsentScript = script.innerHTML && (
+              script.innerHTML.includes('dataLayer') ||
+              script.innerHTML.includes('gtag') ||
+              script.innerHTML.includes('googletagmanager')
+            );
+            
+            if (isGoogleConsentScript) {
+              return; // Skip Google consent scripts
+            }
+            
+            // Only block if script has data-category attribute (handled by blockScriptsByCategory)
+            // Scripts without data-category are allowed (functionality scripts)
+          });
           
-          // Don't block dataLayer initialization or gtag consent commands
-          var isGoogleConsentScript = script.innerHTML && (
-            script.innerHTML.includes('dataLayer') ||
-            script.innerHTML.includes('gtag') ||
-            script.innerHTML.includes('googletagmanager')
-          );
-          
-          if (isGoogleConsentScript) {
-            return; // Skip Google consent scripts
-          }
-          
-          // Only block if script has data-category attribute (handled by blockScriptsByCategory)
-          // Scripts without data-category are allowed (functionality scripts)
-        });
-        
-        // Background operations (saving cookies, server calls, etc.)
-        Promise.all([
-          setConsentState(preferences, cookieDays),
-          saveConsentStateToServer(preferences, cookieDays, false)
-        ]).catch(error => {
-        });
+          // Background operations (saving cookies, server calls, etc.)
+          Promise.all([
+            setConsentState(preferences, cookieDays),
+            saveConsentStateToServer(preferences, cookieDays, false)
+          ]).catch(error => {
+          });
+        }, 0);
       };
     }
 
     // Do Not Share (CCPA)
     const doNotShareBtn = document.getElementById('do-not-share-link');
     if (doNotShareBtn) {
-      doNotShareBtn.onclick = async function (e) {
+      doNotShareBtn.onclick = function (e) {
         e.preventDefault();
+        e.stopPropagation();
 
-       
+        // IMMEDIATE UI RESPONSE - synchronous
         hideBanner(document.getElementById("initial-consent-banner"));
-        // Show main consent banner with force
         const mainBanner = document.getElementById('main-consent-banner');
         if (mainBanner) {
           showBanner(mainBanner);
           
-          // Set up hover underline for elements in the CCPA preference banner
+          // Background operations (non-blocking)
           setTimeout(function() {
-            setupHoverUnderline();
-          }, 100);
-
-          // Update CCPA preference form with saved preferences
-          const preferences = await getConsentPreferences();
-          updateCCPAPreferenceForm(preferences);
+            getConsentPreferences().then(preferences => {
+              updateCCPAPreferenceForm(preferences);
+            }).catch(error => {
+              // Silent error handling
+            });
+          }, 0);
         }
       };
     }
@@ -1634,9 +1721,8 @@
               blockCrossContextBehavioralAdvertising();
               blockAutomatedDecisionScripts();
             } else {
-              // CCPA - block all scripts  
+              // CCPA - block all scripts with data-category attribute
               blockScriptsWithDataCategory();
-              blockNonGoogleScripts();
             }
           } else {
             // Checkbox unchecked means "Allow" - unblock all scripts
@@ -1904,42 +1990,71 @@
           e.preventDefault();
           e.stopPropagation();
 
-          // Find the currently visible banner by checking all possible banner elements
-          const banners = [
-            document.getElementById("consent-banner"),
-            document.getElementById("initial-consent-banner"),
-            document.getElementById("main-banner"),
-            document.getElementById("main-consent-banner"),
-            document.getElementById("simple-consent-banner"),
-            document.querySelector('.consentbit-ccpa-banner-div'),
-            document.querySelector('.consentbit-ccpa_preference'),
-            document.querySelector('.consentbit-gdpr-banner-div'),
-            document.querySelector('.consentbit-preference_div'),
+          // IMMEDIATE RESPONSE: Find and hide the currently visible banner synchronously
+          // Check banners in order of likelihood for faster response
+          const bannerIds = [
+            "consent-banner",
+            "initial-consent-banner", 
+            "main-banner",
+            "main-consent-banner",
+            "simple-consent-banner"
           ];
-
-          // Find the currently visible banner
+          
           let activeBanner = null;
-          banners.forEach(function (banner) {
-            if (banner && window.getComputedStyle(banner).display !== 'none' &&
-              window.getComputedStyle(banner).visibility !== 'hidden' &&
-              window.getComputedStyle(banner).opacity !== '0') {
-              
-              // Special case: If consentbit-preference_div is visible, prioritize its parent main-banner
-              if (banner.classList.contains('consentbit-preference_div')) {
-                const mainBanner = document.getElementById('main-banner');
-                if (mainBanner && window.getComputedStyle(mainBanner).display !== 'none' &&
-                  window.getComputedStyle(mainBanner).visibility !== 'hidden' &&
-                  window.getComputedStyle(mainBanner).opacity !== '0') {
-                  activeBanner = mainBanner; // Use parent main-banner instead
-                  return;
+          
+          // First check by ID (faster)
+          for (let i = 0; i < bannerIds.length; i++) {
+            const banner = document.getElementById(bannerIds[i]);
+            if (banner) {
+              const style = window.getComputedStyle(banner);
+              if (style.display !== 'none' && 
+                  style.visibility !== 'hidden' && 
+                  style.opacity !== '0') {
+                activeBanner = banner;
+                break;
+              }
+            }
+          }
+          
+          // If not found by ID, check by class (slower, but needed for some banners)
+          if (!activeBanner) {
+            const classSelectors = [
+              '.consentbit-ccpa-banner-div',
+              '.consentbit-ccpa_preference',
+              '.consentbit-gdpr-banner-div',
+              '.consentbit-preference_div'
+            ];
+            
+            for (let i = 0; i < classSelectors.length; i++) {
+              const banner = document.querySelector(classSelectors[i]);
+              if (banner) {
+                const style = window.getComputedStyle(banner);
+                if (style.display !== 'none' && 
+                    style.visibility !== 'hidden' && 
+                    style.opacity !== '0') {
+                  
+                  // Special case: If consentbit-preference_div is visible, prioritize its parent main-banner
+                  if (banner.classList.contains('consentbit-preference_div')) {
+                    const mainBanner = document.getElementById('main-banner');
+                    if (mainBanner) {
+                      const mainStyle = window.getComputedStyle(mainBanner);
+                      if (mainStyle.display !== 'none' &&
+                          mainStyle.visibility !== 'hidden' &&
+                          mainStyle.opacity !== '0') {
+                        activeBanner = mainBanner;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  activeBanner = banner;
+                  break;
                 }
               }
-              
-              activeBanner = banner;
             }
-          });
+          }
           
-          // Hide the currently active banner
+          // Hide the banner immediately (synchronous)
           if (activeBanner) {
             hideBanner(activeBanner);
           }
@@ -2019,24 +2134,28 @@
           const allBannersValue = allBannersElement ? allBannersElement.getAttribute('data-all-banners') : null;
           
           if (allBannersValue === 'false') {
-            // Force GDPR banner when data-all-banners=false
+            // Force GDPR banner when data-all-banners=false (display immediately, no location detection needed)
             showGDPRBanner();
           } else {
-            // Check if locationData indicates any US privacy law banner or US country
-            if (locationData && (locationData?.bannerType === "CCPA" || locationData?.bannerType === "VCDPA" || locationData?.bannerType === "CPA" || locationData?.bannerType === "CTDPA" || locationData?.bannerType === "UCPA" || locationData?.country === "US")) {
-              // Show the CCPA banner with ID "main-consent-banner"
-              const ccpaBanner = document.getElementById("main-consent-banner");
-              if (ccpaBanner) {
-                showBanner(ccpaBanner);
-                // Set up hover underline for elements in the CCPA preference banner
-                setTimeout(function() {
-                  setupHoverUnderline();
-                }, 100);
-                const preferences = await getConsentPreferences();
-                updateCCPAPreferenceForm(preferences);
+            // When data-all-banners="true" or missing, ALWAYS wait for location detection before displaying banner
+            const currentLocationData = await detectLocationAndGetBannerType();
+            
+            if (currentLocationData && currentLocationData.bannerType) {
+              // Display appropriate banner based on detected location
+              if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(currentLocationData.bannerType) || currentLocationData.country === "US") {
+                // Show the CCPA banner with ID "main-consent-banner"
+                const ccpaBanner = document.getElementById("main-consent-banner");
+                if (ccpaBanner) {
+                  showBanner(ccpaBanner);
+                  const preferences = await getConsentPreferences();
+                  updateCCPAPreferenceForm(preferences);
+                }
+              } else {
+                // Show GDPR banner for other locations
+                showGDPRBanner();
               }
             } else {
-              // Show GDPR banner for other locations
+              // Fallback to GDPR if location detection fails
               showGDPRBanner();
             }
           }
@@ -2044,41 +2163,10 @@
       });
     }
 
-    // Function to set up hover underline for elements with data-hover-underline="true"
-    function setupHoverUnderline() {
-      const hoverUnderlineElements = document.querySelectorAll('[data-hover-underline="true"]');
-      hoverUnderlineElements.forEach(function (element) {
-        // Check if handler already attached (to avoid duplicates)
-        if (element.hasAttribute('data-hover-underline-handler-attached')) {
-          return;
-        }
-        
-        // Mark as handled
-        element.setAttribute('data-hover-underline-handler-attached', 'true');
-        
-        // Store original text-decoration to restore it properly
-        const originalTextDecoration = window.getComputedStyle(element).textDecoration;
-        
-        // Add hover effect using inline style with !important to override CSS
-        element.addEventListener('mouseenter', function() {
-          element.style.setProperty('text-decoration', 'underline', 'important');
-        });
-        
-        element.addEventListener('mouseleave', function() {
-          // Restore original or remove if it was none
-          if (originalTextDecoration && originalTextDecoration !== 'none') {
-            element.style.setProperty('text-decoration', originalTextDecoration, 'important');
-          } else {
-            element.style.removeProperty('text-decoration');
-          }
-        });
-      });
-    }
 
     // Set up close buttons and do not share links when DOM is ready
     setupConsentbitCloseButtons();
     setupDoNotShareLinks();
-    setupHoverUnderline();
 
     // Monitor for dynamically added close buttons and do not share links
     const closeButtonObserver = new MutationObserver(function (mutations) {
@@ -2104,15 +2192,6 @@
               setupDoNotShareLinks();
             }
             
-            // Check if the added node has data-hover-underline="true"
-            if (node.hasAttribute && node.hasAttribute('data-hover-underline') && node.getAttribute('data-hover-underline') === 'true') {
-              setupHoverUnderline();
-            }
-            // Check if any child elements have data-hover-underline="true"
-            const hoverUnderlineElements = node.querySelectorAll && node.querySelectorAll('[data-hover-underline="true"]');
-            if (hoverUnderlineElements && hoverUnderlineElements.length > 0) {
-              setupHoverUnderline();
-            }
 
           }
         });
@@ -2209,12 +2288,19 @@
           // US Privacy Laws: Ensure all scripts are unblocked initially (opt-out model)
           // For CCPA, scripts should start as text/javascript, not text/plain
           
+          // CRITICAL: First, ensure all Google scripts are unblocked
+          unblockGoogleScripts();
+          
           // First remove any duplicate scripts
           removeDuplicateScripts();
           
           var allBlockedScripts = document.head.querySelectorAll('script[type="text/plain"][data-category]');
         
         allBlockedScripts.forEach(function (script) {
+          // Skip Google scripts - they're already handled by unblockGoogleScripts()
+          if (isGoogleScript(script)) {
+            return; // Skip Google scripts
+          }
           // Re-execute the script if it has a src attribute
           if (script.src) {
             try {
@@ -2258,6 +2344,10 @@
         // Also unblock any scripts that might have been blocked by initial blocking
         var allBlockedScripts2 = document.head.querySelectorAll('script[type="text/plain"]');
         allBlockedScripts2.forEach(function (script) {
+          // Skip Google scripts - they're already handled by unblockGoogleScripts()
+          if (isGoogleScript(script)) {
+            return; // Skip Google scripts
+          }
           // Re-execute the script if it has a src attribute
           if (script.src) {
             try {
@@ -2330,9 +2420,17 @@
 
   // --- CCPA-specific script handling functions ---
   function unblockScriptsWithDataCategory() {
+    // CRITICAL: First, ensure all Google scripts are unblocked
+    unblockGoogleScripts();
+    
     // CCPA: Unblock ALL scripts with data-category attribute (including Google scripts) in head section only
     var scripts = document.head.querySelectorAll('script[type="text/plain"][data-category]');
     scripts.forEach(function (script) {
+      // Skip Google scripts - they're already handled by unblockGoogleScripts()
+      if (isGoogleScript(script)) {
+        return; // Skip Google scripts
+      }
+      
       // Re-execute the script if it has a src attribute
       if (script.src) {
         try {
@@ -2386,21 +2484,16 @@
   }
 
   function blockScriptsWithDataCategory() {
+    // CRITICAL: First, ensure all Google scripts are unblocked
+    unblockGoogleScripts();
+    
     // CCPA: Block ALL scripts with data-category attribute (except Google scripts) in head section only
     var scripts = document.head.querySelectorAll('script[data-category]');
     scripts.forEach(function (script) {
       // CRITICAL: Never block Google Tag Manager/Google Analytics scripts
       // Even if they have data-category attribute, they use Consent Mode
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
       // Skip Google scripts - they're controlled by Consent Mode, not script blocking
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Exit early for Google scripts - don't block them
       }
       
@@ -2482,14 +2575,6 @@
     }
   }
 
-  function blockNonGoogleScripts() {
-    // DEPRECATED: This function should not be used anymore
-    // Only block scripts with data-category attribute (handled by blockScriptsByCategory)
-    // Scripts without data-category are functionality scripts and should always be allowed
-    // This function is kept for backward compatibility but does nothing
-    return;
-  }
-
   function blockTargetedAdvertisingScripts() {
     // Only block scripts with data-category attribute
     const targetedAdvertisingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|doubleclick|adwords|adsense|adservice|pixel|quantserve|scorecardresearch|moat|integral-marketing|comscore|nielsen|quantcast|adobe/i;
@@ -2497,15 +2582,7 @@
     const scripts = document.head.querySelectorAll('script[src][data-category]');
     scripts.forEach(script => {
       // CRITICAL: Never block Google scripts even if they match pattern
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Skip Google scripts
       }
       
@@ -2525,15 +2602,7 @@
     const scripts = document.head.querySelectorAll('script[src][data-category]');
     scripts.forEach(script => {
       // CRITICAL: Never block Google scripts even if they match pattern
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Skip Google scripts
       }
       
@@ -2553,15 +2622,7 @@
     const scripts = document.head.querySelectorAll('script[src][data-category]');
     scripts.forEach(script => {
       // CRITICAL: Never block Google scripts even if they match pattern
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Skip Google scripts
       }
       
@@ -2581,15 +2642,7 @@
     const scripts = document.head.querySelectorAll('script[src][data-category]');
     scripts.forEach(script => {
       // CRITICAL: Never block Google scripts even if they match pattern
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Skip Google scripts
       }
       
@@ -2609,15 +2662,7 @@
     const scripts = document.head.querySelectorAll('script[src][data-category]');
     scripts.forEach(script => {
       // CRITICAL: Never block Google scripts even if they match pattern
-      var isGoogleScript = script.src && (
-        script.src.includes('googletagmanager.com') ||
-        script.src.includes('google-analytics.com') ||
-        script.src.includes('gtag') ||
-        script.src.includes('analytics.js') ||
-        script.src.includes('ga.js')
-      );
-      
-      if (isGoogleScript) {
+      if (isGoogleScript(script)) {
         return; // Skip Google scripts
       }
       
