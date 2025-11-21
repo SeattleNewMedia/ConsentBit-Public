@@ -1865,32 +1865,22 @@
       };
     }
 
-    // Cancel button (go back to main banner)
-    const cancelBtn = document.getElementById('close-consent-banner');
-    if (cancelBtn) {
-      cancelBtn.onclick = async function (e) {
-        e.preventDefault();
-
-        // Always hide main-consent-banner when cancel is clicked
-        const mainConsentBanner = document.getElementById('main-consent-banner');
-        if (mainConsentBanner) {
-          hideBanner(mainConsentBanner);
-        }
-
-        // Show initial banner if it exists
-        const initialConsentBanner = document.getElementById('initial-consent-banner');
-        if (initialConsentBanner) {
-          hideBanner(initialConsentBanner);
-        }
-      };
-    }
-
-    // Universal close button with consentbit="close" attribute
+    // Universal close button handler - handles both consentbit="close" and id="close-consent-banner"
     function setupConsentbitCloseButtons() {
+      // Handle elements with consentbit="close" attribute
       const closeButtons = document.querySelectorAll('[consentbit="close"]');
       closeButtons.forEach(function (closeBtn) {
-        closeBtn.onclick = function (e) {
+        // Check if handler already attached (to avoid duplicates)
+        if (closeBtn.hasAttribute('data-close-handler-attached')) {
+          return;
+        }
+        
+        // Mark as handled
+        closeBtn.setAttribute('data-close-handler-attached', 'true');
+        
+        closeBtn.addEventListener('click', function (e) {
           e.preventDefault();
+          e.stopPropagation();
 
           // Find the currently visible banner by checking all possible banner elements
           const banners = [
@@ -1926,11 +1916,69 @@
               activeBanner = banner;
             }
           });
-                   // Hide the currently active banner
+          
+          // Hide the currently active banner
           if (activeBanner) {
             hideBanner(activeBanner);
           }
-        };
+        }, true);
+      });
+      
+      // Also handle elements with id="close-consent-banner" (handles duplicate IDs)
+      const cancelBtns = document.querySelectorAll('#close-consent-banner');
+      cancelBtns.forEach(function(cancelBtn) {
+        // Skip if already handled above (has consentbit="close")
+        if (cancelBtn.hasAttribute('data-close-handler-attached')) {
+          return;
+        }
+        
+        // Mark as handled
+        cancelBtn.setAttribute('data-close-handler-attached', 'true');
+        
+        cancelBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Find the currently visible banner by checking all possible banner elements
+          const banners = [
+            document.getElementById("consent-banner"),
+            document.getElementById("initial-consent-banner"),
+            document.getElementById("main-banner"),
+            document.getElementById("main-consent-banner"),
+            document.getElementById("simple-consent-banner"),
+            document.querySelector('.consentbit-ccpa-banner-div'),
+            document.querySelector('.consentbit-ccpa_preference'),
+            document.querySelector('.consentbit-gdpr-banner-div'),
+            document.querySelector('.consentbit-preference_div'),
+          ];
+
+          // Find the currently visible banner
+          let activeBanner = null;
+          banners.forEach(function (banner) {
+            if (banner && window.getComputedStyle(banner).display !== 'none' &&
+              window.getComputedStyle(banner).visibility !== 'hidden' &&
+              window.getComputedStyle(banner).opacity !== '0') {
+              
+              // Special case: If consentbit-preference_div is visible, prioritize its parent main-banner
+              if (banner.classList.contains('consentbit-preference_div')) {
+                const mainBanner = document.getElementById('main-banner');
+                if (mainBanner && window.getComputedStyle(mainBanner).display !== 'none' &&
+                  window.getComputedStyle(mainBanner).visibility !== 'hidden' &&
+                  window.getComputedStyle(mainBanner).opacity !== '0') {
+                  activeBanner = mainBanner; // Use parent main-banner instead
+                  return;
+                }
+              }
+              
+              activeBanner = banner;
+            }
+          });
+          
+          // Hide the currently active banner
+          if (activeBanner) {
+            hideBanner(activeBanner);
+          }
+        }, true);
       });
     }
 
@@ -1979,12 +2027,16 @@
       mutations.forEach(function (mutation) {
         mutation.addedNodes.forEach(function (node) {
           if (node.nodeType === 1) {
-            // Check if the added node is a close button
+            // Check if the added node is a close button (consentbit="close" or id="close-consent-banner")
             if (node.hasAttribute && node.hasAttribute('consentbit') && node.getAttribute('consentbit') === 'close') {
               setupConsentbitCloseButtons();
             }
+            // Check if the added node has id="close-consent-banner"
+            if (node.id === 'close-consent-banner') {
+              setupConsentbitCloseButtons();
+            }
             // Check if any child elements are close buttons
-            const closeButtons = node.querySelectorAll && node.querySelectorAll('[consentbit="close"]');
+            const closeButtons = node.querySelectorAll && node.querySelectorAll('[consentbit="close"], #close-consent-banner');
             if (closeButtons && closeButtons.length > 0) {
               setupConsentbitCloseButtons();
             }
