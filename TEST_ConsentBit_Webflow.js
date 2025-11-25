@@ -105,26 +105,29 @@
       return false;
     }
   
-    // CRITICAL: Ensure Google scripts with type="text/plain" are always unblocked
+    // CRITICAL: Ensure Google scripts are always unblocked
+    // Google scripts use Consent Mode, not category-based blocking
+    // Keep data-category attribute on Google scripts (don't remove it, just ignore it for blocking)
     function unblockGoogleScripts() {
-      // Find all Google scripts in head section that have type="text/plain"
+      // Find all Google scripts in head section
       const headScripts = document.head.querySelectorAll('script');
       headScripts.forEach(function(script) {
-        // Only process Google scripts that have type="text/plain" attribute
-        if (isGoogleScript(script) && script.type === 'text/plain') {
-          // Remove type="text/plain" attribute to allow script to execute
-          script.removeAttribute('type');
+        if (isGoogleScript(script)) {
+          // If Google script has type="text/plain", unblock it
+          if (script.type === 'text/plain') {
+            // Remove type="text/plain" attribute to allow script to execute
+            script.removeAttribute('type');
+          }
           
-          // Remove blocking attributes
+          // Remove blocking attributes (regardless of type)
           script.removeAttribute('data-blocked-by-consent');
           script.removeAttribute('data-blocked-by-ccpa');
           script.removeAttribute('data-blocked-by-targeted-advertising');
           script.removeAttribute('data-blocked-by-sale');
           
-          // Remove data-category attribute from Google scripts (they use Consent Mode, not category blocking)
-          if (script.hasAttribute('data-category')) {
-            script.removeAttribute('data-category');
-          }
+          // DO NOT remove data-category attribute from Google scripts
+          // Keep it as is - we just ignore it for blocking/unblocking purposes
+          // Google scripts are controlled by Consent Mode, not by data-category blocking
         }
       });
     }
@@ -466,13 +469,38 @@
     }
     function updateGtagConsent(preferences) {
       if (typeof gtag === "function") {
+        // Handle CCPA preferences (doNotShare/doNotSell) vs GDPR preferences (analytics/marketing/personalization)
+        let analyticsStorage = 'denied';
+        let adStorage = 'denied';
+        let adPersonalization = 'denied';
+        let adUserData = 'denied';
+        let personalizationStorage = 'denied';
+        
+        if (preferences.hasOwnProperty('doNotShare') || preferences.hasOwnProperty('doNotSell')) {
+          // CCPA mode: If doNotShare is false, grant all consent
+          // If doNotShare is true, deny all consent
+          const allowTracking = !preferences.doNotShare;
+          analyticsStorage = allowTracking ? 'granted' : 'denied';
+          adStorage = allowTracking ? 'granted' : 'denied';
+          adPersonalization = allowTracking ? 'granted' : 'denied';
+          adUserData = allowTracking ? 'granted' : 'denied';
+          personalizationStorage = allowTracking ? 'granted' : 'denied';
+        } else {
+          // GDPR mode: Use individual category preferences
+          analyticsStorage = preferences.analytics ? 'granted' : 'denied';
+          adStorage = preferences.marketing ? 'granted' : 'denied';
+          adPersonalization = preferences.marketing ? 'granted' : 'denied';
+          adUserData = preferences.marketing ? 'granted' : 'denied';
+          personalizationStorage = preferences.personalization ? 'granted' : 'denied';
+        }
+        
         gtag('consent', 'update', {
-          'analytics_storage': preferences.analytics ? 'granted' : 'denied',
+          'analytics_storage': analyticsStorage,
           'functionality_storage': 'granted',
-          'ad_storage': preferences.marketing ? 'granted' : 'denied',
-          'ad_personalization': preferences.marketing ? 'granted' : 'denied',
-          'ad_user_data': preferences.marketing ? 'granted' : 'denied',
-          'personalization_storage': preferences.personalization ? 'granted' : 'denied',
+          'ad_storage': adStorage,
+          'ad_personalization': adPersonalization,
+          'ad_user_data': adUserData,
+          'personalization_storage': personalizationStorage,
           'security_storage': 'granted'
         });
       }
@@ -481,9 +509,10 @@
       if (typeof window.dataLayer !== 'undefined') {
         window.dataLayer.push({
           'event': 'consent_update',
-          'consent_analytics': preferences.analytics,
-          'consent_marketing': preferences.marketing,
-          'consent_personalization': preferences.personalization
+          'consent_analytics': preferences.analytics !== undefined ? preferences.analytics : (!preferences.doNotShare),
+          'consent_marketing': preferences.marketing !== undefined ? preferences.marketing : (!preferences.doNotShare),
+          'consent_personalization': preferences.personalization !== undefined ? preferences.personalization : (!preferences.doNotShare),
+          'do_not_share': preferences.doNotShare !== undefined ? preferences.doNotShare : false
         });
       }
     }
@@ -576,8 +605,21 @@
         
         // Disable scroll only if banner has data-cookie-banner="true" and scroll-control is enabled
         const scrollControl = document.querySelector('[scroll-control="true"]');
-        if (scrollControl && banner.hasAttribute('data-cookie-banner') && banner.getAttribute('data-cookie-banner') === 'true') {
-          document.body.style.overflow = "hidden";
+        if (scrollControl) {
+          // Check the banner element directly - if it has an ID, re-query from DOM to ensure latest state
+          let bannerToCheck = banner;
+          if (banner.id) {
+            const domBanner = document.getElementById(banner.id);
+            if (domBanner) {
+              bannerToCheck = domBanner;
+            }
+          }
+          
+          // Check if banner has data-cookie-banner="true" attribute
+          if (bannerToCheck.hasAttribute('data-cookie-banner') && 
+              bannerToCheck.getAttribute('data-cookie-banner') === 'true') {
+            document.body.style.overflow = "hidden";
+          }
         }
       }
     }
@@ -591,13 +633,33 @@
         
         // Re-enable scroll only if banner with data-cookie-banner="true" is hidden
         const scrollControl = document.querySelector('[scroll-control="true"]');
-        if (scrollControl && banner.hasAttribute('data-cookie-banner') && banner.getAttribute('data-cookie-banner') === 'true') {
-          // Check if any banner with data-cookie-banner="true" is still visible
-          const cookieBanner = document.querySelector('[data-cookie-banner="true"]');
-          if (!cookieBanner || window.getComputedStyle(cookieBanner).display === "none" || 
-              window.getComputedStyle(cookieBanner).visibility === "hidden" ||
-              window.getComputedStyle(cookieBanner).opacity === "0") {
-            document.body.style.overflow = "";
+        if (scrollControl) {
+          // Check the banner element directly - if it has an ID, re-query from DOM to ensure latest state
+          let bannerToCheck = banner;
+          if (banner.id) {
+            const domBanner = document.getElementById(banner.id);
+            if (domBanner) {
+              bannerToCheck = domBanner;
+            }
+          }
+          
+          if (bannerToCheck.hasAttribute('data-cookie-banner') && bannerToCheck.getAttribute('data-cookie-banner') === 'true') {
+            // Check if any banner with data-cookie-banner="true" is still visible
+            const cookieBanners = document.querySelectorAll('[data-cookie-banner="true"]');
+            let anyVisible = false;
+            
+            cookieBanners.forEach(function(cookieBanner) {
+              const style = window.getComputedStyle(cookieBanner);
+              if (style.display !== "none" && 
+                  style.visibility !== "hidden" &&
+                  style.opacity !== "0") {
+                anyVisible = true;
+              }
+            });
+            
+            if (!anyVisible) {
+              document.body.style.overflow = "";
+            }
           }
         }
       }
@@ -1344,21 +1406,38 @@
    
     async function disableScrollOnSite(){
       const scrollControl = document.querySelector('[scroll-control="true"]');
-      function toggleScrolling() {
-        const banner = document.querySelector('[data-cookie-banner="true"]');
-        if (!banner) return;
-        const observer = new MutationObserver(() => {
-          const isVisible = window.getComputedStyle(banner).display !== "none";
-          document.body.style.overflow = isVisible ? "hidden" : "";
+      if (!scrollControl) return;
+      
+      function checkAndUpdateScroll() {
+        // Check all banners with data-cookie-banner="true"
+        const cookieBanners = document.querySelectorAll('[data-cookie-banner="true"]');
+        let anyVisible = false;
+        
+        cookieBanners.forEach(function(banner) {
+          const style = window.getComputedStyle(banner);
+          if (style.display !== "none" && 
+              style.visibility !== "hidden" &&
+              style.opacity !== "0") {
+            anyVisible = true;
+          }
         });
-        // Initial check on load
-        const isVisible = window.getComputedStyle(banner).display !== "none";
-        document.body.style.overflow = isVisible ? "hidden" : "";
+        
+        // If any banner with data-cookie-banner="true" is visible, disable scroll
+        // If no banners are visible, enable scroll
+        document.body.style.overflow = anyVisible ? "hidden" : "";
+      }
+      
+      // Set up MutationObserver for all banners with data-cookie-banner="true"
+      const cookieBanners = document.querySelectorAll('[data-cookie-banner="true"]');
+      cookieBanners.forEach(function(banner) {
+        const observer = new MutationObserver(() => {
+          checkAndUpdateScroll();
+        });
         observer.observe(banner, { attributes: true, attributeFilter: ["style", "class"] });
-      }
-      if (scrollControl) {
-        toggleScrolling();
-      }
+      });
+      
+      // Initial check on load
+      checkAndUpdateScroll();
     }
   
     document.addEventListener('DOMContentLoaded', async function () {
@@ -1618,19 +1697,21 @@
           hideBanner(document.getElementById("simple-consent-banner"));
           localStorage.setItem("_cb_cg_", "true");
           
+          // CRITICAL: Update Google Consent Mode IMMEDIATELY and SYNCHRONOUSLY
+          const preferences = { 
+            analytics: true, 
+            marketing: true, 
+            personalization: true, 
+            doNotShare: false, 
+            action: 'acceptance', 
+            bannerType: window.locationData ? window.locationData.bannerType : undefined 
+          };
+          updateGtagConsent(preferences);
+          
           // Background operations (non-blocking)
           setTimeout(function() {
             // Enable scripts immediately for better UX
             enableAllScriptsWithDataCategory();
-            
-            const preferences = { 
-              analytics: true, 
-              marketing: true, 
-              personalization: true, 
-              doNotShare: false, 
-              action: 'acceptance', 
-              bannerType: window.locationData ? window.locationData.bannerType : undefined 
-            };
             
             // Do heavy operations in background
             Promise.all([
@@ -1790,7 +1871,7 @@
         if (ccpaPreferenceAcceptBtn) {
           ccpaPreferenceAcceptBtn.onclick = async function (e) {
             e.preventDefault();
-  
+
             // IMMEDIATE UI RESPONSE: Hide banners first
             hideBanner(document.getElementById("initial-consent-banner"));
             const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
@@ -1798,10 +1879,12 @@
             const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
             hideBanner(ccpaBannerDiv);
             localStorage.setItem("_cb_cg_", "true");
-  
+
             // Read the do-not-share checkbox value
             const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
             let preferences;
+            
+            // CRITICAL: Update Google Consent Mode IMMEDIATELY based on checkbox state
   
             if (doNotShareCheckbox && doNotShareCheckbox.checked) {
               // Checkbox checked means "Do Not Share" - block based on US law type
@@ -1812,7 +1895,10 @@
                 action: 'rejection',
                 bannerType: window.locationData ? window.locationData.bannerType : undefined
               };
-  
+              
+              // CRITICAL: Update Google Consent Mode IMMEDIATELY
+              updateGtagConsent(preferences);
+
               // For CCPA: Disable Webflow Analytics when "Do Not Share" is checked
               localStorage.setItem("_cb_cas_", "false");
               disableWebflowAnalytics();
@@ -1838,6 +1924,9 @@
                 action: 'acceptance',
                 bannerType: window.locationData ? window.locationData.bannerType : undefined
               };
+              
+              // CRITICAL: Update Google Consent Mode IMMEDIATELY
+              updateGtagConsent(preferences);
               
               // For CCPA: Enable Webflow Analytics when "Do Not Share" is unchecked
               localStorage.setItem("_cb_cas_", "true");
@@ -1880,7 +1969,7 @@
         if (ccpaPreferenceDeclineBtn) {
           ccpaPreferenceDeclineBtn.onclick = async function (e) {
             e.preventDefault();
-  
+
             // IMMEDIATE UI RESPONSE: Hide banners and block scripts
             hideBanner(document.getElementById("initial-consent-banner"));
             const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
@@ -1890,17 +1979,18 @@
             localStorage.setItem("_cb_cg_", "true");
             localStorage.setItem("_cb_cas_", "false");
             
-            // Block scripts immediately
-            blockScriptsByCategory();
-            disableWebflowAnalytics();
-  
-            // Background operations
+            // CRITICAL: Update Google Consent Mode IMMEDIATELY
             const preferences = {
               doNotShare: true,
               doNotSell: true,
               action: 'rejection',
               bannerType: window.locationData ? window.locationData.bannerType : undefined
             };
+            updateGtagConsent(preferences);
+            
+            // Block scripts immediately
+            blockScriptsByCategory();
+            disableWebflowAnalytics();
   
             Promise.all([
               setConsentState(preferences, cookieDays),
@@ -1940,6 +2030,9 @@
               };
               includeUserAgent = false; // Restrict userAgent
               
+              // CRITICAL: Update Google Consent Mode IMMEDIATELY
+              updateGtagConsent(preferences);
+              
               // For CCPA: Disable Webflow Analytics when "Do Not Share" is checked
               localStorage.setItem("_cb_cas_", "false");
               disableWebflowAnalytics();
@@ -1953,6 +2046,9 @@
                 bannerType: window.locationData ? window.locationData.bannerType : undefined
               };
               includeUserAgent = true; // Allow userAgent
+              
+              // CRITICAL: Update Google Consent Mode IMMEDIATELY
+              updateGtagConsent(preferences);
               
               // For CCPA: Enable Webflow Analytics when "Do Not Share" is unchecked
               localStorage.setItem("_cb_cas_", "true");
