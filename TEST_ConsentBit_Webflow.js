@@ -850,7 +850,8 @@
       const allBannersValue = hasAllBannersAttribute ? allBannersElement.getAttribute('data-all-banners') : null;
       
       if (hasAllBannersAttribute && allBannersValue === 'false') {
-        // Attribute exists and value is "false" - Show GDPR banner immediately
+        // Attribute exists and value is "false" - ALWAYS show GDPR banner for all locations
+        // Never show CCPA banners when data-all-banners="false"
         showGDPRBanner();
         
         // Detect location in background to get real country data (for consent data)
@@ -874,27 +875,28 @@
             };
           }
         }, 0);
-      } else {
-        // Attribute is "true" or doesn't exist - Check location and show appropriate banner
-        const locationData = await window.getLocationData();
-        const ccpaBanner = document.getElementById("main-consent-banner");
-        const consentBanner = document.getElementById("consent-banner");
-        
-        if (locationData && locationData.bannerType) {
-          if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType) || locationData.country === "US") {
-            if (ccpaBanner) {
-              showBanner(ccpaBanner);
-              setTimeout(async () => {
-                const preferences = await getConsentPreferences();
-                updateCCPAPreferenceForm(preferences);
-              }, 100);
-            }
-          } else if (consentBanner) {
-            showBanner(consentBanner);
-          }
-        }
-        // If location detection fails, don't show any banner
+        return; // Exit early - never show CCPA banners when data-all-banners="false"
       }
+      
+      // Attribute is "true" OR attribute doesn't exist (missing) - Check location and show appropriate banner based on location detection
+      const locationData = await window.getLocationData();
+      const ccpaBanner = document.getElementById("main-consent-banner");
+      const consentBanner = document.getElementById("consent-banner");
+      
+      if (locationData && locationData.bannerType) {
+        if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType) || locationData.country === "US") {
+          if (ccpaBanner) {
+            showBanner(ccpaBanner);
+            setTimeout(async () => {
+              const preferences = await getConsentPreferences();
+              updateCCPAPreferenceForm(preferences);
+            }, 100);
+          }
+        } else if (consentBanner) {
+          showBanner(consentBanner);
+        }
+      }
+      // If location detection fails, don't show any banner
     }
     
     // Server-side location detection functions removed - using direct server detection only
@@ -1386,6 +1388,20 @@
         toggleConsentBtn.onclick = async function (e) {
           e.preventDefault();
   
+          // Ensure token exists before showing banner (needed for location detection)
+          let token = localStorage.getItem('_cb_vst_');
+          if (!token && !consentGiven) {
+            // Generate token if not available
+            try {
+              token = await getVisitorSessionToken();
+              if (token && !localStorage.getItem('_cb_vst_')) {
+                localStorage.setItem('_cb_vst_', token);
+              }
+            } catch (error) {
+              // Silent error handling
+            }
+          }
+  
           // Use consolidated function to show appropriate banner
           // This handles both consent-given and consent-not-given cases
           // Checks data-all-banners attribute and location
@@ -1403,22 +1419,37 @@
       
       // STEP 4: Background operations - token generation and location detection (non-blocking)
       if (!consentGiven) {
-        // Generate token in background
+        // Hide all banners first (before showing appropriate one)
+        hideAllBanners();
+        
+        // Check data-all-banners attribute first
+        const allBannersElement = document.querySelector('[data-all-banners]');
+        const hasAllBannersAttribute = allBannersElement && allBannersElement.hasAttribute('data-all-banners');
+        const allBannersValue = hasAllBannersAttribute ? allBannersElement.getAttribute('data-all-banners') : null;
+        
+        // If data-all-banners="false", show GDPR banner immediately (before token generation)
+        if (hasAllBannersAttribute && allBannersValue === 'false') {
+          showGDPRBanner();
+        }
+        
+        // ALWAYS generate token and detect location (for both false and true cases)
         setTimeout(async () => {
           try {
+            // Generate token
             const token = await getVisitorSessionToken();
-  
+            
             if (!token) {
-              // No token (including when retry: false) - don't retry or reload
-              removeConsentElements();
+              // No token - don't retry or reload, just continue
               return;
             } else {
               if (!localStorage.getItem('_cb_vst_')) {
                 localStorage.setItem('_cb_vst_', token);
               }
             }
+            
+            // Check publishing status and update toggle button visibility
             canPublish = await checkPublishingStatus();
-  
+            
             // Update toggle button visibility after canPublish check
             if (toggleConsentBtn) {
               if (isStaging || canPublish) {
@@ -1427,22 +1458,47 @@
                 toggleConsentBtn.style.display = 'none';
               }
             }
-  
+            
             if (!canPublish && !isStaging) {
               removeConsentElements();
               return;
             }
+            
+            // ALWAYS detect location (for both false and true cases)
+            const detectedLocation = await window.getLocationData();
+            
+            if (hasAllBannersAttribute && allBannersValue === 'false') {
+              // For data-all-banners="false", update locationData but keep bannerType as GDPR
+              if (detectedLocation) {
+                window.locationData = {
+                  country: detectedLocation.country || 'EU',
+                  continent: detectedLocation.continent || 'Europe',
+                  state: detectedLocation.state || null,
+                  bannerType: 'GDPR' // Always GDPR when data-all-banners="false"
+                };
+              } else {
+                // Fallback if detection fails
+                window.locationData = {
+                  country: 'EU',
+                  continent: 'Europe',
+                  state: null,
+                  bannerType: 'GDPR'
+                };
+              }
+              // Banner already shown, don't show again
+            } else {
+              // For data-all-banners="true" OR attribute missing (doesn't exist) - show appropriate banner based on location detection
+              await showAppropriateBanner();
+            }
           } catch (error) {
-            clearVisitorSession();
-            setTimeout(() => location.reload(), 5000);
+            // Silent error handling - don't reload page
+            // Only reload if it's a critical error in the else branch
+            if (!hasAllBannersAttribute || allBannersValue !== 'false') {
+              clearVisitorSession();
+              setTimeout(() => location.reload(), 5000);
+            }
             return;
           }
-        }, 0);
-        
-        // Use consolidated function to show appropriate banner
-        // This checks data-all-banners attribute and location, then shows appropriate banner
-        setTimeout(async () => {
-          await showAppropriateBanner();
         }, 0);
       }
       
@@ -1655,8 +1711,6 @@
   
       // Set up close buttons IMMEDIATELY
       setupConsentbitCloseButtons();
-      
-      await hideAllBanners();
     
    
       
@@ -2245,18 +2299,28 @@
         subtree: true
       });
   
-      // CCPA Link Block - Show CCPA Banner
+      // CCPA Link Block - Show CCPA Banner (only if data-all-banners is not "false")
       const ccpaLinkBlock = document.getElementById('consentbit-ccpa-linkblock');
       if (ccpaLinkBlock) {
         ccpaLinkBlock.onclick = function (e) {
           e.preventDefault();
   
-          // Show CCPA banner using showBanner function
-          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
-          showBanner(ccpaBannerDiv);
-  
-          // Also show the CCPA banner if it exists
-          showBanner(document.getElementById("initial-consent-banner"));
+          // Check data-all-banners attribute - if "false", show GDPR banner instead
+          const allBannersElement = document.querySelector('[data-all-banners]');
+          const hasAllBannersAttribute = allBannersElement && allBannersElement.hasAttribute('data-all-banners');
+          const allBannersValue = hasAllBannersAttribute ? allBannersElement.getAttribute('data-all-banners') : null;
+          
+          if (hasAllBannersAttribute && allBannersValue === 'false') {
+            // Show GDPR banner when data-all-banners="false"
+            showGDPRBanner();
+          } else {
+            // Show CCPA banner only when data-all-banners is not "false"
+            const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+            showBanner(ccpaBannerDiv);
+            
+            // Also show the CCPA banner if it exists
+            showBanner(document.getElementById("initial-consent-banner"));
+          }
         };
       }
   
@@ -2322,6 +2386,16 @@
   
       // Banner already shown earlier - just handle server location data if available
       if (!consentGiven) {
+        // Check data-all-banners attribute first
+        const allBannersElement = document.querySelector('[data-all-banners]');
+        const hasAllBannersAttribute = allBannersElement && allBannersElement.hasAttribute('data-all-banners');
+        const allBannersValue = hasAllBannersAttribute ? allBannersElement.getAttribute('data-all-banners') : null;
+        
+        // If data-all-banners="false", skip location-based banner display (GDPR already shown)
+        if (hasAllBannersAttribute && allBannersValue === 'false') {
+          // GDPR banner already shown, skip CCPA banner display
+          return;
+        }
         
         // Also handle server-detected location data  
         if (window.locationData && window.locationData.bannerType) {
@@ -2431,9 +2505,22 @@
   
                     // For CCPA/US Privacy Laws: Scripts start enabled but banner must be shown
             // User must explicitly accept or decline through banner interaction
-  
-          showBanner(document.getElementById("initial-consent-banner"));
-          hideBanner(document.getElementById("consent-banner"));
+            // BUT: If data-all-banners="false", show GDPR banner instead of CCPA
+
+          // Check data-all-banners attribute - if "false", show GDPR banner instead
+          const allBannersElementCheck = document.querySelector('[data-all-banners]');
+          const hasAllBannersAttributeCheck = allBannersElementCheck && allBannersElementCheck.hasAttribute('data-all-banners');
+          const allBannersValueCheck = hasAllBannersAttributeCheck ? allBannersElementCheck.getAttribute('data-all-banners') : null;
+          
+          if (hasAllBannersAttributeCheck && allBannersValueCheck === 'false') {
+            // Show GDPR banner when data-all-banners="false" (even if location is CCPA)
+            showBanner(document.getElementById("consent-banner"));
+            hideBanner(document.getElementById("initial-consent-banner"));
+          } else {
+            // Show CCPA banner only when data-all-banners is not "false"
+            showBanner(document.getElementById("initial-consent-banner"));
+            hideBanner(document.getElementById("consent-banner"));
+          }
   
   
                 } else {
