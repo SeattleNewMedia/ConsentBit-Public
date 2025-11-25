@@ -880,19 +880,17 @@
       
       // Attribute is "true" OR attribute doesn't exist (missing) - Check location and show appropriate banner based on location detection
       const locationData = await window.getLocationData();
-      const ccpaBanner = document.getElementById("main-consent-banner");
-      const consentBanner = document.getElementById("consent-banner");
+      const initialCCPABanner = document.getElementById("initial-consent-banner"); // Initial CCPA banner
+      const consentBanner = document.getElementById("consent-banner"); // GDPR banner
       
       if (locationData && locationData.bannerType) {
         if (["CCPA", "VCDPA", "CPA", "CTDPA", "UCPA"].includes(locationData.bannerType) || locationData.country === "US") {
-          if (ccpaBanner) {
-            showBanner(ccpaBanner);
-            setTimeout(async () => {
-              const preferences = await getConsentPreferences();
-              updateCCPAPreferenceForm(preferences);
-            }, 100);
+          // Show initial CCPA banner (not the preference banner)
+          if (initialCCPABanner) {
+            showBanner(initialCCPABanner);
           }
         } else if (consentBanner) {
+          // Show GDPR banner for EU and other locations
           showBanner(consentBanner);
         }
       }
@@ -1447,24 +1445,33 @@
               }
             }
             
-            // Check publishing status and update toggle button visibility
-            canPublish = await checkPublishingStatus();
-            
-            // Update toggle button visibility after canPublish check
-            if (toggleConsentBtn) {
-              if (isStaging || canPublish) {
-                toggleConsentBtn.style.display = 'block';
-              } else {
-                toggleConsentBtn.style.display = 'none';
+            // If staging, skip publishing status check and show banner immediately
+            // If not staging, check publishing status first before showing banner
+            if (isStaging) {
+              // For staging sites, skip publishing status check and show banner immediately
+              // Toggle button already shown for staging, proceed to location detection
+            } else {
+              // For non-staging sites, check publishing status first before showing banner
+              canPublish = await checkPublishingStatus();
+              
+              // Update toggle button visibility after canPublish check
+              if (toggleConsentBtn) {
+                if (canPublish) {
+                  toggleConsentBtn.style.display = 'block';
+                } else {
+                  toggleConsentBtn.style.display = 'none';
+                }
+              }
+              
+              if (!canPublish) {
+                removeConsentElements();
+                return;
               }
             }
             
-            if (!canPublish && !isStaging) {
-              removeConsentElements();
-              return;
-            }
-            
-            // ALWAYS detect location (for both false and true cases)
+            // Detect location and show banner
+            // For staging: shows immediately after location detection
+            // For non-staging: shows after publishing status check and location detection
             const detectedLocation = await window.getLocationData();
             
             if (hasAllBannersAttribute && allBannersValue === 'false') {
@@ -1490,6 +1497,7 @@
               // For data-all-banners="true" OR attribute missing (doesn't exist) - show appropriate banner based on location detection
               await showAppropriateBanner();
             }
+            
           } catch (error) {
             // Silent error handling - don't reload page
             // Only reload if it's a critical error in the else branch
