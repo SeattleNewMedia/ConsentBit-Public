@@ -1,6 +1,14 @@
 // CRITICAL: Initialize consent mode IMMEDIATELY (before IIFE) to prevent blocking
 // This ensures consent mode is set even if script loads asynchronously
-(function() {
+
+// DEBUG: Script loading confirmation
+console.log('[ConsentBit Debug] ========================================');
+console.log('[ConsentBit Debug] Script file LOADED');
+console.log('[ConsentBit Debug] Document readyState:', document.readyState);
+console.log('[ConsentBit Debug] ========================================');
+
+// Main consent management script (can load asynchronously)
+(function () {
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag === 'undefined') {
     window.gtag = function() { window.dataLayer.push(arguments); };
@@ -14,10 +22,6 @@
     'functionality_storage': 'granted',
     'security_storage': 'granted'
   });
-})();
-
-// Main consent management script (can load asynchronously)
-(function () {
   // Ensure dataLayer and gtag are available (already initialized above, but ensure for safety)
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag === 'undefined') {
@@ -757,39 +761,60 @@
 
   let tokenRequestInProgress = false;
   async function getVisitorSessionToken() {
+    console.log('[ConsentBit Debug] getVisitorSessionToken() called');
     try {
       // Check retry count - maximum 5 requests
       const retryCount = parseInt(localStorage.getItem('_cb_rtc_') || '0', 10);
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Retry count:', retryCount);
+      
       if (retryCount >= 5) {
+        console.warn('[ConsentBit Debug] getVisitorSessionToken() - Max retries reached, returning null');
         return null; // Stop after 5 attempts
       }
 
       if (tokenRequestInProgress) {
+        console.log('[ConsentBit Debug] getVisitorSessionToken() - Token request already in progress, waiting...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         const existingToken = localStorage.getItem('_cb_vst_');
         if (existingToken && !isTokenExpired(existingToken)) {
           // Reset retry count on successful token retrieval
           localStorage.removeItem('_cb_rtc_');
+          console.log('[ConsentBit Debug] getVisitorSessionToken() - Found existing valid token while waiting');
           return existingToken;
         }
       }
   
       const existingToken = localStorage.getItem('_cb_vst_');
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Checking existing token:', {
+        exists: !!existingToken,
+        expired: existingToken ? isTokenExpired(existingToken) : 'N/A'
+      });
+      
       if (existingToken && !isTokenExpired(existingToken)) {
         // Reset retry count on successful token retrieval
         localStorage.removeItem('_cb_rtc_');
+        console.log('[ConsentBit Debug] getVisitorSessionToken() - Using existing valid token');
         return existingToken;
       }
-  
+
       tokenRequestInProgress = true;
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Starting new token request');
       
       // Increment retry count before making request
       localStorage.setItem('_cb_rtc_', (retryCount + 1).toString());
   
       const visitorId = await getOrCreateVisitorId();
       const siteName = await cleanHostname(window.location.hostname);
+      
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Request data:', {
+        visitorId: visitorId,
+        siteName: siteName
+      });
   
-      const response = await fetch('https://consentbit-test-server.web-8fb.workers.dev/api/visitor-token', {
+      const apiUrl = 'https://consentbit-test-server.web-8fb.workers.dev/api/visitor-token';
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Making API call to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -799,8 +824,15 @@
           siteName: siteName
         })
       });
+      
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      });
   
       if (!response.ok) {
+        console.warn('[ConsentBit Debug] getVisitorSessionToken() - Response not OK');
         const errorData = await response.json().catch(() => ({}));
         
         // If response has retry: false, don't retry
@@ -845,15 +877,27 @@
       }
   
       const data = await response.json();
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Success! Token received:', {
+        hasToken: !!data.token,
+        tokenLength: data.token ? data.token.length : 0
+      });
+      
       localStorage.setItem('_cb_vst_', data.token);
       // Reset retry count on success
       localStorage.removeItem('_cb_rtc_');
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Token stored in localStorage');
       return data.token;
-  
+
     } catch (error) {
+      console.error('[ConsentBit Debug] getVisitorSessionToken() - Error caught:', error);
+      console.error('[ConsentBit Debug] getVisitorSessionToken() - Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       return null;
     } finally {
       tokenRequestInProgress = false;
+      console.log('[ConsentBit Debug] getVisitorSessionToken() - Completed, tokenRequestInProgress set to false');
     }
   }
 
@@ -1141,12 +1185,21 @@
   }
 
   async function checkPublishingStatus() {
+    console.log('[ConsentBit Debug] checkPublishingStatus() called');
     try {
       const sessionToken = localStorage.getItem('_cb_vst_');
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Token check:', {
+        hasToken: !!sessionToken,
+        tokenLength: sessionToken ? sessionToken.length : 0
+      });
+      
       if (!sessionToken) {
+        console.warn('[ConsentBit Debug] checkPublishingStatus() - No token, returning early');
         return { canPublish: false, data: null };
       }
+      
       const siteDomain = window.location.hostname;
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Site domain:', siteDomain);
       
       // Get siteId from data-site-info attribute if available
       let siteId = null;
@@ -1164,11 +1217,18 @@
           }
         }
       }
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Site ID:', siteId);
       
       let apiUrl = `https://consentbit-test-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
       if (siteId) {
         apiUrl += `&siteId=${encodeURIComponent(siteId)}`;
       }
+      
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Making API call to:', apiUrl);
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Request headers:', {
+        Authorization: `Bearer ${sessionToken ? '***' + sessionToken.slice(-4) : 'none'}`,
+        Accept: 'application/json'
+      });
       
       const response = await fetch(apiUrl, {
         method: "GET",
@@ -1177,15 +1237,35 @@
           "Accept": "application/json"
         }
       });
+      
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      });
+      
       if (!response.ok) {
+        console.warn('[ConsentBit Debug] checkPublishingStatus() - Response not OK, returning early');
         return { canPublish: false, data: null };
       }
+      
       const data = await response.json();
+      console.log('[ConsentBit Debug] checkPublishingStatus() - Response data received:', {
+        canPublishToCustomDomain: data.canPublishToCustomDomain,
+        hasLocation: !!(data.location),
+        location: data.location || null
+      });
+      
       return { 
         canPublish: data.canPublishToCustomDomain === true,
         data: data // Return full response data (includes location if available)
       };
     } catch (error) {
+      console.error('[ConsentBit Debug] checkPublishingStatus() - Error caught:', error);
+      console.error('[ConsentBit Debug] checkPublishingStatus() - Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       return { canPublish: false, data: null };
     }
   }
@@ -1415,7 +1495,14 @@
     checkAndUpdateScroll();
   }
 
-  document.addEventListener('DOMContentLoaded', async function () {
+  // Handle DOMContentLoaded - check if already loaded or wait for event
+  const initConsentScript = async function () {
+    // DEBUG: Confirm initialization is starting
+    console.log('[ConsentBit Debug] ========================================');
+    console.log('[ConsentBit Debug] INITIALIZATION STARTED');
+    console.log('[ConsentBit Debug] Document readyState:', document.readyState);
+    console.log('[ConsentBit Debug] Timestamp:', new Date().toISOString());
+    console.log('[ConsentBit Debug] ========================================');
     
     unblockGoogleScripts();
     
@@ -1439,18 +1526,36 @@
       tokenExists: !!localStorage.getItem('_cb_vst_')
     });
     
-    if (!token && !consentGiven) {
-      // Generate token if not available
-      console.log('[ConsentBit Debug] Generating new token...');
+    // CRITICAL: Always ensure we have a token before making API calls
+    // Token is required for checkPublishingStatus() to work
+    if (!token) {
+      // Generate token if not available (regardless of consent status)
+      console.log('[ConsentBit Debug] No token found - Generating new token...');
       try {
         token = await getVisitorSessionToken();
+        console.log('[ConsentBit Debug] Token generation result:', {
+          success: !!token,
+          tokenLength: token ? token.length : 0
+        });
         if (token && !localStorage.getItem('_cb_vst_')) {
           localStorage.setItem('_cb_vst_', token);
-          console.log('[ConsentBit Debug] Token generated and stored:', !!token);
+          console.log('[ConsentBit Debug] Token generated and stored in localStorage');
         }
       } catch (error) {
         console.error('[ConsentBit Debug] Token generation error:', error);
+        console.error('[ConsentBit Debug] Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
       }
+    } else {
+      console.log('[ConsentBit Debug] Using existing token from localStorage');
+    }
+    
+    // Verify token exists before proceeding with API calls
+    if (!token) {
+      console.error('[ConsentBit Debug] CRITICAL: No token available - API calls cannot proceed');
+      console.error('[ConsentBit Debug] This may prevent banner from displaying correctly');
     }
     
     let canPublish = false;
@@ -1461,7 +1566,18 @@
     
     // ALWAYS check publishing status to get location data from response
     console.log('[ConsentBit Debug] STEP 3 - Checking publishing status...');
-    publishingStatusResult = await checkPublishingStatus();
+    console.log('[ConsentBit Debug] About to call checkPublishingStatus() with token:', !!token);
+    try {
+      publishingStatusResult = await checkPublishingStatus();
+      console.log('[ConsentBit Debug] checkPublishingStatus() completed successfully');
+    } catch (error) {
+      console.error('[ConsentBit Debug] checkPublishingStatus() error:', error);
+      console.error('[ConsentBit Debug] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      publishingStatusResult = { canPublish: false, data: null };
+    }
     canPublish = publishingStatusResult ? publishingStatusResult.canPublish : false;
     
     console.log('[ConsentBit Debug] Publishing Status Result:', {
@@ -2614,7 +2730,16 @@
     
     // Start monitoring for consent changes
     monitorConsentChanges();
-  });
+  };
+  
+  // Call the function - check if DOM is already loaded or wait for DOMContentLoaded
+  if (document.readyState === 'loading') {
+    // DOM is still loading, wait for DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', initConsentScript);
+  } else {
+    // DOM is already loaded, call immediately
+    initConsentScript();
+  }
 
   // End DOMContentLoaded event listener
 
