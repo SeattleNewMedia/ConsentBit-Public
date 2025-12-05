@@ -1214,7 +1214,7 @@
       // Use media="print" trick to load CSS without blocking, then switch to "all"
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href = "https://consentbit-test-server.web-8fb.workers.dev/consentbitstyle.css";
+      link.href = "https://api.consentbit.com/consentbitstyle.css";
       link.type = "text/css";
       link.media = "print"; // Load without blocking
       link.onload = function() { 
@@ -1224,7 +1224,7 @@
       
       const link2 = document.createElement("link");
       link2.rel = "stylesheet";
-      link2.href = "https://consentbit-test-server.web-8fb.workers.dev/consentbit.css";
+      link2.href = "https://api.consentbit.com/consentbit.css";
       link2.type = "text/css";
       link2.media = "print"; // Load without blocking
       link2.onload = function() { 
