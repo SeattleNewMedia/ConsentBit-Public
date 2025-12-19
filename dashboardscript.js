@@ -33,48 +33,159 @@
     // Wait for Memberstack SDK
     async function waitForSDK() {
         let attempts = 0;
-        const maxAttempts = 40;
+        const maxAttempts = 60; // Increased to 30 seconds (60 * 500ms)
+        
+        console.log('[Dashboard] Waiting for Memberstack SDK to load...');
         
         while (attempts < maxAttempts) {
             const memberstack = getMemberstackSDK();
-            if (memberstack || window.$memberstackReady === true) {
-                return getMemberstackSDK();
+            
+            // Check if SDK is ready
+            if (window.$memberstackReady === true && memberstack) {
+                console.log('[Dashboard] ✅ SDK is ready!');
+                return memberstack;
             }
+            
+            // Also check if SDK exists even if ready flag isn't set yet
+            if (memberstack) {
+                console.log('[Dashboard] SDK found, checking if ready...');
+                // Try to access a method to see if it's actually ready
+                if (memberstack.getCurrentMember || memberstack.onReady) {
+                    console.log('[Dashboard] SDK appears ready');
+                    return memberstack;
+                }
+            }
+            
+            if (attempts % 10 === 0) {
+                console.log(`[Dashboard] Still waiting for SDK... (${attempts * 0.5}s)`);
+                console.log('[Dashboard] $memberstackReady:', window.$memberstackReady);
+                console.log('[Dashboard] SDK available:', !!memberstack);
+            }
+            
             await new Promise(resolve => setTimeout(resolve, 500));
             attempts++;
         }
+        
+        console.error('[Dashboard] ⚠️ SDK not loaded after 30 seconds');
         return null;
     }
     
     // Check if user is logged in
     async function checkMemberstackSession() {
         try {
+            console.log('[Dashboard] Checking Memberstack session...');
+            
+            // First wait for SDK to be available
             const memberstack = await waitForSDK();
             
             if (!memberstack) {
-                console.error('[Dashboard] Memberstack SDK not loaded');
+                console.error('[Dashboard] Memberstack SDK not loaded after waiting');
                 return null;
             }
             
-            if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
-                await memberstack.onReady;
-            }
+            console.log('[Dashboard] SDK found, waiting for ready state...');
             
-            if (memberstack.getCurrentMember && typeof memberstack.getCurrentMember === 'function') {
-                const member = await memberstack.getCurrentMember();
-                if (member && member.id) {
-                    const email = member.email || member._email;
-                    console.log('[Dashboard] ✅ User logged in');
-                    console.log('[Dashboard] 📧 Email:', email);
-                    console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
-                    return member;
+            // Wait for SDK to be ready (with timeout)
+            if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
+                try {
+                    await Promise.race([
+                        memberstack.onReady,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                    ]);
+                    console.log('[Dashboard] SDK ready promise resolved');
+                } catch (error) {
+                    console.warn('[Dashboard] SDK ready promise timeout or error:', error);
+                    // Continue anyway - SDK might still work
                 }
             }
             
-            console.log('[Dashboard] User not logged in');
-            return null;
+            // Additional wait to ensure SDK is fully initialized
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Try multiple ways to get the member
+            let member = null;
+            
+            if (memberstack.getCurrentMember && typeof memberstack.getCurrentMember === 'function') {
+                console.log('[Dashboard] Getting current member via getCurrentMember...');
+                try {
+                    member = await memberstack.getCurrentMember();
+                    console.log('[Dashboard] Member data from getCurrentMember:', member);
+                } catch (error) {
+                    console.error('[Dashboard] Error calling getCurrentMember:', error);
+                }
+            }
+            
+            // If getCurrentMember didn't work, try alternative methods
+            if (!member || !member.id) {
+                console.log('[Dashboard] Trying alternative methods to get member...');
+                
+                // Try window.memberstack directly
+                if (window.memberstack && window.memberstack.getCurrentMember) {
+                    try {
+                        member = await window.memberstack.getCurrentMember();
+                        console.log('[Dashboard] Member from window.memberstack:', member);
+                    } catch (error) {
+                        console.error('[Dashboard] Error with window.memberstack:', error);
+                    }
+                }
+                
+                // Try $memberstackDom
+                if ((!member || !member.id) && window.$memberstackDom) {
+                    if (window.$memberstackDom.memberstack && window.$memberstackDom.memberstack.getCurrentMember) {
+                        try {
+                            member = await window.$memberstackDom.memberstack.getCurrentMember();
+                            console.log('[Dashboard] Member from $memberstackDom.memberstack:', member);
+                        } catch (error) {
+                            console.error('[Dashboard] Error with $memberstackDom.memberstack:', error);
+                        }
+                    }
+                }
+            }
+            
+            if (member && member.id) {
+                // Get email from member object (try multiple possible fields)
+                let email = member.email || member._email || member.Email || member.EMAIL;
+                
+                // Validate and normalize email
+                if (!email) {
+                    console.error('[Dashboard] ❌ Member has no email field!');
+                    console.error('[Dashboard] Available member fields:', Object.keys(member));
+                    console.error('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
+                    return null;
+                }
+                
+                // Normalize email (lowercase, trim)
+                email = email.toString().toLowerCase().trim();
+                
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    console.error('[Dashboard] ❌ Invalid email format:', email);
+                    return null;
+                }
+                
+                console.log('[Dashboard] ✅ User logged in');
+                console.log('[Dashboard] 📧 Email (normalized):', email);
+                console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
+                console.log('[Dashboard] 📋 Email source:', member.email ? 'member.email' : (member._email ? 'member._email' : 'other'));
+                console.log('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
+                
+                // Store normalized email in member object for later use
+                member.normalizedEmail = email;
+                
+                return member;
+            } else {
+                console.log('[Dashboard] No member found or member has no ID');
+                console.log('[Dashboard] Member object:', member);
+                console.log('[Dashboard] User not logged in');
+                return null;
+            }
         } catch (error) {
             console.error('[Dashboard] Error checking session:', error);
+            console.error('[Dashboard] Error details:', error.message);
+            if (error.stack) {
+                console.error('[Dashboard] Stack trace:', error.stack);
+            }
             return null;
         }
     }
@@ -304,7 +415,17 @@
             return;
         }
         
+        // Validate email before making API call
+        if (!userEmail || !userEmail.includes('@')) {
+            console.error('[Dashboard] ❌ Invalid email for API call:', userEmail);
+            sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Invalid email address. Please log out and log in again.</div>';
+            return;
+        }
+        
         sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
+        
+        console.log('[Dashboard] 📤 Sending API request with email:', userEmail);
+        console.log('[Dashboard] 🔗 Request URL:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
         
         try {
             // Try email-based endpoint first
@@ -316,8 +437,11 @@
                 credentials: 'include'
             });
             
+            console.log('[Dashboard] 📥 API Response status:', response.status);
+            
             // If email endpoint doesn't work, try with session cookie
             if (!response.ok && response.status === 401) {
+                console.log('[Dashboard] Email endpoint returned 401, trying session-based endpoint...');
                 response = await fetch(`${API_BASE}/dashboard`, {
                     method: 'GET',
                     headers: {
@@ -325,22 +449,36 @@
                     },
                     credentials: 'include'
                 });
+                console.log('[Dashboard] 📥 Session-based API Response status:', response.status);
             }
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Dashboard] ❌ API Error:', response.status, errorText);
+                
                 if (response.status === 401) {
                     throw new Error('Not authenticated');
+                } else if (response.status === 404) {
+                    throw new Error('User data not found for this email');
                 }
-                throw new Error('Failed to load dashboard');
+                throw new Error(`Failed to load dashboard: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log('[Dashboard] ✅ Dashboard data received:', data);
+            console.log('[Dashboard] 📊 Sites count:', Object.keys(data.sites || {}).length);
             displaySites(data.sites || {});
         } catch (error) {
-            console.error('[Dashboard] Error loading dashboard:', error);
+            console.error('[Dashboard] ❌ Error loading dashboard:', error);
+            console.error('[Dashboard] Error details:', error.message);
             const sitesContainer = document.getElementById('sites-container');
             if (sitesContainer) {
-                sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Failed to load dashboard data. Please refresh the page.</div>';
+                sitesContainer.innerHTML = `<div style="text-align: center; padding: 40px; color: #f44336;">
+                    <p>Failed to load dashboard data.</p>
+                    <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
+                    <p style="font-size: 12px;">Email used: ${userEmail}</p>
+                    <p style="font-size: 12px;">Please refresh the page or contact support.</p>
+                </div>`;
             }
         }
     }
@@ -518,7 +656,17 @@
             return;
         }
         
+        // Validate email before making API call
+        if (!userEmail || !userEmail.includes('@')) {
+            console.error('[Dashboard] ❌ Invalid email for licenses API call:', userEmail);
+            licensesContainer.innerHTML = '<div style="color: #f44336; padding: 20px;">Invalid email address</div>';
+            return;
+        }
+        
         licensesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading licenses...</div>';
+        
+        console.log('[Dashboard] 📤 Sending licenses API request with email:', userEmail);
+        console.log('[Dashboard] 🔗 Request URL:', `${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`);
         
         try {
             // Try email-based endpoint first
@@ -530,8 +678,11 @@
                 credentials: 'include'
             });
             
+            console.log('[Dashboard] 📥 Licenses API Response status:', response.status);
+            
             // If email endpoint doesn't work, try with session cookie
             if (!response.ok && response.status === 401) {
+                console.log('[Dashboard] Licenses email endpoint returned 401, trying session-based endpoint...');
                 response = await fetch(`${API_BASE}/licenses`, {
                     method: 'GET',
                     headers: {
@@ -539,19 +690,29 @@
                     },
                     credentials: 'include'
                 });
+                console.log('[Dashboard] 📥 Session-based Licenses API Response status:', response.status);
             }
             
             if (!response.ok) {
-                throw new Error('Failed to load licenses');
+                const errorText = await response.text();
+                console.error('[Dashboard] ❌ Licenses API Error:', response.status, errorText);
+                throw new Error(`Failed to load licenses: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log('[Dashboard] ✅ Licenses data received:', data);
+            console.log('[Dashboard] 🔑 Licenses count:', (data.licenses || []).length);
             displayLicenses(data.licenses || []);
         } catch (error) {
-            console.error('[Dashboard] Error loading licenses:', error);
+            console.error('[Dashboard] ❌ Error loading licenses:', error);
+            console.error('[Dashboard] Error details:', error.message);
             const licensesContainer = document.getElementById('licenses-container');
             if (licensesContainer) {
-                licensesContainer.innerHTML = '<div style="color: #f44336; padding: 20px;">Failed to load licenses</div>';
+                licensesContainer.innerHTML = `<div style="color: #f44336; padding: 20px;">
+                    Failed to load licenses.<br>
+                    <small>Email: ${userEmail}</small><br>
+                    <small>Error: ${error.message}</small>
+                </div>`;
             }
         }
     }
@@ -645,12 +806,16 @@
         const dashboardContainer = document.getElementById('dashboard-container');
         const loginPrompt = document.getElementById('login-prompt');
         
+        console.log('[Dashboard] Toggle visibility - isLoggedIn:', isLoggedIn);
+        
         if (dashboardContainer) {
             dashboardContainer.style.display = isLoggedIn ? 'block' : 'none';
+            console.log('[Dashboard] Dashboard container display:', dashboardContainer.style.display);
         }
         
         if (loginPrompt) {
             loginPrompt.style.display = isLoggedIn ? 'none' : 'block';
+            console.log('[Dashboard] Login prompt display:', loginPrompt.style.display);
         }
     }
     
@@ -658,36 +823,71 @@
     async function initializeDashboard() {
         console.log('[Dashboard] Initializing...');
         
-        // Create dashboard HTML structure
+        // Create dashboard HTML structure first (always show it)
         createDashboardHTML();
+        
+        // Show dashboard by default (will hide if not logged in)
+        toggleDashboardVisibility(true);
         
         // Check if Memberstack SDK is available
         const scriptTag = document.querySelector('script[data-memberstack-app]');
         if (!scriptTag) {
             console.error('[Dashboard] ❌ Memberstack script tag not found!');
-            showError('Authentication system not configured. Please add Memberstack SDK.');
-            toggleDashboardVisibility(false);
-            return;
+            console.error('[Dashboard] Waiting for SDK to load...');
+            // Wait a bit more for SDK to load
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Check again
+            const retryScriptTag = document.querySelector('script[data-memberstack-app]');
+            if (!retryScriptTag) {
+                showError('Authentication system not configured. Please add Memberstack SDK.');
+                toggleDashboardVisibility(false);
+                return;
+            }
         }
         
-        // Wait for SDK and check session
+        // Wait a bit more for SDK to fully initialize
+        console.log('[Dashboard] Waiting for Memberstack SDK to fully initialize...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Wait for SDK and check session (with longer timeout)
+        console.log('[Dashboard] Checking Memberstack session...');
         const member = await checkMemberstackSession();
         
         if (!member) {
-            console.log('[Dashboard] User not logged in - hiding dashboard');
+            console.log('[Dashboard] User not logged in - showing login prompt');
             toggleDashboardVisibility(false);
             return;
         }
         
-        // User is logged in
-        const userEmail = member.email || member._email;
+        // User is logged in - use normalized email
+        const userEmail = member.normalizedEmail || (member.email || member._email || '').toLowerCase().trim();
+        
+        if (!userEmail) {
+            console.error('[Dashboard] ❌ No email found in member object!');
+            showError('Unable to retrieve user email. Please log out and log in again.');
+            toggleDashboardVisibility(false);
+            return;
+        }
+        
+        // Validate email format one more time
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(userEmail)) {
+            console.error('[Dashboard] ❌ Invalid email format:', userEmail);
+            showError('Invalid email format. Please contact support.');
+            toggleDashboardVisibility(false);
+            return;
+        }
+        
         console.log('[Dashboard] ✅ User logged in');
-        console.log('[Dashboard] 📧 Logged in email:', userEmail);
+        console.log('[Dashboard] 📧 Logged in email (verified):', userEmail);
         console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
+        console.log('[Dashboard] 🔍 Email will be used to fetch data from database/Stripe');
         toggleDashboardVisibility(true);
         
         // Load dashboard data
-        console.log('[Dashboard] 🔄 Loading dashboard data for:', userEmail);
+        console.log('[Dashboard] 🔄 Loading dashboard data for email:', userEmail);
+        console.log('[Dashboard] 🔗 API endpoint:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
         await Promise.all([
             loadDashboard(userEmail),
             loadLicenses(userEmail)
