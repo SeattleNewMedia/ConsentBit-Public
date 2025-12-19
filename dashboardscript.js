@@ -132,8 +132,22 @@
                     member = await memberstack.getCurrentMember();
                     console.log('[Dashboard] ✅ Member data from getCurrentMember:', member);
                     if (member) {
-                        console.log('[Dashboard] Member has ID?', !!member.id);
-                        console.log('[Dashboard] Member has email?', !!(member.email || member._email));
+                        // Check both direct and nested structure
+                        const hasDirectId = !!(member.id || member._id);
+                        const hasNestedId = !!(member.data && (member.data.id || member.data._id));
+                        const hasDirectEmail = !!(member.email || member._email);
+                        const hasNestedEmail = !!(member.data && (member.data.email || member.data._email));
+                        
+                        console.log('[Dashboard] Member structure analysis:');
+                        console.log('[Dashboard] - Has direct ID?', hasDirectId);
+                        console.log('[Dashboard] - Has nested ID (in .data)?', hasNestedId);
+                        console.log('[Dashboard] - Has direct email?', hasDirectEmail);
+                        console.log('[Dashboard] - Has nested email (in .data)?', hasNestedEmail);
+                        console.log('[Dashboard] - Member keys:', Object.keys(member));
+                        if (member.data) {
+                            console.log('[Dashboard] - Member.data keys:', Object.keys(member.data));
+                            console.log('[Dashboard] - Member.data content:', member.data);
+                        }
                     }
                 } catch (error) {
                     console.error('[Dashboard] ❌ Error calling getCurrentMember:', error);
@@ -178,14 +192,46 @@
                 }
             }
             
-            if (member && member.id) {
-                // Get email from member object (try multiple possible fields)
-                let email = member.email || member._email || member.Email || member.EMAIL;
+            // Handle Memberstack v2 SDK response structure: {data: {...}}
+            // The actual member data might be nested in a 'data' property
+            let actualMember = member;
+            
+            if (member && member.data) {
+                console.log('[Dashboard] ℹ️ Member data is nested in .data property');
+                actualMember = member.data;
+                console.log('[Dashboard] Extracted member from .data:', actualMember);
+            }
+            
+            // Check for member ID in multiple possible locations
+            const memberId = actualMember?.id || actualMember?._id || member?.id || member?._id;
+            const hasId = !!memberId;
+            
+            console.log('[Dashboard] Member ID check:');
+            console.log('[Dashboard] - actualMember.id:', actualMember?.id);
+            console.log('[Dashboard] - actualMember._id:', actualMember?._id);
+            console.log('[Dashboard] - member.id:', member?.id);
+            console.log('[Dashboard] - member._id:', member?._id);
+            console.log('[Dashboard] - Final memberId:', memberId);
+            console.log('[Dashboard] - Has ID?', hasId);
+            
+            if (hasId) {
+                // Get email from member object (try multiple possible fields and locations)
+                let email = actualMember?.email || actualMember?._email || 
+                           member?.email || member?._email || 
+                           actualMember?.Email || actualMember?.EMAIL ||
+                           member?.Email || member?.EMAIL;
+                
+                console.log('[Dashboard] Email extraction:');
+                console.log('[Dashboard] - actualMember.email:', actualMember?.email);
+                console.log('[Dashboard] - actualMember._email:', actualMember?._email);
+                console.log('[Dashboard] - member.email:', member?.email);
+                console.log('[Dashboard] - Final email:', email);
                 
                 // Validate and normalize email
                 if (!email) {
                     console.error('[Dashboard] ❌ Member has no email field!');
-                    console.error('[Dashboard] Available member fields:', Object.keys(member));
+                    console.error('[Dashboard] Available actualMember fields:', Object.keys(actualMember || {}));
+                    console.error('[Dashboard] Available member fields:', Object.keys(member || {}));
                     console.error('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
                     return null;
                 }
@@ -204,22 +250,39 @@
                 console.log('[Dashboard] ✅✅✅ USER LOGGED IN ✅✅✅');
                 console.log('[Dashboard] ========================================');
                 console.log('[Dashboard] 📧 Email (normalized):', email);
-                console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
-                console.log('[Dashboard] 📋 Email source:', member.email ? 'member.email' : (member._email ? 'member._email' : 'other'));
+                console.log('[Dashboard] 👤 Member ID:', memberId);
+                console.log('[Dashboard] 📋 Email source:', actualMember?.email ? 'actualMember.email' : 
+                           (actualMember?._email ? 'actualMember._email' : 
+                           (member?.email ? 'member.email' : 'other')));
                 console.log('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
                 console.log('[Dashboard] ========================================');
                 
-                // Store normalized email in member object for later use
-                member.normalizedEmail = email;
+                // Store normalized email and member ID in member object for later use
+                // Use the original member object but add normalized data
+                const returnMember = {
+                    ...member,
+                    id: memberId,
+                    _id: memberId,
+                    email: email,
+                    _email: email,
+                    normalizedEmail: email,
+                    data: actualMember // Keep the nested data structure
+                };
                 
-                return member;
+                return returnMember;
             } else {
                 console.log('[Dashboard] ========================================');
                 console.log('[Dashboard] ❌ No member found or member has no ID');
                 console.log('[Dashboard] Member object received:', member);
+                console.log('[Dashboard] Actual member (from .data):', actualMember);
                 if (member) {
                     console.log('[Dashboard] Member keys:', Object.keys(member));
-                    console.log('[Dashboard] Member ID value:', member.id || member._id || 'NONE');
+                    if (member.data) {
+                        console.log('[Dashboard] Member.data keys:', Object.keys(member.data));
+                        console.log('[Dashboard] Member.data.id:', member.data.id);
+                        console.log('[Dashboard] Member.data._id:', member.data._id);
+                    }
+                    console.log('[Dashboard] Member ID value:', memberId || 'NONE');
                 }
                 console.log('[Dashboard] ========================================');
                 return null;
