@@ -1,19 +1,11 @@
 /**
- * Dashboard Script - Data Fetching and Display Only
+ * Dashboard Script - Complete with HTML and Styles
  * Host this on GitHub/Cloudflare Pages and reference from Webflow
  * 
  * Usage in Webflow:
- * <script src="https://your-domain.com/dashboard-script.js"></script>
+ * <script src="https://api.consentbit.com/dashboardscript.js"></script>
  * 
- * Required Element IDs:
- * - error-message
- * - success-message
- * - sites-container
- * - new-site-input
- * - new-site-price
- * - add-site-button
- * - licenses-container
- * - logout-button
+ * This script creates all HTML and styles automatically - no Webflow elements needed!
  */
 
 (function() {
@@ -71,7 +63,10 @@
             if (memberstack.getCurrentMember && typeof memberstack.getCurrentMember === 'function') {
                 const member = await memberstack.getCurrentMember();
                 if (member && member.id) {
-                    console.log('[Dashboard] ✅ User logged in:', member.email || member._email);
+                    const email = member.email || member._email;
+                    console.log('[Dashboard] ✅ User logged in');
+                    console.log('[Dashboard] 📧 Email:', email);
+                    console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
                     return member;
                 }
             }
@@ -82,6 +77,197 @@
             console.error('[Dashboard] Error checking session:', error);
             return null;
         }
+    }
+    
+    // Create dashboard HTML structure
+    function createDashboardHTML() {
+        // Check if dashboard already exists
+        if (document.getElementById('dashboard-container')) {
+            return;
+        }
+        
+        const body = document.body;
+        
+        // Create main container
+        const container = document.createElement('div');
+        container.id = 'dashboard-container';
+        container.style.cssText = `
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        `;
+        
+        // Header
+        const header = document.createElement('div');
+        header.className = 'header';
+        header.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        header.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">📋 License Dashboard</h1>
+                    <p style="color: #666; margin: 0;">Manage your sites and license keys</p>
+                </div>
+                <button id="logout-button" style="
+                    padding: 10px 20px;
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    max-width: 120px;
+                ">Logout</button>
+            </div>
+        `;
+        
+        // Error message
+        const errorMessage = document.createElement('div');
+        errorMessage.id = 'error-message';
+        errorMessage.className = 'error';
+        errorMessage.style.cssText = `
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        `;
+        
+        // Success message
+        const successMessage = document.createElement('div');
+        successMessage.id = 'success-message';
+        successMessage.className = 'success';
+        successMessage.style.cssText = `
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        `;
+        
+        // Sites Card
+        const sitesCard = document.createElement('div');
+        sitesCard.className = 'card';
+        sitesCard.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        sitesCard.innerHTML = `
+            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">🌐 Your Sites</h2>
+            <div id="sites-container" style="
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 20px;
+                margin-bottom: 20px;
+            "></div>
+            <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
+                <h3 style="margin-bottom: 15px; color: #333;">Add New Site</h3>
+                <div id="add-site-form" style="display: flex; gap: 10px;">
+                    <input 
+                        type="text" 
+                        id="new-site-input" 
+                        placeholder="Enter site domain (e.g., example.com)"
+                        style="
+                            flex: 1;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 6px;
+                            font-size: 14px;
+                        "
+                    />
+                    <input 
+                        type="text" 
+                        id="new-site-price" 
+                        placeholder="Price ID (e.g., price_xxxxx)"
+                        style="
+                            flex: 1;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 6px;
+                            font-size: 14px;
+                        "
+                    />
+                    <button id="add-site-button" style="
+                        padding: 12px 24px;
+                        background: #667eea;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    ">Add Site</button>
+                </div>
+            </div>
+        `;
+        
+        // Licenses Card
+        const licensesCard = document.createElement('div');
+        licensesCard.className = 'card';
+        licensesCard.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        licensesCard.innerHTML = `
+            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">🔑 Your License Keys</h2>
+            <div id="licenses-container"></div>
+        `;
+        
+        // Login Prompt
+        const loginPrompt = document.createElement('div');
+        loginPrompt.id = 'login-prompt';
+        loginPrompt.style.cssText = `
+            display: none;
+            text-align: center;
+            padding: 100px 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        loginPrompt.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+            <h2 style="margin-bottom: 15px; color: #333;">Please Log In</h2>
+            <p style="color: #666; margin-bottom: 30px;">You need to be logged in to view your dashboard.</p>
+            <a href="/" style="
+                display: inline-block;
+                padding: 12px 24px;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: 600;
+            ">Go to Login Page</a>
+        `;
+        
+        // Assemble container
+        container.appendChild(header);
+        container.appendChild(errorMessage);
+        container.appendChild(successMessage);
+        container.appendChild(sitesCard);
+        container.appendChild(licensesCard);
+        container.appendChild(loginPrompt);
+        
+        // Add to body
+        body.appendChild(container);
     }
     
     // Show error message
@@ -118,7 +304,7 @@
             return;
         }
         
-        sitesContainer.innerHTML = '<div>Loading sites...</div>';
+        sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
         
         try {
             // Try email-based endpoint first
@@ -154,7 +340,7 @@
             console.error('[Dashboard] Error loading dashboard:', error);
             const sitesContainer = document.getElementById('sites-container');
             if (sitesContainer) {
-                sitesContainer.innerHTML = '<div>Failed to load dashboard data. Please refresh the page.</div>';
+                sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Failed to load dashboard data. Please refresh the page.</div>';
             }
         }
     }
@@ -165,7 +351,15 @@
         if (!container) return;
         
         if (Object.keys(sites).length === 0) {
-            container.innerHTML = '<div>No sites yet. Add your first site above!</div>';
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #999; grid-column: 1 / -1;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.5;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <p style="font-size: 18px; margin-bottom: 10px;">No sites yet</p>
+                    <p style="font-size: 14px;">Add your first site above!</p>
+                </div>
+            `;
             return;
         }
         
@@ -174,23 +368,46 @@
             const isActive = siteData.status === 'active';
             
             return `
-                <div class="site-card ${isActive ? 'active' : 'inactive'}" data-site="${site}">
-                    <div class="site-header">
-                        <div class="site-name">${site}</div>
-                        <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
-                            ${siteData.status}
-                        </span>
+                <div class="site-card ${isActive ? 'active' : 'inactive'}" style="
+                    border: 2px solid ${isActive ? '#4caf50' : '#f44336'};
+                    border-radius: 8px;
+                    padding: 20px;
+                    background: ${isActive ? '#f1f8f4' : '#fff5f5'};
+                    opacity: ${isActive ? '1' : '0.7'};
+                    transition: all 0.3s;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-weight: bold; font-size: 18px; color: #333;">${site}</div>
+                        <span style="
+                            padding: 4px 12px;
+                            border-radius: 20px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                            background: ${isActive ? '#4caf50' : '#f44336'};
+                            color: white;
+                        ">${siteData.status}</span>
                     </div>
-                    <div class="site-info">
+                    <div style="color: #666; font-size: 14px; margin: 10px 0;">
                         <div>Item ID: ${siteData.item_id || 'N/A'}</div>
                         <div>Quantity: ${siteData.quantity || 1}</div>
                         ${siteData.created_at ? `<div>Created: ${new Date(siteData.created_at * 1000).toLocaleDateString()}</div>` : ''}
                     </div>
                     ${isActive ? `
-                        <button class="remove-site-button" data-site="${site}">
-                            Remove Site
-                        </button>
-                    ` : '<p class="site-removed-message">This site has been removed</p>'}
+                        <button class="remove-site-button" data-site="${site}" style="
+                            padding: 10px 20px;
+                            background: #f44336;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: 600;
+                            margin-top: 10px;
+                            width: 100%;
+                            transition: background 0.3s;
+                        " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">Remove Site</button>
+                    ` : '<p style="color: #999; font-size: 12px; margin-top: 10px;">This site has been removed</p>'}
                 </div>
             `;
         }).join('');
@@ -301,7 +518,7 @@
             return;
         }
         
-        licensesContainer.innerHTML = '<div>Loading licenses...</div>';
+        licensesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading licenses...</div>';
         
         try {
             // Try email-based endpoint first
@@ -334,7 +551,7 @@
             console.error('[Dashboard] Error loading licenses:', error);
             const licensesContainer = document.getElementById('licenses-container');
             if (licensesContainer) {
-                licensesContainer.innerHTML = '<div>Failed to load licenses</div>';
+                licensesContainer.innerHTML = '<div style="color: #f44336; padding: 20px;">Failed to load licenses</div>';
             }
         }
     }
@@ -345,22 +562,46 @@
         if (!container) return;
         
         if (licenses.length === 0) {
-            container.innerHTML = '<div>No license keys yet. Licenses will appear here after payment.</div>';
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <p>No license keys yet. Licenses will appear here after payment.</p>
+                </div>
+            `;
             return;
         }
         
         container.innerHTML = licenses.map(license => `
-            <div class="license-item">
+            <div class="license-item" style="
+                background: #f5f5f5;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            ">
                 <div>
-                    <div class="license-key">${license.license_key}</div>
-                    <div class="license-meta">
+                    <div class="license-key" style="
+                        font-family: 'Courier New', monospace;
+                        font-size: 14px;
+                        color: #333;
+                        font-weight: bold;
+                    ">${license.license_key}</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 5px;">
                         Status: ${license.status} | 
                         Created: ${new Date(license.created_at * 1000).toLocaleDateString()}
                     </div>
                 </div>
-                <button class="copy-license-button" data-key="${license.license_key}">
-                    Copy
-                </button>
+                <button class="copy-license-button" data-key="${license.license_key}" style="
+                    background: #667eea;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: background 0.3s;
+                " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">Copy</button>
             </div>
         `).join('');
         
@@ -401,14 +642,12 @@
     
     // Show/hide dashboard content based on login status
     function toggleDashboardVisibility(isLoggedIn) {
-        const dashboardElements = document.querySelectorAll('[id^="sites"], [id^="licenses"], [id^="add-site"], #logout-button, #new-site-input, #new-site-price');
+        const dashboardContainer = document.getElementById('dashboard-container');
         const loginPrompt = document.getElementById('login-prompt');
         
-        dashboardElements.forEach(el => {
-            if (el) {
-                el.style.display = isLoggedIn ? '' : 'none';
-            }
-        });
+        if (dashboardContainer) {
+            dashboardContainer.style.display = isLoggedIn ? 'block' : 'none';
+        }
         
         if (loginPrompt) {
             loginPrompt.style.display = isLoggedIn ? 'none' : 'block';
@@ -418,6 +657,9 @@
     // Initialize dashboard
     async function initializeDashboard() {
         console.log('[Dashboard] Initializing...');
+        
+        // Create dashboard HTML structure
+        createDashboardHTML();
         
         // Check if Memberstack SDK is available
         const scriptTag = document.querySelector('script[data-memberstack-app]');
@@ -438,16 +680,19 @@
         }
         
         // User is logged in
-        console.log('[Dashboard] ✅ User logged in:', member.email || member._email);
+        const userEmail = member.email || member._email;
+        console.log('[Dashboard] ✅ User logged in');
+        console.log('[Dashboard] 📧 Logged in email:', userEmail);
+        console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
         toggleDashboardVisibility(true);
         
-        const userEmail = member.email || member._email;
-        
         // Load dashboard data
+        console.log('[Dashboard] 🔄 Loading dashboard data for:', userEmail);
         await Promise.all([
             loadDashboard(userEmail),
             loadLicenses(userEmail)
         ]);
+        console.log('[Dashboard] ✅ Dashboard data loaded successfully');
         
         // Attach event listeners
         const addSiteButton = document.getElementById('add-site-button');
@@ -476,6 +721,29 @@
         console.log('[Dashboard] ✅ Dashboard initialized successfully');
     }
     
+    // Expose functions to global scope (for inline onclick handlers if needed)
+    window.addSite = async function() {
+        const member = await checkMemberstackSession();
+        if (!member) {
+            showError('Not authenticated');
+            return;
+        }
+        const userEmail = member.email || member._email;
+        await addSite(userEmail);
+    };
+    
+    window.removeSite = async function(site) {
+        await removeSite(site);
+    };
+    
+    window.copyLicense = function(key) {
+        copyLicense(key);
+    };
+    
+    window.logout = async function() {
+        await logout();
+    };
+    
     // Initialize when page loads
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeDashboard);
@@ -483,4 +751,3 @@
         initializeDashboard();
     }
 })();
-
