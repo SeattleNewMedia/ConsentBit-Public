@@ -73,38 +73,21 @@
     // Check if user is logged in
     async function checkMemberstackSession() {
         try {
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] Checking Memberstack session...');
-            console.log('[Dashboard] ========================================');
-            
-            // Debug: Check what's available in window
-            console.log('[Dashboard] 🔍 Window state check:');
-            console.log('[Dashboard] - $memberstackReady:', window.$memberstackReady);
-            console.log('[Dashboard] - window.memberstack:', typeof window.memberstack, window.memberstack ? 'EXISTS' : 'undefined');
-            console.log('[Dashboard] - window.$memberstack:', typeof window.$memberstack, window.$memberstack ? 'EXISTS' : 'undefined');
-            console.log('[Dashboard] - window.Memberstack:', typeof window.Memberstack, window.Memberstack ? 'EXISTS' : 'undefined');
-            console.log('[Dashboard] - window.$memberstackDom:', typeof window.$memberstackDom, window.$memberstackDom ? 'EXISTS' : 'undefined');
-            
+           
             // First wait for SDK to be available
-            console.log('[Dashboard] ⏳ Waiting for SDK...');
+         
             const memberstack = await waitForSDK();
             
             if (!memberstack) {
-                console.error('[Dashboard] ❌ Memberstack SDK not loaded after waiting');
-                console.error('[Dashboard] Please ensure Memberstack SDK script is in HEAD section');
+               
                 return null;
             }
             
-            console.log('[Dashboard] ✅ SDK found:', memberstack);
-            console.log('[Dashboard] SDK type:', typeof memberstack);
-            console.log('[Dashboard] SDK methods:', Object.keys(memberstack || {}));
-            
-            console.log('[Dashboard] ⏳ Waiting for SDK ready state...');
             
             // Wait for SDK to be ready (with timeout)
             if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
                 try {
-                    console.log('[Dashboard] SDK has onReady promise, waiting...');
+                 
                     await Promise.race([
                         memberstack.onReady,
                         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
@@ -197,41 +180,46 @@
             // The actual member data might be nested in a 'data' property
             let actualMember = member;
             
-            if (member && member.data) {
-                console.log('[Dashboard] ℹ️ Member data is nested in .data property');
-                actualMember = member.data;
-                console.log('[Dashboard] Extracted member from .data:', actualMember);
-                console.log('[Dashboard] actualMember type:', typeof actualMember);
-                console.log('[Dashboard] actualMember keys:', Object.keys(actualMember || {}));
-                console.log('[Dashboard] actualMember full object:', JSON.stringify(actualMember, null, 2));
+            // CRITICAL: Always check if member exists first
+            if (!member) {
+                console.log('[Dashboard] ❌ Member is null or undefined - cannot proceed');
+                return null;
             }
+            
+          
+            
+            if (member && member.data) {
+              
+                actualMember = member.data;
+
+            } else {
+                console.log('[Dashboard] ℹ️ Member data is NOT nested - using member directly');
+                console.log('[Dashboard] member.id:', member?.id);
+                console.log('[Dashboard] member.email:', member?.email);
+                console.log('[Dashboard] member.auth?.email:', member?.auth?.email);
+            }
+            console.log('[Dashboard] ========================================');
             
             // Check for member ID in multiple possible locations
             // Memberstack might return id, _id, or the ID might be in a different structure
-            const memberId = actualMember?.id || actualMember?._id || 
-                           actualMember?.memberId || actualMember?.member_id ||
-                           member?.id || member?._id ||
-                           member?.data?.id || member?.data?._id;
+            // IMPORTANT: Check actualMember first (after extraction), then fall back to member
+            const memberId = actualMember?.id || 
+                           actualMember?._id || 
+                           actualMember?.memberId || 
+                           actualMember?.member_id ||
+                           member?.data?.id || 
+                           member?.data?._id ||
+                           member?.id || 
+                           member?._id;
             const hasId = !!memberId;
             
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] 🔍 MEMBER ID CHECK');
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] - actualMember?.id:', actualMember?.id);
-            console.log('[Dashboard] - actualMember?._id:', actualMember?._id);
-            console.log('[Dashboard] - actualMember?.memberId:', actualMember?.memberId);
-            console.log('[Dashboard] - member?.id:', member?.id);
-            console.log('[Dashboard] - member?._id:', member?._id);
-            console.log('[Dashboard] - member?.data?.id:', member?.data?.id);
-            console.log('[Dashboard] - member?.data?._id:', member?.data?._id);
-            console.log('[Dashboard] - Final memberId:', memberId);
-            console.log('[Dashboard] - Has ID?', hasId);
+            // Debug: Log what we found
+         
+           
             
             // If no ID found, check if member exists at all (maybe just having member.data means logged in)
             if (!hasId && actualMember && Object.keys(actualMember).length > 0) {
-                console.log('[Dashboard] ⚠️ No ID found but actualMember exists with data');
-                console.log('[Dashboard] This might mean user is logged in but ID is in different format');
-                console.log('[Dashboard] Will check if we can proceed with just email...');
+               
             }
             
             // Accept member if we have either ID OR email (some Memberstack responses might not have ID)
@@ -245,28 +233,40 @@
                                member?.data?.auth?.email ||
                                member?.data?.auth?._email);
             
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] 🔍 CONDITION CHECK');
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] - hasId:', hasId);
-            console.log('[Dashboard] - actualMember exists:', !!actualMember);
-            console.log('[Dashboard] - hasEmail:', hasEmail);
-            console.log('[Dashboard] - actualMember?.auth?.email:', actualMember?.auth?.email);
-            console.log('[Dashboard] - Condition: hasId || (actualMember && hasEmail)');
-            console.log('[Dashboard] - Condition result:', hasId || (actualMember && hasEmail));
-            console.log('[Dashboard] ========================================');
+     
             
             // Accept if we have ID OR if we have actualMember with email
             // This handles cases where ID might be missing but email exists
-            const isValidMember = hasId || (actualMember && hasEmail);
+            // CRITICAL: Also accept if actualMember exists and has either id or auth.email directly
+            const hasActualMemberWithId = !!(actualMember && actualMember.id);
+            const hasActualMemberWithEmail = !!(actualMember && actualMember.auth && actualMember.auth.email);
+            const hasMemberDataWithId = !!(member && member.data && member.data.id);
+            const hasMemberDataWithEmail = !!(member && member.data && member.data.auth && member.data.auth.email);
+            
+            console.log('[Dashboard] 🔍 Additional validation checks:');
+            console.log('[Dashboard] - hasActualMemberWithId:', hasActualMemberWithId);
+            console.log('[Dashboard] - hasActualMemberWithEmail:', hasActualMemberWithEmail);
+            console.log('[Dashboard] - hasMemberDataWithId:', hasMemberDataWithId);
+            console.log('[Dashboard] - hasMemberDataWithEmail:', hasMemberDataWithEmail);
+            
+            // Accept member if ANY of these conditions are true:
+            // 1. We found an ID anywhere
+            // 2. We found an email anywhere AND actualMember exists
+            // 3. actualMember exists and has id directly
+            // 4. actualMember exists and has auth.email directly
+            // 5. member.data exists and has id directly
+            // 6. member.data exists and has auth.email directly
+            const isValidMember = hasId || 
+                                 (actualMember && hasEmail) || 
+                                 hasActualMemberWithId ||
+                                 hasActualMemberWithEmail ||
+                                 hasMemberDataWithId ||
+                                 hasMemberDataWithEmail;
+            
+            console.log('[Dashboard] - Final isValidMember:', isValidMember);
             
             if (isValidMember) {
-                console.log('[Dashboard] ✅✅✅ Member validation passed ✅✅✅');
-                console.log('[Dashboard] - Has ID:', hasId);
-                console.log('[Dashboard] - Has Email:', hasEmail);
-                console.log('[Dashboard] - Has actualMember data:', !!actualMember);
-                console.log('[Dashboard] - actualMember.id:', actualMember?.id);
-                console.log('[Dashboard] - actualMember.auth?.email:', actualMember?.auth?.email);
+           
                 // Get email from member object (try multiple possible fields and locations)
                 // Email can be in multiple locations: direct property, auth.email, or nested in member.data.auth.email
                 let email = actualMember?.email || 
@@ -283,20 +283,10 @@
                            member?.EMAIL;
                 
                 console.log('[Dashboard] Email extraction:');
-                console.log('[Dashboard] - actualMember.email:', actualMember?.email);
-                console.log('[Dashboard] - actualMember._email:', actualMember?._email);
-                console.log('[Dashboard] - actualMember.auth?.email:', actualMember?.auth?.email);
-                console.log('[Dashboard] - member.email:', member?.email);
-                console.log('[Dashboard] - member.data?.auth?.email:', member?.data?.auth?.email);
-                console.log('[Dashboard] - Final email:', email);
-                
+            
                 // Validate and normalize email
                 if (!email) {
-                    console.error('[Dashboard] ❌ Member has no email field!');
-                    console.error('[Dashboard] Available actualMember fields:', Object.keys(actualMember || {}));
-                    console.error('[Dashboard] Available member fields:', Object.keys(member || {}));
-                    console.error('[Dashboard] actualMember.auth:', actualMember?.auth);
-                    console.error('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
+                  
                     return null;
                 }
                 
@@ -336,13 +326,17 @@
                 return returnMember;
             } else {
                 // Even if no ID, check if we have email - might still be logged in
-                const hasEmail = !!(actualMember?.email || actualMember?._email || member?.email || member?._email);
+                // IMPORTANT: Check auth.email here too!
+                const hasEmail = !!(actualMember?.email || 
+                                   actualMember?._email || 
+                                   actualMember?.auth?.email ||
+                                   actualMember?.auth?._email ||
+                                   member?.email || 
+                                   member?._email ||
+                                   member?.data?.auth?.email ||
+                                   member?.data?.auth?._email);
                 
-                console.log('[Dashboard] ========================================');
-                console.log('[Dashboard] ⚠️ No member ID found');
-                console.log('[Dashboard] Member object received:', member);
-                console.log('[Dashboard] Actual member (from .data):', actualMember);
-                console.log('[Dashboard] Has email?', hasEmail);
+            
                 
                 if (member) {
                     console.log('[Dashboard] Member keys:', Object.keys(member));
@@ -351,7 +345,7 @@
                         console.log('[Dashboard] Member.data.id:', member.data.id);
                         console.log('[Dashboard] Member.data._id:', member.data._id);
                         console.log('[Dashboard] Member.data.email:', member.data.email);
-                        console.log('[Dashboard] Member.data._email:', member.data._email);
+                        console.log('[Dashboard] Member.data.auth?.email:', member.data.auth?.email);
                         console.log('[Dashboard] Full member.data:', JSON.stringify(member.data, null, 2));
                     }
                     console.log('[Dashboard] Member ID value:', memberId || 'NONE');
@@ -360,7 +354,15 @@
                 // If we have email but no ID, still accept it (some Memberstack responses might work this way)
                 if (hasEmail && actualMember) {
                     console.log('[Dashboard] ℹ️ No ID but has email - accepting member anyway');
-                    let email = actualMember?.email || actualMember?._email || member?.email || member?._email;
+                    // Extract email from all possible locations including auth.email
+                    let email = actualMember?.email || 
+                               actualMember?._email || 
+                               actualMember?.auth?.email ||
+                               actualMember?.auth?._email ||
+                               member?.email || 
+                               member?._email ||
+                               member?.data?.auth?.email ||
+                               member?.data?.auth?._email;
                     email = email.toString().toLowerCase().trim();
                     
                     const returnMember = {
