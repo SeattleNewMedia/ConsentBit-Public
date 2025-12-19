@@ -73,72 +73,108 @@
     // Check if user is logged in
     async function checkMemberstackSession() {
         try {
+            console.log('[Dashboard] ========================================');
             console.log('[Dashboard] Checking Memberstack session...');
+            console.log('[Dashboard] ========================================');
+            
+            // Debug: Check what's available in window
+            console.log('[Dashboard] 🔍 Window state check:');
+            console.log('[Dashboard] - $memberstackReady:', window.$memberstackReady);
+            console.log('[Dashboard] - window.memberstack:', typeof window.memberstack, window.memberstack ? 'EXISTS' : 'undefined');
+            console.log('[Dashboard] - window.$memberstack:', typeof window.$memberstack, window.$memberstack ? 'EXISTS' : 'undefined');
+            console.log('[Dashboard] - window.Memberstack:', typeof window.Memberstack, window.Memberstack ? 'EXISTS' : 'undefined');
+            console.log('[Dashboard] - window.$memberstackDom:', typeof window.$memberstackDom, window.$memberstackDom ? 'EXISTS' : 'undefined');
             
             // First wait for SDK to be available
+            console.log('[Dashboard] ⏳ Waiting for SDK...');
             const memberstack = await waitForSDK();
             
             if (!memberstack) {
-                console.error('[Dashboard] Memberstack SDK not loaded after waiting');
+                console.error('[Dashboard] ❌ Memberstack SDK not loaded after waiting');
+                console.error('[Dashboard] Please ensure Memberstack SDK script is in HEAD section');
                 return null;
             }
             
-            console.log('[Dashboard] SDK found, waiting for ready state...');
+            console.log('[Dashboard] ✅ SDK found:', memberstack);
+            console.log('[Dashboard] SDK type:', typeof memberstack);
+            console.log('[Dashboard] SDK methods:', Object.keys(memberstack || {}));
+            
+            console.log('[Dashboard] ⏳ Waiting for SDK ready state...');
             
             // Wait for SDK to be ready (with timeout)
             if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
                 try {
+                    console.log('[Dashboard] SDK has onReady promise, waiting...');
                     await Promise.race([
                         memberstack.onReady,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
                     ]);
-                    console.log('[Dashboard] SDK ready promise resolved');
+                    console.log('[Dashboard] ✅ SDK ready promise resolved');
                 } catch (error) {
-                    console.warn('[Dashboard] SDK ready promise timeout or error:', error);
+                    console.warn('[Dashboard] ⚠️ SDK ready promise timeout or error:', error);
                     // Continue anyway - SDK might still work
                 }
+            } else {
+                console.log('[Dashboard] ℹ️ SDK does not have onReady promise, continuing...');
             }
             
             // Additional wait to ensure SDK is fully initialized
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('[Dashboard] ⏳ Additional wait for SDK initialization...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
             // Try multiple ways to get the member
             let member = null;
             
+            // Method 1: memberstack.getCurrentMember
             if (memberstack.getCurrentMember && typeof memberstack.getCurrentMember === 'function') {
-                console.log('[Dashboard] Getting current member via getCurrentMember...');
+                console.log('[Dashboard] 🔍 Method 1: Trying getCurrentMember()...');
                 try {
                     member = await memberstack.getCurrentMember();
-                    console.log('[Dashboard] Member data from getCurrentMember:', member);
+                    console.log('[Dashboard] ✅ Member data from getCurrentMember:', member);
+                    if (member) {
+                        console.log('[Dashboard] Member has ID?', !!member.id);
+                        console.log('[Dashboard] Member has email?', !!(member.email || member._email));
+                    }
                 } catch (error) {
-                    console.error('[Dashboard] Error calling getCurrentMember:', error);
+                    console.error('[Dashboard] ❌ Error calling getCurrentMember:', error);
+                    console.error('[Dashboard] Error details:', error.message, error.stack);
+                }
+            } else {
+                console.log('[Dashboard] ⚠️ Method 1: getCurrentMember not available');
+            }
+            
+            // Method 2: window.memberstack.getCurrentMember
+            if ((!member || !member.id) && window.memberstack && window.memberstack.getCurrentMember) {
+                console.log('[Dashboard] 🔍 Method 2: Trying window.memberstack.getCurrentMember()...');
+                try {
+                    member = await window.memberstack.getCurrentMember();
+                    console.log('[Dashboard] ✅ Member from window.memberstack:', member);
+                } catch (error) {
+                    console.error('[Dashboard] ❌ Error with window.memberstack:', error);
                 }
             }
             
-            // If getCurrentMember didn't work, try alternative methods
-            if (!member || !member.id) {
-                console.log('[Dashboard] Trying alternative methods to get member...');
-                
-                // Try window.memberstack directly
-                if (window.memberstack && window.memberstack.getCurrentMember) {
+            // Method 3: $memberstackDom.memberstack.getCurrentMember
+            if ((!member || !member.id) && window.$memberstackDom) {
+                if (window.$memberstackDom.memberstack && window.$memberstackDom.memberstack.getCurrentMember) {
+                    console.log('[Dashboard] 🔍 Method 3: Trying $memberstackDom.memberstack.getCurrentMember()...');
                     try {
-                        member = await window.memberstack.getCurrentMember();
-                        console.log('[Dashboard] Member from window.memberstack:', member);
+                        member = await window.$memberstackDom.memberstack.getCurrentMember();
+                        console.log('[Dashboard] ✅ Member from $memberstackDom.memberstack:', member);
                     } catch (error) {
-                        console.error('[Dashboard] Error with window.memberstack:', error);
+                        console.error('[Dashboard] ❌ Error with $memberstackDom.memberstack:', error);
                     }
                 }
-                
-                // Try $memberstackDom
-                if ((!member || !member.id) && window.$memberstackDom) {
-                    if (window.$memberstackDom.memberstack && window.$memberstackDom.memberstack.getCurrentMember) {
-                        try {
-                            member = await window.$memberstackDom.memberstack.getCurrentMember();
-                            console.log('[Dashboard] Member from $memberstackDom.memberstack:', member);
-                        } catch (error) {
-                            console.error('[Dashboard] Error with $memberstackDom.memberstack:', error);
-                        }
-                    }
+            }
+            
+            // Method 4: Try $memberstackDom directly
+            if ((!member || !member.id) && window.$memberstackDom && typeof window.$memberstackDom.getCurrentMember === 'function') {
+                console.log('[Dashboard] 🔍 Method 4: Trying $memberstackDom.getCurrentMember()...');
+                try {
+                    member = await window.$memberstackDom.getCurrentMember();
+                    console.log('[Dashboard] ✅ Member from $memberstackDom:', member);
+                } catch (error) {
+                    console.error('[Dashboard] ❌ Error with $memberstackDom:', error);
                 }
             }
             
@@ -164,20 +200,28 @@
                     return null;
                 }
                 
-                console.log('[Dashboard] ✅ User logged in');
+                console.log('[Dashboard] ========================================');
+                console.log('[Dashboard] ✅✅✅ USER LOGGED IN ✅✅✅');
+                console.log('[Dashboard] ========================================');
                 console.log('[Dashboard] 📧 Email (normalized):', email);
                 console.log('[Dashboard] 👤 Member ID:', member.id || member._id);
                 console.log('[Dashboard] 📋 Email source:', member.email ? 'member.email' : (member._email ? 'member._email' : 'other'));
                 console.log('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
+                console.log('[Dashboard] ========================================');
                 
                 // Store normalized email in member object for later use
                 member.normalizedEmail = email;
                 
                 return member;
             } else {
-                console.log('[Dashboard] No member found or member has no ID');
-                console.log('[Dashboard] Member object:', member);
-                console.log('[Dashboard] User not logged in');
+                console.log('[Dashboard] ========================================');
+                console.log('[Dashboard] ❌ No member found or member has no ID');
+                console.log('[Dashboard] Member object received:', member);
+                if (member) {
+                    console.log('[Dashboard] Member keys:', Object.keys(member));
+                    console.log('[Dashboard] Member ID value:', member.id || member._id || 'NONE');
+                }
+                console.log('[Dashboard] ========================================');
                 return null;
             }
         } catch (error) {
@@ -819,9 +863,60 @@
         }
     }
     
+    // Wait for Memberstack to be fully ready
+    async function waitForMemberstackReady() {
+        console.log('[Dashboard] ⏳ Waiting for Memberstack to be fully ready...');
+        
+        // Method 1: Wait for $memberstackReady flag
+        let attempts = 0;
+        const maxAttempts = 60; // 30 seconds
+        
+        while (attempts < maxAttempts) {
+            if (window.$memberstackReady === true) {
+                console.log('[Dashboard] ✅ $memberstackReady is true');
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+            
+            if (attempts % 10 === 0) {
+                console.log(`[Dashboard] Still waiting for $memberstackReady... (${attempts * 0.5}s)`);
+            }
+        }
+        
+        // Method 2: Wait for SDK object to be available
+        const memberstack = await waitForSDK();
+        if (!memberstack) {
+            console.error('[Dashboard] ❌ SDK not available after waiting');
+            return false;
+        }
+        
+        // Method 3: Wait for onReady promise if available
+        if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
+            try {
+                console.log('[Dashboard] ⏳ Waiting for SDK onReady promise...');
+                await Promise.race([
+                    memberstack.onReady,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+                ]);
+                console.log('[Dashboard] ✅ SDK onReady promise resolved');
+            } catch (error) {
+                console.warn('[Dashboard] ⚠️ SDK onReady timeout, but continuing...');
+            }
+        }
+        
+        // Additional wait to ensure everything is initialized
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('[Dashboard] ✅ Memberstack should be ready now');
+        return true;
+    }
+    
     // Initialize dashboard
     async function initializeDashboard() {
-        console.log('[Dashboard] Initializing...');
+        console.log('[Dashboard] ========================================');
+        console.log('[Dashboard] 🚀 INITIALIZING DASHBOARD');
+        console.log('[Dashboard] ========================================');
         
         // Create dashboard HTML structure first (always show it)
         createDashboardHTML();
@@ -829,33 +924,93 @@
         // Show dashboard by default (will hide if not logged in)
         toggleDashboardVisibility(true);
         
-        // Check if Memberstack SDK is available
+        // Check if Memberstack SDK script tag exists
         const scriptTag = document.querySelector('script[data-memberstack-app]');
         if (!scriptTag) {
             console.error('[Dashboard] ❌ Memberstack script tag not found!');
-            console.error('[Dashboard] Waiting for SDK to load...');
-            // Wait a bit more for SDK to load
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.error('[Dashboard] Waiting 5 seconds and checking again...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             // Check again
             const retryScriptTag = document.querySelector('script[data-memberstack-app]');
             if (!retryScriptTag) {
-                showError('Authentication system not configured. Please add Memberstack SDK.');
+                console.error('[Dashboard] ❌ Memberstack script tag still not found after waiting');
+                showError('Authentication system not configured. Please add Memberstack SDK to HEAD section.');
                 toggleDashboardVisibility(false);
                 return;
             }
+            console.log('[Dashboard] ✅ Memberstack script tag found on retry');
+        } else {
+            console.log('[Dashboard] ✅ Memberstack script tag found');
+            const appId = scriptTag.getAttribute('data-memberstack-app');
+            console.log('[Dashboard] Memberstack App ID:', appId);
         }
         
-        // Wait a bit more for SDK to fully initialize
-        console.log('[Dashboard] Waiting for Memberstack SDK to fully initialize...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait for Memberstack to be fully ready
+        const isReady = await waitForMemberstackReady();
+        if (!isReady) {
+            console.error('[Dashboard] ❌ Memberstack not ready after waiting');
+            showError('Memberstack SDK is taking too long to load. Please refresh the page.');
+            toggleDashboardVisibility(false);
+            return;
+        }
         
-        // Wait for SDK and check session (with longer timeout)
-        console.log('[Dashboard] Checking Memberstack session...');
-        const member = await checkMemberstackSession();
+        // Try checking session multiple times (retry logic)
+        let member = null;
+        let retryCount = 0;
+        const maxRetries = 8; // Increased retries
+        
+        console.log('[Dashboard] 🔍 Starting session check with retry logic...');
+        
+        while (!member && retryCount < maxRetries) {
+            console.log(`[Dashboard] ========================================`);
+            console.log(`[Dashboard] 🔄 Session check attempt ${retryCount + 1}/${maxRetries}`);
+            console.log(`[Dashboard] ========================================`);
+            
+            member = await checkMemberstackSession();
+            
+            if (!member) {
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    const waitTime = 3000; // 3 seconds between retries
+                    console.log(`[Dashboard] ⏳ No member found, waiting ${waitTime/1000} seconds before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            } else {
+                console.log(`[Dashboard] ✅ Member found on attempt ${retryCount + 1}!`);
+            }
+        }
         
         if (!member) {
-            console.log('[Dashboard] User not logged in - showing login prompt');
+            console.log('[Dashboard] ========================================');
+            console.log('[Dashboard] ❌❌❌ USER NOT LOGGED IN AFTER ALL RETRIES ❌❌❌');
+            console.log('[Dashboard] ========================================');
+            console.log('[Dashboard] 🔍 Final Debug Info:');
+            console.log('[Dashboard] - window.$memberstackReady:', window.$memberstackReady);
+            console.log('[Dashboard] - window.memberstack:', typeof window.memberstack, window.memberstack ? 'EXISTS ✅' : 'undefined ❌');
+            console.log('[Dashboard] - window.$memberstack:', typeof window.$memberstack, window.$memberstack ? 'EXISTS ✅' : 'undefined ❌');
+            console.log('[Dashboard] - window.Memberstack:', typeof window.Memberstack, window.Memberstack ? 'EXISTS ✅' : 'undefined ❌');
+            console.log('[Dashboard] - window.$memberstackDom:', typeof window.$memberstackDom, window.$memberstackDom ? 'EXISTS ✅' : 'undefined ❌');
+            
+            // Try one more direct check
+            if (window.$memberstackDom && window.$memberstackDom.memberstack) {
+                console.log('[Dashboard] 🔍 Trying direct access to $memberstackDom.memberstack...');
+                try {
+                    const directMember = await window.$memberstackDom.memberstack.getCurrentMember();
+                    console.log('[Dashboard] Direct member check result:', directMember);
+                } catch (e) {
+                    console.error('[Dashboard] Direct member check error:', e);
+                }
+            }
+            
+            console.log('[Dashboard] ========================================');
+            console.log('[Dashboard] 💡 TROUBLESHOOTING:');
+            console.log('[Dashboard] 1. Make sure you are logged in via Memberstack');
+            console.log('[Dashboard] 2. Check if Memberstack SDK loaded correctly');
+            console.log('[Dashboard] 3. Try refreshing the page');
+            console.log('[Dashboard] 4. Check browser console for Memberstack errors');
+            console.log('[Dashboard] ========================================');
+            
             toggleDashboardVisibility(false);
             return;
         }
