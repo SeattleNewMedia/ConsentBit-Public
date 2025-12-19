@@ -242,15 +242,26 @@
                 console.log('[Dashboard] - Has Email:', hasEmail);
                 console.log('[Dashboard] - Has actualMember data:', !!actualMember);
                 // Get email from member object (try multiple possible fields and locations)
-                let email = actualMember?.email || actualMember?._email || 
-                           member?.email || member?._email || 
-                           actualMember?.Email || actualMember?.EMAIL ||
-                           member?.Email || member?.EMAIL;
+                // Email can be in multiple locations: direct property, auth.email, or nested in member.data.auth.email
+                let email = actualMember?.email || 
+                           actualMember?._email || 
+                           actualMember?.auth?.email ||
+                           actualMember?.auth?._email ||
+                           member?.email || 
+                           member?._email || 
+                           member?.data?.auth?.email ||
+                           member?.data?.auth?._email ||
+                           actualMember?.Email || 
+                           actualMember?.EMAIL ||
+                           member?.Email || 
+                           member?.EMAIL;
                 
                 console.log('[Dashboard] Email extraction:');
                 console.log('[Dashboard] - actualMember.email:', actualMember?.email);
                 console.log('[Dashboard] - actualMember._email:', actualMember?._email);
+                console.log('[Dashboard] - actualMember.auth?.email:', actualMember?.auth?.email);
                 console.log('[Dashboard] - member.email:', member?.email);
+                console.log('[Dashboard] - member.data?.auth?.email:', member?.data?.auth?.email);
                 console.log('[Dashboard] - Final email:', email);
                 
                 // Validate and normalize email
@@ -258,6 +269,7 @@
                     console.error('[Dashboard] ❌ Member has no email field!');
                     console.error('[Dashboard] Available actualMember fields:', Object.keys(actualMember || {}));
                     console.error('[Dashboard] Available member fields:', Object.keys(member || {}));
+                    console.error('[Dashboard] actualMember.auth:', actualMember?.auth);
                     console.error('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
                     return null;
                 }
