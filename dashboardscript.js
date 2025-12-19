@@ -35,7 +35,7 @@
         let attempts = 0;
         const maxAttempts = 60; // Increased to 30 seconds (60 * 500ms)
         
-        console.log('[Dashboard] Waiting for Memberstack SDK to load...');
+    
         
         while (attempts < maxAttempts) {
             const memberstack = getMemberstackSDK();
@@ -136,16 +136,17 @@
                         const hasDirectId = !!(member.id || member._id);
                         const hasNestedId = !!(member.data && (member.data.id || member.data._id));
                         const hasDirectEmail = !!(member.email || member._email);
-                        const hasNestedEmail = !!(member.data && (member.data.email || member.data._email));
+                        const hasNestedEmail = !!(member.data && (member.data.email || member.data._email || member.data.auth?.email));
                         
                         console.log('[Dashboard] Member structure analysis:');
                         console.log('[Dashboard] - Has direct ID?', hasDirectId);
                         console.log('[Dashboard] - Has nested ID (in .data)?', hasNestedId);
                         console.log('[Dashboard] - Has direct email?', hasDirectEmail);
-                        console.log('[Dashboard] - Has nested email (in .data)?', hasNestedEmail);
+                        console.log('[Dashboard] - Has nested email (in .data or .data.auth)?', hasNestedEmail);
                         console.log('[Dashboard] - Member keys:', Object.keys(member));
                         if (member.data) {
                             console.log('[Dashboard] - Member.data keys:', Object.keys(member.data));
+                            console.log('[Dashboard] - Member.data.auth?.email:', member.data.auth?.email);
                             console.log('[Dashboard] - Member.data content:', member.data);
                         }
                     }
@@ -234,13 +235,38 @@
             }
             
             // Accept member if we have either ID OR email (some Memberstack responses might not have ID)
-            const hasEmail = !!(actualMember?.email || actualMember?._email || member?.email || member?._email);
+            // Check for email in multiple locations including auth.email
+            const hasEmail = !!(actualMember?.email || 
+                               actualMember?._email || 
+                               actualMember?.auth?.email ||
+                               actualMember?.auth?._email ||
+                               member?.email || 
+                               member?._email ||
+                               member?.data?.auth?.email ||
+                               member?.data?.auth?._email);
             
-            if (hasId || (actualMember && hasEmail)) {
-                console.log('[Dashboard] ✅ Member validation passed');
+            console.log('[Dashboard] ========================================');
+            console.log('[Dashboard] 🔍 CONDITION CHECK');
+            console.log('[Dashboard] ========================================');
+            console.log('[Dashboard] - hasId:', hasId);
+            console.log('[Dashboard] - actualMember exists:', !!actualMember);
+            console.log('[Dashboard] - hasEmail:', hasEmail);
+            console.log('[Dashboard] - actualMember?.auth?.email:', actualMember?.auth?.email);
+            console.log('[Dashboard] - Condition: hasId || (actualMember && hasEmail)');
+            console.log('[Dashboard] - Condition result:', hasId || (actualMember && hasEmail));
+            console.log('[Dashboard] ========================================');
+            
+            // Accept if we have ID OR if we have actualMember with email
+            // This handles cases where ID might be missing but email exists
+            const isValidMember = hasId || (actualMember && hasEmail);
+            
+            if (isValidMember) {
+                console.log('[Dashboard] ✅✅✅ Member validation passed ✅✅✅');
                 console.log('[Dashboard] - Has ID:', hasId);
                 console.log('[Dashboard] - Has Email:', hasEmail);
                 console.log('[Dashboard] - Has actualMember data:', !!actualMember);
+                console.log('[Dashboard] - actualMember.id:', actualMember?.id);
+                console.log('[Dashboard] - actualMember.auth?.email:', actualMember?.auth?.email);
                 // Get email from member object (try multiple possible fields and locations)
                 // Email can be in multiple locations: direct property, auth.email, or nested in member.data.auth.email
                 let email = actualMember?.email || 
@@ -1197,7 +1223,17 @@
         console.log('[Dashboard] ✅✅✅ USER IS LOGGED IN - SHOWING DASHBOARD ✅✅✅');
         console.log('[Dashboard] ========================================');
         
-        const userEmail = member.normalizedEmail || (member.email || member._email || '').toLowerCase().trim();
+        // Extract email from member object (check multiple locations)
+        let userEmail = member.normalizedEmail || 
+                       member.email || 
+                       member._email ||
+                       (member.data && (member.data.email || member.data.auth?.email)) ||
+                       '';
+        
+        // Normalize email
+        if (userEmail) {
+            userEmail = userEmail.toString().toLowerCase().trim();
+        }
         
         if (!userEmail) {
             console.error('[Dashboard] ❌ No email found in member object!');
@@ -1207,6 +1243,7 @@
             const dashboardContainerError = document.getElementById('dashboard-container');
             if (dashboardContainerError) {
                 dashboardContainerError.style.display = 'block';
+                dashboardContainerError.style.visibility = 'visible';
             }
             return;
         }
@@ -1220,6 +1257,7 @@
             const dashboardContainerInvalid = document.getElementById('dashboard-container');
             if (dashboardContainerInvalid) {
                 dashboardContainerInvalid.style.display = 'block';
+                dashboardContainerInvalid.style.visibility = 'visible';
             }
             return;
         }
@@ -1230,7 +1268,7 @@
         console.log('[Dashboard] 🔍 Email will be used to fetch data from database/Stripe');
         console.log('[Dashboard] ========================================');
         
-        // Force dashboard to be visible
+        // FIRST: Force dashboard to be visible immediately
         toggleDashboardVisibility(true);
         
         // Double-check and force visibility
@@ -1238,19 +1276,33 @@
         if (dashboardContainerForce) {
             dashboardContainerForce.style.display = 'block';
             dashboardContainerForce.style.visibility = 'visible';
+            dashboardContainerForce.style.opacity = '1';
             console.log('[Dashboard] ✅ Dashboard container forced to visible');
         } else {
             console.error('[Dashboard] ❌ Dashboard container not found after login!');
         }
         
+        // Hide login prompt if it exists
+        const loginPrompt = document.getElementById('login-prompt');
+        if (loginPrompt) {
+            loginPrompt.style.display = 'none';
+            console.log('[Dashboard] ✅ Login prompt hidden');
+        }
+        
         // Load dashboard data
         console.log('[Dashboard] 🔄 Loading dashboard data for email:', userEmail);
         console.log('[Dashboard] 🔗 API endpoint:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
-        await Promise.all([
-            loadDashboard(userEmail),
-            loadLicenses(userEmail)
-        ]);
-        console.log('[Dashboard] ✅ Dashboard data loaded successfully');
+        
+        try {
+            await Promise.all([
+                loadDashboard(userEmail),
+                loadLicenses(userEmail)
+            ]);
+            console.log('[Dashboard] ✅ Dashboard data loaded successfully');
+        } catch (error) {
+            console.error('[Dashboard] ❌ Error loading dashboard data:', error);
+            showError('Failed to load dashboard data. Please refresh the page.');
+        }
         
         // Attach event listeners
         const addSiteButton = document.getElementById('add-site-button');
