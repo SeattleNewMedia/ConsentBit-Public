@@ -790,6 +790,14 @@
             console.log('[Dashboard] ✅ Dashboard data received:', data);
             console.log('[Dashboard] 📊 Sites count:', Object.keys(data.sites || {}).length);
             console.log('[Dashboard] 📊 Subscriptions count:', Object.keys(data.subscriptions || {}).length);
+            console.log('[Dashboard] 📋 Sites object:', data.sites);
+            console.log('[Dashboard] 📋 Subscriptions object:', data.subscriptions);
+            
+            // Check if sites exist but are empty
+            if (data.sites && Object.keys(data.sites).length === 0) {
+                console.warn('[Dashboard] ⚠️ Sites object exists but is empty!');
+                console.warn('[Dashboard] ⚠️ This might mean sites were filtered out or not stored correctly');
+            }
             
             // Display sites/domains
             displaySites(data.sites || {});
@@ -916,6 +924,13 @@
     function displaySubscriptions(subscriptions, allSites) {
         const container = document.getElementById('subscriptions-accordion-container');
         if (!container) return;
+        
+        console.log('[Dashboard] displaySubscriptions called with:', {
+            subscriptionsCount: subscriptions ? Object.keys(subscriptions).length : 0,
+            subscriptions: subscriptions,
+            allSitesCount: allSites ? Object.keys(allSites).length : 0,
+            allSites: allSites
+        });
         
         if (Object.keys(subscriptions).length === 0) {
             container.innerHTML = `
