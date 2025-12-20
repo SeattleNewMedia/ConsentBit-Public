@@ -1052,7 +1052,14 @@
                             </div>
                             
                             <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
-                                <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Add New Site to This Subscription</h4>
+                                <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Add Sites to This Subscription</h4>
+                                
+                                <!-- Pending Sites List -->
+                                <div id="pending-sites-${subId}" style="margin-bottom: 20px;">
+                                    <!-- Pending sites will be dynamically added here -->
+                                </div>
+                                
+                                <!-- Add Site Input -->
                                 <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                                     <input 
                                         type="text" 
@@ -1067,7 +1074,7 @@
                                             font-size: 14px;
                                         "
                                     />
-                                    <button class="add-site-to-subscription" data-subscription-id="${subId}" style="
+                                    <button class="add-to-pending" data-subscription-id="${subId}" style="
                                         padding: 12px 24px;
                                         background: #667eea;
                                         color: white;
@@ -1078,16 +1085,36 @@
                                         cursor: pointer;
                                         transition: background 0.3s;
                                     " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">
-                                        Add Site
+                                        Add to List
                                     </button>
                                 </div>
+                                
                                 <p style="font-size: 12px; color: #666; margin: 10px 0 0 0;">
-                                    💡 Price will be automatically determined from your subscription
+                                    💡 Add multiple sites, then click "Pay Now" to checkout. Price will be automatically determined.
                                 </p>
+                                
                                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
                                     <input type="checkbox" id="one-time-payment-${subId}" style="cursor: pointer;">
-                                    <span style="font-size: 14px; color: #666;">One-time payment (add site immediately without subscription)</span>
+                                    <span style="font-size: 14px; color: #666;">One-time payment (add sites immediately without subscription)</span>
                                 </label>
+                                
+                                <!-- Pay Now Button (hidden until at least one site is added) -->
+                                <div id="pay-now-container-${subId}" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                                    <button class="pay-now-button" data-subscription-id="${subId}" style="
+                                        width: 100%;
+                                        padding: 14px 28px;
+                                        background: #4caf50;
+                                        color: white;
+                                        border: none;
+                                        border-radius: 6px;
+                                        font-size: 16px;
+                                        font-weight: 600;
+                                        cursor: pointer;
+                                        transition: background 0.3s;
+                                    " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4caf50'">
+                                        💳 Pay Now (<span id="pending-count-${subId}">0</span> site<span id="pending-plural-${subId}">s</span>)
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1125,13 +1152,80 @@
             });
         });
         
-        // Add event listeners for add site buttons
-        container.querySelectorAll('.add-site-to-subscription').forEach(btn => {
-            btn.addEventListener('click', async function() {
+        // Initialize pending sites storage for each subscription
+        const pendingSitesBySubscription = {};
+        Object.keys(subscriptions).forEach(subId => {
+            pendingSitesBySubscription[subId] = [];
+        });
+        
+        // Function to update pending sites display
+        function updatePendingSitesDisplay(subscriptionId) {
+            const pendingContainer = document.getElementById(`pending-sites-${subscriptionId}`);
+            const payNowContainer = document.getElementById(`pay-now-container-${subscriptionId}`);
+            const pendingCount = document.getElementById(`pending-count-${subscriptionId}`);
+            const pendingPlural = document.getElementById(`pending-plural-${subscriptionId}`);
+            
+            if (!pendingContainer) return;
+            
+            const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+            
+            if (pendingSites.length === 0) {
+                pendingContainer.innerHTML = '';
+                if (payNowContainer) payNowContainer.style.display = 'none';
+            } else {
+                pendingContainer.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <h5 style="margin: 0 0 10px 0; color: #666; font-size: 14px; font-weight: 600;">Pending Sites (${pendingSites.length}):</h5>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${pendingSites.map((site, idx) => `
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding: 10px 15px;
+                                    background: white;
+                                    border: 1px solid #e0e0e0;
+                                    border-radius: 6px;
+                                ">
+                                    <span style="font-size: 14px; color: #333;">${site}</span>
+                                    <button 
+                                        class="remove-pending-site" 
+                                        data-subscription-id="${subscriptionId}" 
+                                        data-site-index="${idx}"
+                                        style="
+                                            padding: 6px 12px;
+                                            background: #f44336;
+                                            color: white;
+                                            border: none;
+                                            border-radius: 4px;
+                                            font-size: 12px;
+                                            font-weight: 600;
+                                            cursor: pointer;
+                                            transition: background 0.3s;
+                                        " 
+                                        onmouseover="this.style.background='#d32f2f'" 
+                                        onmouseout="this.style.background='#f44336'">
+                                        Remove
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                if (payNowContainer) {
+                    payNowContainer.style.display = 'block';
+                    if (pendingCount) pendingCount.textContent = pendingSites.length;
+                    if (pendingPlural) pendingPlural.textContent = pendingSites.length === 1 ? '' : 's';
+                }
+            }
+        }
+        
+        // Add event listeners for "Add to List" buttons (adds to pending list)
+        container.querySelectorAll('.add-to-pending').forEach(btn => {
+            btn.addEventListener('click', function() {
                 const subscriptionId = this.getAttribute('data-subscription-id');
                 const siteInput = document.getElementById(`new-site-input-${subscriptionId}`);
-                const oneTimePaymentCheckbox = document.getElementById(`one-time-payment-${subscriptionId}`);
-                const oneTimePayment = oneTimePaymentCheckbox ? oneTimePaymentCheckbox.checked : false;
                 
                 if (!siteInput) return;
                 
@@ -1139,6 +1233,65 @@
                 
                 if (!site) {
                     showError('Please enter a site domain');
+                    return;
+                }
+                
+                // Check if site already in pending list
+                const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+                if (pendingSites.includes(site)) {
+                    showError('This site is already in the pending list');
+                    return;
+                }
+                
+                // Add to pending list
+                pendingSites.push(site);
+                pendingSitesBySubscription[subscriptionId] = pendingSites;
+                
+                // Clear input
+                siteInput.value = '';
+                
+                // Update display
+                updatePendingSitesDisplay(subscriptionId);
+                
+                // Add new input field
+                const inputContainer = siteInput.parentElement;
+                const newInput = siteInput.cloneNode(true);
+                newInput.value = '';
+                newInput.id = `new-site-input-${subscriptionId}`;
+                siteInput.parentElement.insertBefore(newInput, siteInput);
+                siteInput.remove();
+                
+                showSuccess(`Site "${site}" added to pending list`);
+            });
+        });
+        
+        // Add event listeners for remove pending site buttons
+        container.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-pending-site')) {
+                const subscriptionId = e.target.getAttribute('data-subscription-id');
+                const siteIndex = parseInt(e.target.getAttribute('data-site-index'));
+                const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+                
+                if (siteIndex >= 0 && siteIndex < pendingSites.length) {
+                    const removedSite = pendingSites[siteIndex];
+                    pendingSites.splice(siteIndex, 1);
+                    pendingSitesBySubscription[subscriptionId] = pendingSites;
+                    updatePendingSitesDisplay(subscriptionId);
+                    showSuccess(`Site "${removedSite}" removed from pending list`);
+                }
+            }
+        });
+        
+        // Add event listeners for "Pay Now" buttons
+        container.querySelectorAll('.pay-now-button').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const subscriptionId = this.getAttribute('data-subscription-id');
+                const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+                const oneTimePaymentCheckbox = document.getElementById(`one-time-payment-${subscriptionId}`);
+                const oneTimePayment = oneTimePaymentCheckbox ? oneTimePaymentCheckbox.checked : false;
+                
+                if (pendingSites.length === 0) {
+                    showError('No sites to add. Please add at least one site.');
                     return;
                 }
                 
@@ -1150,16 +1303,20 @@
                 
                 const userEmail = member.email || member._email;
                 
+                // Disable button during processing
+                this.disabled = true;
+                this.textContent = 'Processing...';
+                
                 try {
-                    // Add site to subscription (price will be determined by backend)
-                    const response = await fetch(`${API_BASE}/add-site`, {
+                    // Add all pending sites (batch)
+                    const response = await fetch(`${API_BASE}/add-sites-batch`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         credentials: 'include',
                         body: JSON.stringify({ 
-                            site,
+                            sites: pendingSites,
                             email: userEmail,
                             subscriptionId: subscriptionId,
                             oneTimePayment: oneTimePayment
@@ -1169,11 +1326,15 @@
                     const data = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(data.error || data.message || 'Failed to add site');
+                        throw new Error(data.error || data.message || 'Failed to add sites');
                     }
                     
-                    showSuccess(data.message || 'Site added successfully!');
-                    siteInput.value = '';
+                    showSuccess(data.message || `Successfully added ${pendingSites.length} site(s)!`);
+                    
+                    // Clear pending list
+                    pendingSitesBySubscription[subscriptionId] = [];
+                    updatePendingSitesDisplay(subscriptionId);
+                    
                     if (oneTimePaymentCheckbox) {
                         oneTimePaymentCheckbox.checked = false;
                     }
@@ -1181,10 +1342,17 @@
                     // Reload dashboard
                     loadDashboard(userEmail);
                 } catch (error) {
-                    console.error('[Dashboard] Error adding site:', error);
-                    showError('Failed to add site: ' + error.message);
+                    console.error('[Dashboard] Error adding sites:', error);
+                    showError('Failed to add sites: ' + error.message);
+                    this.disabled = false;
+                    this.textContent = `💳 Pay Now (${pendingSites.length} site${pendingSites.length === 1 ? '' : 's'})`;
                 }
             });
+        });
+        
+        // Initialize pending sites display for all subscriptions
+        Object.keys(subscriptions).forEach(subId => {
+            updatePendingSitesDisplay(subId);
         });
     }
     
