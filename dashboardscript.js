@@ -802,8 +802,8 @@
             // Display sites/domains
             displaySites(data.sites || {});
             
-            // Display subscriptions
-            displaySubscriptions(data.subscriptions || {}, data.sites || {});
+            // Display subscriptions (including pending sites)
+            displaySubscriptions(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
@@ -921,7 +921,7 @@
     }
     
     // Display subscriptions in accordion format
-    function displaySubscriptions(subscriptions, allSites) {
+    function displaySubscriptions(subscriptions, allSites, pendingSites = []) {
         const container = document.getElementById('subscriptions-accordion-container');
         if (!container) return;
         
@@ -929,7 +929,9 @@
             subscriptionsCount: subscriptions ? Object.keys(subscriptions).length : 0,
             subscriptions: subscriptions,
             allSitesCount: allSites ? Object.keys(allSites).length : 0,
-            allSites: allSites
+            allSites: allSites,
+            pendingSitesCount: pendingSites ? pendingSites.length : 0,
+            pendingSites: pendingSites
         });
         
         if (Object.keys(subscriptions).length === 0) {
@@ -1153,10 +1155,31 @@
         });
         
         // Initialize pending sites storage for each subscription
+        // Load pending sites from backend response
         const pendingSitesBySubscription = {};
-        Object.keys(subscriptions).forEach(subId => {
+        const subscriptionIds = Object.keys(subscriptions);
+        const firstSubscriptionId = subscriptionIds.length > 0 ? subscriptionIds[0] : null;
+        
+        // Initialize all subscriptions with empty arrays
+        subscriptionIds.forEach(subId => {
             pendingSitesBySubscription[subId] = [];
         });
+        
+        // Distribute pending sites to subscriptions
+        pendingSites.forEach(ps => {
+            const siteName = ps.site || ps; // Extract site name
+            const psSubscriptionId = ps.subscription_id;
+            
+            if (psSubscriptionId && pendingSitesBySubscription.hasOwnProperty(psSubscriptionId)) {
+                // Assign to matching subscription
+                pendingSitesBySubscription[psSubscriptionId].push(siteName);
+            } else if (firstSubscriptionId) {
+                // Assign to first subscription if no subscription_id or subscription not found
+                pendingSitesBySubscription[firstSubscriptionId].push(siteName);
+            }
+        });
+        
+        console.log('[Dashboard] Pending sites by subscription:', pendingSitesBySubscription);
         
         // Function to update pending sites display
         function updatePendingSitesDisplay(subscriptionId) {
@@ -1165,9 +1188,13 @@
             const pendingCount = document.getElementById(`pending-count-${subscriptionId}`);
             const pendingPlural = document.getElementById(`pending-plural-${subscriptionId}`);
             
-            if (!pendingContainer) return;
+            if (!pendingContainer) {
+                console.warn('[Dashboard] Pending container not found for subscription:', subscriptionId);
+                return;
+            }
             
             const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+            console.log('[Dashboard] Updating pending sites display for subscription:', subscriptionId, 'sites:', pendingSites);
             
             if (pendingSites.length === 0) {
                 pendingContainer.innerHTML = '';
@@ -1227,7 +1254,10 @@
                 const subscriptionId = this.getAttribute('data-subscription-id');
                 const siteInput = document.getElementById(`new-site-input-${subscriptionId}`);
                 
-                if (!siteInput) return;
+                if (!siteInput) {
+                    console.error('[Dashboard] Site input not found for subscription:', subscriptionId);
+                    return;
+                }
                 
                 const site = siteInput.value.trim();
                 
@@ -1236,8 +1266,13 @@
                     return;
                 }
                 
+                // Initialize if not exists
+                if (!pendingSitesBySubscription[subscriptionId]) {
+                    pendingSitesBySubscription[subscriptionId] = [];
+                }
+                
                 // Check if site already in pending list
-                const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
+                const pendingSites = pendingSitesBySubscription[subscriptionId];
                 if (pendingSites.includes(site)) {
                     showError('This site is already in the pending list');
                     return;
@@ -1247,19 +1282,23 @@
                 pendingSites.push(site);
                 pendingSitesBySubscription[subscriptionId] = pendingSites;
                 
-                // Clear input
+                console.log('[Dashboard] Added site to pending list:', site, 'for subscription:', subscriptionId);
+                console.log('[Dashboard] Current pending sites:', pendingSites);
+                
+                // Clear input (keep the same input field, no need to clone)
                 siteInput.value = '';
                 
-                // Update display
+                // Update display IMMEDIATELY (before any backend call)
                 updatePendingSitesDisplay(subscriptionId);
                 
-                // Add new input field
-                const inputContainer = siteInput.parentElement;
-                const newInput = siteInput.cloneNode(true);
-                newInput.value = '';
-                newInput.id = `new-site-input-${subscriptionId}`;
-                siteInput.parentElement.insertBefore(newInput, siteInput);
-                siteInput.remove();
+                // Verify display was updated
+                const pendingContainer = document.getElementById(`pending-sites-${subscriptionId}`);
+                if (pendingContainer) {
+                    console.log('[Dashboard] ✅ Pending container updated, innerHTML length:', pendingContainer.innerHTML.length);
+                    console.log('[Dashboard] ✅ Pending sites now visible in UI');
+                } else {
+                    console.error('[Dashboard] ❌ Pending container not found after update!');
+                }
                 
                 showSuccess(`Site "${site}" added to pending list`);
             });
