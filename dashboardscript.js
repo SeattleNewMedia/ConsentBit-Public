@@ -1347,8 +1347,9 @@
                 this.textContent = 'Processing...';
                 
                 try {
-                    // Add all pending sites (batch)
-                    const response = await fetch(`${API_BASE}/add-sites-batch`, {
+                    // Step 1: First save pending sites to backend
+                    console.log('[Dashboard] Step 1: Saving pending sites to backend...');
+                    const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1362,27 +1363,44 @@
                         })
                     });
                     
-                    const data = await response.json();
+                    const saveData = await saveResponse.json();
                     
-                    if (!response.ok) {
-                        throw new Error(data.error || data.message || 'Failed to add sites');
+                    if (!saveResponse.ok) {
+                        throw new Error(saveData.error || saveData.message || 'Failed to save pending sites');
                     }
                     
-                    showSuccess(data.message || `Successfully added ${pendingSites.length} site(s)!`);
+                    console.log('[Dashboard] Step 2: Creating checkout session...');
                     
-                    // Clear pending list
-                    pendingSitesBySubscription[subscriptionId] = [];
-                    updatePendingSitesDisplay(subscriptionId);
+                    // Step 2: Create checkout session from pending sites
+                    const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            email: userEmail,
+                            subscriptionId: subscriptionId
+                        })
+                    });
                     
-                    if (oneTimePaymentCheckbox) {
-                        oneTimePaymentCheckbox.checked = false;
+                    const checkoutData = await checkoutResponse.json();
+                    
+                    if (!checkoutResponse.ok) {
+                        throw new Error(checkoutData.error || checkoutData.message || 'Failed to create checkout session');
                     }
                     
-                    // Reload dashboard
-                    loadDashboard(userEmail);
+                    console.log('[Dashboard] ✅ Checkout session created, redirecting to Stripe...');
+                    
+                    // Step 3: Redirect to Stripe checkout
+                    if (checkoutData.url) {
+                        window.location.href = checkoutData.url;
+                    } else {
+                        throw new Error('No checkout URL received from server');
+                    }
                 } catch (error) {
-                    console.error('[Dashboard] Error adding sites:', error);
-                    showError('Failed to add sites: ' + error.message);
+                    console.error('[Dashboard] Error processing payment:', error);
+                    showError('Failed to process payment: ' + error.message);
                     this.disabled = false;
                     this.textContent = `💳 Pay Now (${pendingSites.length} site${pendingSites.length === 1 ? '' : 's'})`;
                 }
