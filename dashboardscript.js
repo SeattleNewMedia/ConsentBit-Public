@@ -392,7 +392,7 @@
         }
     }
     
-    // Create dashboard HTML structure
+    // Create dashboard HTML structure with sidebar
     function createDashboardHTML() {
         // Check if dashboard already exists
         if (document.getElementById('dashboard-container')) {
@@ -400,7 +400,7 @@
             return;
         }
         
-        console.log('[Dashboard] 🏗️ Creating dashboard HTML structure...');
+        console.log('[Dashboard] 🏗️ Creating dashboard HTML structure with sidebar...');
         const body = document.body;
         
         if (!body) {
@@ -408,147 +408,191 @@
             return;
         }
         
-        // Create main container
+        // Create main container with flex layout
         const container = document.createElement('div');
         container.id = 'dashboard-container';
         container.style.cssText = `
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
             min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
         `;
         
-        // Header
-        const header = document.createElement('div');
-        header.className = 'header';
-        header.style.cssText = `
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        // Sidebar
+        const sidebar = document.createElement('div');
+        sidebar.id = 'dashboard-sidebar';
+        sidebar.style.cssText = `
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
         `;
-        header.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">📋 License Dashboard</h1>
-                    <p style="color: #666; margin: 0;">Manage your sites and license keys</p>
-                </div>
+        
+        sidebar.innerHTML = `
+            <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h2 style="margin: 0; font-size: 20px; color: white;">📋 Dashboard</h2>
+            </div>
+            <nav style="padding: 10px 0;">
+                <button class="sidebar-item active" data-section="domains" style="
+                    width: 100%;
+                    padding: 15px 20px;
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    text-align: left;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: all 0.3s;
+                    border-left: 3px solid transparent;
+                ">
+                    🌐 Domains/Sites
+                </button>
+                <button class="sidebar-item" data-section="subscriptions" style="
+                    width: 100%;
+                    padding: 15px 20px;
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    text-align: left;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: all 0.3s;
+                    border-left: 3px solid transparent;
+                ">
+                    💳 Subscriptions
+                </button>
+                <button class="sidebar-item" data-section="payment" style="
+                    width: 100%;
+                    padding: 15px 20px;
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    text-align: left;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: all 0.3s;
+                    border-left: 3px solid transparent;
+                ">
+                    💰 Payment
+                </button>
+            </nav>
+            <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
                 <button id="logout-button" style="
-                    padding: 10px 20px;
-                    background: #f44336;
+                    width: 100%;
+                    padding: 12px;
+                    background: #e74c3c;
                     color: white;
                     border: none;
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 14px;
                     font-weight: 600;
-                    max-width: 120px;
                 ">Logout</button>
             </div>
+        `;
+        
+        // Main content area
+        const mainContent = document.createElement('div');
+        mainContent.id = 'dashboard-main-content';
+        mainContent.style.cssText = `
+            flex: 1;
+            margin-left: 250px;
+            padding: 30px;
+            background: #f5f5f5;
+        `;
+        
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+        header.innerHTML = `
+            <h1 style="margin: 0; color: #333; font-size: 28px;">License Dashboard</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage your sites, subscriptions, and payments</p>
         `;
         
         // Error message
         const errorMessage = document.createElement('div');
         errorMessage.id = 'error-message';
-        errorMessage.className = 'error';
         errorMessage.style.cssText = `
             background: #ffebee;
             color: #c62828;
-            padding: 15px;
+            padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            border-left: 4px solid #c62828;
         `;
         
         // Success message
         const successMessage = document.createElement('div');
         successMessage.id = 'success-message';
-        successMessage.className = 'success';
         successMessage.style.cssText = `
             background: #e8f5e9;
             color: #2e7d32;
-            padding: 15px;
+            padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            border-left: 4px solid #2e7d32;
         `;
         
-        // Sites Card
-        const sitesCard = document.createElement('div');
-        sitesCard.className = 'card';
-        sitesCard.style.cssText = `
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        `;
-        sitesCard.innerHTML = `
-            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">🌐 Your Sites</h2>
-            <div id="sites-container" style="
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 20px;
-                margin-bottom: 20px;
-            "></div>
-            <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
-                <h3 style="margin-bottom: 15px; color: #333;">Add New Site</h3>
-                <div id="add-site-form" style="display: flex; gap: 10px;">
-                    <input 
-                        type="text" 
-                        id="new-site-input" 
-                        placeholder="Enter site domain (e.g., example.com)"
-                        style="
-                            flex: 1;
-                            padding: 12px;
-                            border: 2px solid #e0e0e0;
-                            border-radius: 6px;
-                            font-size: 14px;
-                        "
-                    />
-                    <input 
-                        type="text" 
-                        id="new-site-price" 
-                        placeholder="Price ID (e.g., price_xxxxx)"
-                        style="
-                            flex: 1;
-                            padding: 12px;
-                            border: 2px solid #e0e0e0;
-                            border-radius: 6px;
-                            font-size: 14px;
-                        "
-                    />
-                    <button id="add-site-button" style="
-                        padding: 12px 24px;
-                        background: #667eea;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 14px;
-                        font-weight: 600;
-                        cursor: pointer;
-                    ">Add Site</button>
-                </div>
+        // Content sections (hidden by default, shown based on sidebar selection)
+        const domainsSection = document.createElement('div');
+        domainsSection.id = 'domains-section';
+        domainsSection.className = 'content-section';
+        domainsSection.style.cssText = 'display: block;';
+        domainsSection.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🌐 Your Domains/Sites</h2>
+                <div id="domains-table-container"></div>
             </div>
         `;
         
-        // Licenses Card
-        const licensesCard = document.createElement('div');
-        licensesCard.className = 'card';
-        licensesCard.style.cssText = `
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        const subscriptionsSection = document.createElement('div');
+        subscriptionsSection.id = 'subscriptions-section';
+        subscriptionsSection.className = 'content-section';
+        subscriptionsSection.style.cssText = 'display: none;';
+        subscriptionsSection.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💳 Your Subscriptions</h2>
+                <div id="subscriptions-accordion-container"></div>
+            </div>
         `;
-        licensesCard.innerHTML = `
-            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">🔑 Your License Keys</h2>
-            <div id="licenses-container"></div>
+        
+        const paymentSection = document.createElement('div');
+        paymentSection.id = 'payment-section';
+        paymentSection.className = 'content-section';
+        paymentSection.style.cssText = 'display: none;';
+        paymentSection.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💰 Payment History</h2>
+                <div id="payment-container">
+                    <p style="color: #666;">Payment history will be displayed here.</p>
+                </div>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 Your License Keys</h2>
+                <div id="licenses-container"></div>
+            </div>
         `;
+        
+        // Legacy containers (for backward compatibility)
+        const sitesContainer = document.createElement('div');
+        sitesContainer.id = 'sites-container';
+        sitesContainer.style.display = 'none';
+        
+        const licensesContainer = document.createElement('div');
+        licensesContainer.id = 'licenses-container';
+        licensesContainer.style.display = 'none';
         
         // Login Prompt
         const loginPrompt = document.createElement('div');
@@ -578,19 +622,69 @@
             ">Go to Login Page</a>
         `;
         
+        // Assemble main content
+        mainContent.appendChild(header);
+        mainContent.appendChild(errorMessage);
+        mainContent.appendChild(successMessage);
+        mainContent.appendChild(domainsSection);
+        mainContent.appendChild(subscriptionsSection);
+        mainContent.appendChild(paymentSection);
+        mainContent.appendChild(sitesContainer);
+        mainContent.appendChild(licensesContainer);
+        mainContent.appendChild(loginPrompt);
+        
         // Assemble container
-        container.appendChild(header);
-        container.appendChild(errorMessage);
-        container.appendChild(successMessage);
-        container.appendChild(sitesCard);
-        container.appendChild(licensesCard);
-        container.appendChild(loginPrompt);
+        container.appendChild(sidebar);
+        container.appendChild(mainContent);
         
         // Add to body
         body.appendChild(container);
-        console.log('[Dashboard] ✅ Dashboard HTML structure created successfully');
-        console.log('[Dashboard] Dashboard container ID:', container.id);
-        console.log('[Dashboard] Dashboard container display:', container.style.display);
+        
+        // Add sidebar navigation handlers
+        sidebar.querySelectorAll('.sidebar-item').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state
+                sidebar.querySelectorAll('.sidebar-item').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'transparent';
+                    b.style.borderLeftColor = 'transparent';
+                });
+                this.classList.add('active');
+                this.style.background = 'rgba(255,255,255,0.1)';
+                this.style.borderLeftColor = '#3498db';
+                
+                // Show/hide sections
+                const section = this.getAttribute('data-section');
+                document.querySelectorAll('.content-section').forEach(s => {
+                    s.style.display = 'none';
+                });
+                const targetSection = document.getElementById(`${section}-section`);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+            });
+            
+            // Hover effects
+            btn.addEventListener('mouseenter', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = 'rgba(255,255,255,0.05)';
+                }
+            });
+            btn.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = 'transparent';
+                }
+            });
+        });
+        
+        // Initialize first sidebar item as active
+        const firstSidebarItem = sidebar.querySelector('.sidebar-item');
+        if (firstSidebarItem) {
+            firstSidebarItem.style.background = 'rgba(255,255,255,0.1)';
+            firstSidebarItem.style.borderLeftColor = '#3498db';
+        }
+        
+        console.log('[Dashboard] ✅ Dashboard HTML structure with sidebar created successfully');
     }
     
     // Show error message
@@ -621,20 +715,36 @@
     
     // Load dashboard data
     async function loadDashboard(userEmail) {
+        // Try new container first, fallback to legacy
+        const domainsContainer = document.getElementById('domains-table-container');
+        const subscriptionsContainer = document.getElementById('subscriptions-accordion-container');
         const sitesContainer = document.getElementById('sites-container');
-        if (!sitesContainer) {
-            console.error('[Dashboard] Sites container not found');
+        
+        const loadingContainer = domainsContainer || sitesContainer;
+        if (!loadingContainer) {
+            console.error('[Dashboard] Dashboard containers not found');
             return;
         }
         
         // Validate email before making API call
         if (!userEmail || !userEmail.includes('@')) {
             console.error('[Dashboard] ❌ Invalid email for API call:', userEmail);
-            sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Invalid email address. Please log out and log in again.</div>';
+            if (loadingContainer) {
+                loadingContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Invalid email address. Please log out and log in again.</div>';
+            }
             return;
         }
         
-        sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
+        // Show loading state
+        if (domainsContainer) {
+            domainsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading domains...</div>';
+        }
+        if (subscriptionsContainer) {
+            subscriptionsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading subscriptions...</div>';
+        }
+        if (sitesContainer) {
+            sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
+        }
         
         console.log('[Dashboard] 📤 Sending API request with email:', userEmail);
         console.log('[Dashboard] 🔗 Request URL:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
@@ -679,88 +789,119 @@
             const data = await response.json();
             console.log('[Dashboard] ✅ Dashboard data received:', data);
             console.log('[Dashboard] 📊 Sites count:', Object.keys(data.sites || {}).length);
+            console.log('[Dashboard] 📊 Subscriptions count:', Object.keys(data.subscriptions || {}).length);
+            
+            // Display sites/domains
             displaySites(data.sites || {});
+            
+            // Display subscriptions
+            displaySubscriptions(data.subscriptions || {}, data.sites || {});
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
-            const sitesContainer = document.getElementById('sites-container');
-            if (sitesContainer) {
-                sitesContainer.innerHTML = `<div style="text-align: center; padding: 40px; color: #f44336;">
-                    <p>Failed to load dashboard data.</p>
-                    <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
-                    <p style="font-size: 12px;">Email used: ${userEmail}</p>
-                    <p style="font-size: 12px;">Please refresh the page or contact support.</p>
-                </div>`;
-            }
+            const errorMsg = `<div style="text-align: center; padding: 40px; color: #f44336;">
+                <p>Failed to load dashboard data.</p>
+                <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
+                <p style="font-size: 12px;">Email used: ${userEmail}</p>
+                <p style="font-size: 12px;">Please refresh the page or contact support.</p>
+            </div>`;
+            
+            if (domainsContainer) domainsContainer.innerHTML = errorMsg;
+            if (subscriptionsContainer) subscriptionsContainer.innerHTML = errorMsg;
+            if (sitesContainer) sitesContainer.innerHTML = errorMsg;
         }
     }
     
-    // Display sites
+    // Display sites in table format
     function displaySites(sites) {
-        const container = document.getElementById('sites-container');
-        if (!container) return;
+        const container = document.getElementById('domains-table-container');
+        if (!container) {
+            // Fallback to legacy container
+            const legacyContainer = document.getElementById('sites-container');
+            if (legacyContainer) {
+                container = legacyContainer;
+            } else {
+                return;
+            }
+        }
         
         if (Object.keys(sites).length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #999; grid-column: 1 / -1;">
-                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.5;">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    <p style="font-size: 18px; margin-bottom: 10px;">No sites yet</p>
-                    <p style="font-size: 14px;">Add your first site above!</p>
+                <div style="text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🌐</div>
+                    <p style="font-size: 18px; margin-bottom: 10px; color: #666;">No domains/sites yet</p>
+                    <p style="font-size: 14px; color: #999;">Add your first site from the Subscriptions section</p>
                 </div>
             `;
             return;
         }
         
-        container.innerHTML = Object.keys(sites).map(site => {
-            const siteData = sites[site];
-            const isActive = siteData.status === 'active';
-            
-            return `
-                <div class="site-card ${isActive ? 'active' : 'inactive'}" style="
-                    border: 2px solid ${isActive ? '#4caf50' : '#f44336'};
-                    border-radius: 8px;
-                    padding: 20px;
-                    background: ${isActive ? '#f1f8f4' : '#fff5f5'};
-                    opacity: ${isActive ? '1' : '0.7'};
-                    transition: all 0.3s;
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <div style="font-weight: bold; font-size: 18px; color: #333;">${site}</div>
-                        <span style="
-                            padding: 4px 12px;
-                            border-radius: 20px;
-                            font-size: 12px;
-                            font-weight: bold;
-                            text-transform: uppercase;
-                            background: ${isActive ? '#4caf50' : '#f44336'};
-                            color: white;
-                        ">${siteData.status}</span>
-                    </div>
-                    <div style="color: #666; font-size: 14px; margin: 10px 0;">
-                        <div>Item ID: ${siteData.item_id || 'N/A'}</div>
-                        <div>Quantity: ${siteData.quantity || 1}</div>
-                        ${siteData.created_at ? `<div>Created: ${new Date(siteData.created_at * 1000).toLocaleDateString()}</div>` : ''}
-                    </div>
-                    ${isActive ? `
-                        <button class="remove-site-button" data-site="${site}" style="
-                            padding: 10px 20px;
-                            background: #f44336;
-                            color: white;
-                            border: none;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-weight: 600;
-                            margin-top: 10px;
-                            width: 100%;
-                            transition: background 0.3s;
-                        " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">Remove Site</button>
-                    ` : '<p style="color: #999; font-size: 12px; margin-top: 10px;">This site has been removed</p>'}
-                </div>
-            `;
-        }).join('');
+        // Create table
+        container.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Item ID</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
+                        <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.keys(sites).map(site => {
+                        const siteData = sites[site];
+                        const isActive = siteData.status === 'active';
+                        const statusColor = isActive ? '#4caf50' : '#f44336';
+                        const statusBg = isActive ? '#e8f5e9' : '#ffebee';
+                        
+                        return `
+                            <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
+                                onmouseover="this.style.background='#f8f9fa'" 
+                                onmouseout="this.style.background='white'">
+                                <td style="padding: 15px; font-weight: 500; color: #333;">${site}</td>
+                                <td style="padding: 15px;">
+                                    <span style="
+                                        padding: 6px 12px;
+                                        border-radius: 20px;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        text-transform: uppercase;
+                                        background: ${statusBg};
+                                        color: ${statusColor};
+                                        display: inline-block;
+                                    ">${siteData.status || 'active'}</span>
+                                </td>
+                                <td style="padding: 15px; color: #666; font-size: 13px; font-family: monospace;">
+                                    ${siteData.item_id ? siteData.item_id.substring(0, 20) + '...' : 'N/A'}
+                                </td>
+                                <td style="padding: 15px; color: #666; font-size: 13px;">
+                                    ${siteData.created_at ? new Date(siteData.created_at * 1000).toLocaleDateString() : 'N/A'}
+                                </td>
+                                <td style="padding: 15px; text-align: center;">
+                                    ${isActive ? `
+                                        <button class="remove-site-button" data-site="${site}" style="
+                                            padding: 8px 16px;
+                                            background: #f44336;
+                                            color: white;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                            transition: all 0.3s;
+                                        " onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" 
+                                           onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">
+                                            Delete
+                                        </button>
+                                    ` : '<span style="color: #999; font-size: 12px;">Removed</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
         
         // Attach event listeners to remove buttons
         container.querySelectorAll('.remove-site-button').forEach(btn => {
@@ -771,21 +912,280 @@
         });
     }
     
+    // Display subscriptions in accordion format
+    function displaySubscriptions(subscriptions, allSites) {
+        const container = document.getElementById('subscriptions-accordion-container');
+        if (!container) return;
+        
+        if (Object.keys(subscriptions).length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">💳</div>
+                    <p style="font-size: 18px; margin-bottom: 10px; color: #666;">No subscriptions yet</p>
+                    <p style="font-size: 14px; color: #999;">Create a subscription to get started</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = Object.keys(subscriptions).map((subId, index) => {
+            const sub = subscriptions[subId];
+            const isExpanded = index === 0; // First subscription expanded by default
+            
+            // Determine if monthly or yearly (check price interval)
+            // This would need to be fetched from Stripe or stored in subscription data
+            const billingPeriod = 'monthly'; // Placeholder - should be determined from price data
+            
+            // Get sites for this subscription
+            const subscriptionSites = Object.keys(allSites).filter(site => 
+                allSites[site].subscription_id === subId
+            );
+            
+            return `
+                <div class="subscription-accordion" data-subscription-id="${subId}" style="
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    margin-bottom: 15px;
+                    overflow: hidden;
+                    background: white;
+                ">
+                    <div class="subscription-header" style="
+                        padding: 20px;
+                        background: ${isExpanded ? '#f8f9fa' : 'white'};
+                        cursor: pointer;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        transition: background 0.3s;
+                    " onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='${isExpanded ? '#f8f9fa' : 'white'}'">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 8px;">
+                                <h3 style="margin: 0; color: #333; font-size: 18px;">Subscription ${index + 1}</h3>
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    text-transform: uppercase;
+                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
+                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
+                                ">${sub.status || 'active'}</span>
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: #e3f2fd;
+                                    color: #1976d2;
+                                ">${billingPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+                            </div>
+                            <div style="font-size: 13px; color: #666;">
+                                <div>Customer ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${sub.customerId || 'N/A'}</code></div>
+                                <div style="margin-top: 5px;">Subscription ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${subId.substring(0, 20)}...</code></div>
+                                <div style="margin-top: 5px;">Sites: ${sub.sitesCount || subscriptionSites.length}</div>
+                            </div>
+                        </div>
+                        <div style="
+                            font-size: 24px;
+                            color: #666;
+                            transition: transform 0.3s;
+                            transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'};
+                        ">▼</div>
+                    </div>
+                    <div class="subscription-content" style="
+                        display: ${isExpanded ? 'block' : 'none'};
+                        padding: 0;
+                        border-top: 1px solid #e0e0e0;
+                    ">
+                        <div style="padding: 20px;">
+                            <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Sites in this subscription:</h4>
+                            <div id="subscription-sites-${subId}" style="margin-bottom: 20px;">
+                                ${subscriptionSites.length > 0 ? `
+                                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                        <thead>
+                                            <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
+                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Site</th>
+                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
+                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${subscriptionSites.map(site => {
+                                                const siteData = allSites[site];
+                                                const license = siteData.license;
+                                                return `
+                                                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                                                        <td style="padding: 10px; font-size: 13px;">${site}</td>
+                                                        <td style="padding: 10px;">
+                                                            <span style="
+                                                                padding: 4px 8px;
+                                                                border-radius: 12px;
+                                                                font-size: 11px;
+                                                                background: ${siteData.status === 'active' ? '#e8f5e9' : '#ffebee'};
+                                                                color: ${siteData.status === 'active' ? '#4caf50' : '#f44336'};
+                                                            ">${siteData.status}</span>
+                                                        </td>
+                                                        <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
+                                                            ${license ? license.license_key.substring(0, 20) + '...' : 'N/A'}
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : '<p style="color: #999; font-size: 14px; margin-bottom: 20px;">No sites in this subscription yet.</p>'}
+                            </div>
+                            
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
+                                <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Add New Site to This Subscription</h4>
+                                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                                    <input 
+                                        type="text" 
+                                        id="new-site-input-${subId}" 
+                                        placeholder="Enter site domain (e.g., example.com)"
+                                        style="
+                                            flex: 1;
+                                            min-width: 250px;
+                                            padding: 12px;
+                                            border: 2px solid #e0e0e0;
+                                            border-radius: 6px;
+                                            font-size: 14px;
+                                        "
+                                    />
+                                    <button class="add-site-to-subscription" data-subscription-id="${subId}" style="
+                                        padding: 12px 24px;
+                                        background: #667eea;
+                                        color: white;
+                                        border: none;
+                                        border-radius: 6px;
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                        cursor: pointer;
+                                        transition: background 0.3s;
+                                    " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">
+                                        Add Site
+                                    </button>
+                                </div>
+                                <p style="font-size: 12px; color: #666; margin: 10px 0 0 0;">
+                                    💡 Price will be automatically determined from your subscription
+                                </p>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
+                                    <input type="checkbox" id="one-time-payment-${subId}" style="cursor: pointer;">
+                                    <span style="font-size: 14px; color: #666;">One-time payment (add site immediately without subscription)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add accordion toggle functionality
+        container.querySelectorAll('.subscription-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const accordion = this.closest('.subscription-accordion');
+                const content = accordion.querySelector('.subscription-content');
+                const arrow = this.querySelector('div:last-child');
+                const isExpanded = content.style.display !== 'none';
+                
+                // Close all other accordions
+                container.querySelectorAll('.subscription-content').forEach(c => {
+                    if (c !== content) {
+                        c.style.display = 'none';
+                        c.previousElementSibling.style.background = 'white';
+                        c.previousElementSibling.querySelector('div:last-child').style.transform = 'rotate(0deg)';
+                    }
+                });
+                
+                // Toggle current accordion
+                if (isExpanded) {
+                    content.style.display = 'none';
+                    this.style.background = 'white';
+                    arrow.style.transform = 'rotate(0deg)';
+                } else {
+                    content.style.display = 'block';
+                    this.style.background = '#f8f9fa';
+                    arrow.style.transform = 'rotate(180deg)';
+                }
+            });
+        });
+        
+        // Add event listeners for add site buttons
+        container.querySelectorAll('.add-site-to-subscription').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const subscriptionId = this.getAttribute('data-subscription-id');
+                const siteInput = document.getElementById(`new-site-input-${subscriptionId}`);
+                const oneTimePaymentCheckbox = document.getElementById(`one-time-payment-${subscriptionId}`);
+                const oneTimePayment = oneTimePaymentCheckbox ? oneTimePaymentCheckbox.checked : false;
+                
+                if (!siteInput) return;
+                
+                const site = siteInput.value.trim();
+                
+                if (!site) {
+                    showError('Please enter a site domain');
+                    return;
+                }
+                
+                const member = await checkMemberstackSession();
+                if (!member) {
+                    showError('Not authenticated');
+                    return;
+                }
+                
+                const userEmail = member.email || member._email;
+                
+                try {
+                    // Add site to subscription (price will be determined by backend)
+                    const response = await fetch(`${API_BASE}/add-site`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            site,
+                            email: userEmail,
+                            subscriptionId: subscriptionId,
+                            oneTimePayment: oneTimePayment
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'Failed to add site');
+                    }
+                    
+                    showSuccess(data.message || 'Site added successfully!');
+                    siteInput.value = '';
+                    if (oneTimePaymentCheckbox) {
+                        oneTimePaymentCheckbox.checked = false;
+                    }
+                    
+                    // Reload dashboard
+                    loadDashboard(userEmail);
+                } catch (error) {
+                    console.error('[Dashboard] Error adding site:', error);
+                    showError('Failed to add site: ' + error.message);
+                }
+            });
+        });
+    }
+    
     // Add a new site
     async function addSite(userEmail) {
         const siteInput = document.getElementById('new-site-input');
-        const priceInput = document.getElementById('new-site-price');
         
-        if (!siteInput || !priceInput) {
-            showError('Form elements not found');
+        if (!siteInput) {
+            showError('Form element not found');
             return;
         }
         
         const site = siteInput.value.trim();
-        const price = priceInput.value.trim();
         
-        if (!site || !price) {
-            showError('Please enter both site domain and price ID');
+        if (!site) {
+            showError('Please enter a site domain');
             return;
         }
         
@@ -797,8 +1197,7 @@
                 },
                 credentials: 'include',
                 body: JSON.stringify({ 
-                    site, 
-                    price,
+                    site,
                     email: userEmail 
                 })
             });
@@ -806,12 +1205,11 @@
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to add site');
+                throw new Error(data.error || data.message || 'Failed to add site');
             }
             
-            showSuccess('Site added successfully! Billing will be updated on next invoice.');
+            showSuccess(data.message || 'Site added successfully! Billing will be updated on next invoice.');
             siteInput.value = '';
-            priceInput.value = '';
             loadDashboard(userEmail);
         } catch (error) {
             console.error('[Dashboard] Error adding site:', error);
@@ -1307,28 +1705,42 @@
         }
         
         // Attach event listeners
+        // Legacy add-site button (if exists - for backward compatibility)
         const addSiteButton = document.getElementById('add-site-button');
         if (addSiteButton) {
             addSiteButton.addEventListener('click', () => addSite(userEmail));
         }
         
+        // Logout button
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
             logoutButton.addEventListener('click', logout);
         }
         
-        // Allow Enter key in add site form
+        // Allow Enter key in legacy add site form (if exists)
         const siteInput = document.getElementById('new-site-input');
-        const priceInput = document.getElementById('new-site-price');
-        if (siteInput && priceInput && addSiteButton) {
-            [siteInput, priceInput].forEach(input => {
-                input.addEventListener('keypress', (e) => {
+        if (siteInput && addSiteButton) {
+            siteInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addSiteButton.click();
+                }
+            });
+        }
+        
+        // Allow Enter key in subscription add-site forms (added dynamically)
+        setTimeout(() => {
+            document.querySelectorAll('[id^="new-site-input-"]').forEach(input => {
+                input.addEventListener('keypress', async (e) => {
                     if (e.key === 'Enter') {
-                        addSiteButton.click();
+                        const subscriptionId = input.id.replace('new-site-input-', '');
+                        const addButton = document.querySelector(`[data-subscription-id="${subscriptionId}"].add-site-to-subscription`);
+                        if (addButton) {
+                            addButton.click();
+                        }
                     }
                 });
             });
-        }
+        }, 1000);
         
         console.log('[Dashboard] ✅ Dashboard initialized successfully');
     }
