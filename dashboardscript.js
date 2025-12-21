@@ -713,6 +713,68 @@
         console.log('[Dashboard] Success:', message);
     }
     
+    // Helper function to get logged in user email
+    function getLoggedInEmail() {
+        // Try to get email from the member object if available
+        if (window.currentMember && window.currentMember.email) {
+            return window.currentMember.email.toLowerCase().trim();
+        }
+        
+        // Try to get from memberstack session
+        if (window.$memberstackDom) {
+            try {
+                const member = window.$memberstackDom.getCurrentMember();
+                if (member && member.data) {
+                    const email = member.data.auth?.email || member.data.email;
+                    if (email) {
+                        return email.toLowerCase().trim();
+                    }
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error getting email from memberstack:', e);
+            }
+        }
+        
+        // Try to get from localStorage or sessionStorage
+        const storedEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
+        if (storedEmail) {
+            return storedEmail.toLowerCase().trim();
+        }
+        
+        return null;
+    }
+    
+    // Helper function to get logged in user email
+    function getLoggedInEmail() {
+        // Try to get email from the member object if available
+        if (window.currentMember && window.currentMember.email) {
+            return window.currentMember.email.toLowerCase().trim();
+        }
+        
+        // Try to get from memberstack session
+        if (window.$memberstackDom) {
+            try {
+                const member = window.$memberstackDom.getCurrentMember();
+                if (member && member.data) {
+                    const email = member.data.auth?.email || member.data.email;
+                    if (email) {
+                        return email.toLowerCase().trim();
+                    }
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error getting email from memberstack:', e);
+            }
+        }
+        
+        // Try to get from localStorage or sessionStorage
+        const storedEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
+        if (storedEmail) {
+            return storedEmail.toLowerCase().trim();
+        }
+        
+        return null;
+    }
+    
     // Load dashboard data
     async function loadDashboard(userEmail) {
         // Try new container first, fallback to legacy
@@ -1344,7 +1406,7 @@
         });
         
         // Add event listeners for remove pending site buttons
-        container.addEventListener('click', function(e) {
+        container.addEventListener('click', async function(e) {
             if (e.target.classList.contains('remove-pending-site')) {
                 const subscriptionId = e.target.getAttribute('data-subscription-id');
                 const siteIndex = parseInt(e.target.getAttribute('data-site-index'));
@@ -1352,10 +1414,59 @@
                 
                 if (siteIndex >= 0 && siteIndex < pendingSites.length) {
                     const removedSite = pendingSites[siteIndex];
+                    
+                    // Remove from local array immediately for instant UI feedback
                     pendingSites.splice(siteIndex, 1);
                     pendingSitesBySubscription[subscriptionId] = pendingSites;
                     updatePendingSitesDisplay(subscriptionId);
-                    showSuccess(`Site "${removedSite}" removed from pending list`);
+                    
+                    // Call backend to persist the removal
+                    try {
+                        const userEmail = getLoggedInEmail();
+                        if (!userEmail) {
+                            console.error('[Dashboard] No user email available for removing pending site');
+                            return;
+                        }
+                        
+                        const response = await fetch(`${API_BASE}/remove-pending-site`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                email: userEmail,
+                                site: removedSite,
+                                subscriptionId: subscriptionId
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('[Dashboard] ✅ Site removed from backend:', result);
+                            showSuccess(`Site "${removedSite}" removed from pending list`);
+                            
+                            // Refresh dashboard data to ensure sync
+                            await loadDashboard(userEmail);
+                        } else {
+                            const error = await response.text();
+                            console.error('[Dashboard] ❌ Failed to remove pending site:', error);
+                            showError(`Failed to remove site: ${error}`);
+                            
+                            // Revert local change on error
+                            pendingSites.push(removedSite);
+                            pendingSitesBySubscription[subscriptionId] = pendingSites;
+                            updatePendingSitesDisplay(subscriptionId);
+                        }
+                    } catch (error) {
+                        console.error('[Dashboard] ❌ Error removing pending site:', error);
+                        showError(`Error removing site: ${error.message}`);
+                        
+                        // Revert local change on error
+                        pendingSites.push(removedSite);
+                        pendingSitesBySubscription[subscriptionId] = pendingSites;
+                        updatePendingSitesDisplay(subscriptionId);
+                    }
                 }
             }
         });
