@@ -1413,7 +1413,11 @@
                 const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
                 
                 if (siteIndex >= 0 && siteIndex < pendingSites.length) {
-                    const removedSite = pendingSites[siteIndex];
+                    const removedSiteObj = pendingSites[siteIndex];
+                    // Extract site name - could be string or object with 'site' property
+                    const removedSiteName = typeof removedSiteObj === 'string' 
+                        ? removedSiteObj 
+                        : (removedSiteObj.site || removedSiteObj.site_domain || removedSiteObj);
                     
                     // Remove from local array immediately for instant UI feedback
                     pendingSites.splice(siteIndex, 1);
@@ -1428,6 +1432,8 @@
                             return;
                         }
                         
+                        console.log('[Dashboard] Removing pending site:', removedSiteName, 'from subscription:', subscriptionId);
+                        
                         const response = await fetch(`${API_BASE}/remove-pending-site`, {
                             method: 'POST',
                             headers: {
@@ -1436,7 +1442,7 @@
                             credentials: 'include',
                             body: JSON.stringify({
                                 email: userEmail,
-                                site: removedSite,
+                                site: removedSiteName,
                                 subscriptionId: subscriptionId
                             })
                         });
@@ -1444,7 +1450,7 @@
                         if (response.ok) {
                             const result = await response.json();
                             console.log('[Dashboard] ✅ Site removed from backend:', result);
-                            showSuccess(`Site "${removedSite}" removed from pending list`);
+                            showSuccess(`Site "${removedSiteName}" removed from pending list`);
                             
                             // Refresh dashboard data to ensure sync
                             await loadDashboard(userEmail);
