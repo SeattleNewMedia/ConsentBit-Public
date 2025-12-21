@@ -984,9 +984,19 @@
                                     font-size: 11px;
                                     font-weight: 600;
                                     text-transform: uppercase;
-                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
-                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
-                                ">${sub.status || 'active'}</span>
+                                    background: ${sub.status === 'active' ? '#e8f5e9' : sub.status === 'cancelling' ? '#fff3cd' : sub.status === 'deleted' ? '#f8d7da' : '#ffebee'};
+                                    color: ${sub.status === 'active' ? '#4caf50' : sub.status === 'cancelling' ? '#856404' : sub.status === 'deleted' ? '#721c24' : '#f44336'};
+                                ">${sub.status === 'cancelling' ? 'Cancelling' : sub.status === 'deleted' ? 'Deleted' : (sub.status || 'active')}</span>
+                                ${sub.cancel_at_period_end ? `
+                                    <span style="
+                                        padding: 4px 12px;
+                                        border-radius: 20px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        background: #fff3cd;
+                                        color: #856404;
+                                    ">Ends: ${new Date((sub.current_period_end || 0) * 1000).toLocaleDateString()}</span>
+                                ` : ''}
                                 <span style="
                                     padding: 4px 12px;
                                     border-radius: 20px;
@@ -1023,6 +1033,8 @@
                                             <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
                                                 <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Site</th>
                                                 <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
+                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Renewal Date</th>
+                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Amount Paid</th>
                                                 <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License</th>
                                             </tr>
                                         </thead>
@@ -1030,17 +1042,44 @@
                                             ${subscriptionSites.map(site => {
                                                 const siteData = allSites[site];
                                                 const license = siteData.license;
+                                                const renewalDate = siteData.renewal_date || siteData.current_period_end;
+                                                const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
+                                                const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
+                                                const statusDisplay = siteData.status === 'cancelling' ? 'Cancelling' : 
+                                                                      siteData.status === 'expired' ? 'Expired' : 
+                                                                      siteData.status === 'inactive' ? 'Inactive' : 
+                                                                      siteData.status || 'Active';
+                                                const statusColor = siteData.status === 'active' ? '#4caf50' : 
+                                                                    siteData.status === 'cancelling' ? '#856404' : 
+                                                                    siteData.status === 'expired' ? '#721c24' : '#f44336';
+                                                const statusBg = siteData.status === 'active' ? '#e8f5e9' : 
+                                                                  siteData.status === 'cancelling' ? '#fff3cd' : 
+                                                                  siteData.status === 'expired' ? '#f8d7da' : '#ffebee';
+                                                
                                                 return `
                                                     <tr style="border-bottom: 1px solid #f0f0f0;">
-                                                        <td style="padding: 10px; font-size: 13px;">${site}</td>
+                                                        <td style="padding: 10px; font-size: 13px; font-weight: 500;">${site}</td>
                                                         <td style="padding: 10px;">
                                                             <span style="
                                                                 padding: 4px 8px;
                                                                 border-radius: 12px;
                                                                 font-size: 11px;
-                                                                background: ${siteData.status === 'active' ? '#e8f5e9' : '#ffebee'};
-                                                                color: ${siteData.status === 'active' ? '#4caf50' : '#f44336'};
-                                                            ">${siteData.status}</span>
+                                                                font-weight: 600;
+                                                                background: ${statusBg};
+                                                                color: ${statusColor};
+                                                            ">${statusDisplay}</span>
+                                                            ${siteData.cancel_at_period_end && !isExpired ? `
+                                                                <div style="font-size: 10px; color: #856404; margin-top: 4px;">
+                                                                    Cancels: ${renewalDateStr}
+                                                                </div>
+                                                            ` : ''}
+                                                        </td>
+                                                        <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : '#666'};">
+                                                            ${renewalDateStr}
+                                                            ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
+                                                        </td>
+                                                        <td style="padding: 10px; font-size: 12px; color: #666;">
+                                                            ${siteData.amount_paid ? `$${(siteData.amount_paid / 100).toFixed(2)}` : 'N/A'}
                                                         </td>
                                                         <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
                                                             ${license ? license.license_key.substring(0, 20) + '...' : 'N/A'}
