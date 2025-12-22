@@ -970,9 +970,9 @@
                                             transition: all 0.3s;
                                         " onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" 
                                            onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">
-                                            Delete
+                                            Unsubscribe
                                         </button>
-                                    ` : '<span style="color: #999; font-size: 12px;">Removed</span>'}
+                                    ` : '<span style="color: #999; font-size: 12px;">Unsubscribed</span>'}
                                 </td>
                             </tr>
                         `;
@@ -1274,21 +1274,63 @@
             pendingSitesBySubscription[subId] = [];
         });
         
-        // Distribute pending sites to subscriptions
+        // CRITICAL: Deduplicate pending sites before distributing (case-insensitive)
+        // This prevents duplicate sites from appearing in the UI
+        const seenSites = new Set();
+        const uniquePendingSites = [];
+        
         pendingSites.forEach(ps => {
+            const siteName = ps.site || ps; // Extract site name
+            const siteKey = (siteName || '').toLowerCase().trim();
+            
+            if (!siteKey) {
+                console.warn('[Dashboard] ⚠️ Skipping pending site with empty name:', ps);
+                return;
+            }
+            
+            if (!seenSites.has(siteKey)) {
+                seenSites.add(siteKey);
+                uniquePendingSites.push(ps);
+            } else {
+                console.warn(`[Dashboard] ⚠️ Skipping duplicate pending site: "${siteName}"`);
+            }
+        });
+        
+        if (pendingSites.length !== uniquePendingSites.length) {
+            console.warn(`[Dashboard] ⚠️ Deduplicated ${pendingSites.length} pending sites to ${uniquePendingSites.length} unique sites`);
+        }
+        
+        // Distribute UNIQUE pending sites to subscriptions
+        uniquePendingSites.forEach(ps => {
             const siteName = ps.site || ps; // Extract site name
             const psSubscriptionId = ps.subscription_id;
             
             if (psSubscriptionId && pendingSitesBySubscription.hasOwnProperty(psSubscriptionId)) {
-                // Assign to matching subscription
-                pendingSitesBySubscription[psSubscriptionId].push(siteName);
+                // Check if site already exists in this subscription's pending list (case-insensitive)
+                const existingSites = pendingSitesBySubscription[psSubscriptionId].map(s => (s || '').toLowerCase().trim());
+                const siteKey = (siteName || '').toLowerCase().trim();
+                
+                if (!existingSites.includes(siteKey)) {
+                    // Assign to matching subscription
+                    pendingSitesBySubscription[psSubscriptionId].push(siteName);
+                } else {
+                    console.warn(`[Dashboard] ⚠️ Skipping duplicate site "${siteName}" in subscription ${psSubscriptionId}`);
+                }
             } else if (firstSubscriptionId) {
-                // Assign to first subscription if no subscription_id or subscription not found
-                pendingSitesBySubscription[firstSubscriptionId].push(siteName);
+                // Check if site already exists in first subscription's pending list (case-insensitive)
+                const existingSites = pendingSitesBySubscription[firstSubscriptionId].map(s => (s || '').toLowerCase().trim());
+                const siteKey = (siteName || '').toLowerCase().trim();
+                
+                if (!existingSites.includes(siteKey)) {
+                    // Assign to first subscription if no subscription_id or subscription not found
+                    pendingSitesBySubscription[firstSubscriptionId].push(siteName);
+                } else {
+                    console.warn(`[Dashboard] ⚠️ Skipping duplicate site "${siteName}" in first subscription`);
+                }
             }
         });
         
-        console.log('[Dashboard] Pending sites by subscription:', pendingSitesBySubscription);
+        console.log('[Dashboard] Pending sites by subscription (deduplicated):', pendingSitesBySubscription);
         
         // Function to update pending sites display
         function updatePendingSitesDisplay(subscriptionId) {
@@ -1380,9 +1422,12 @@
                     pendingSitesBySubscription[subscriptionId] = [];
                 }
                 
-                // Check if site already in pending list
+                // Check if site already in pending list (case-insensitive)
                 const pendingSites = pendingSitesBySubscription[subscriptionId];
-                if (pendingSites.includes(site)) {
+                const siteKey = (site || '').toLowerCase().trim();
+                const existingSites = pendingSites.map(s => (s || '').toLowerCase().trim());
+                
+                if (existingSites.includes(siteKey)) {
                     showError('This site is already in the pending list');
                     return;
                 }
@@ -1626,9 +1671,9 @@
         }
     }
     
-    // Remove a site
+    // Unsubscribe a site (removes from Stripe subscription and updates database)
     async function removeSite(site) {
-        if (!confirm(`Are you sure you want to remove ${site}? Billing will be updated automatically.`)) {
+        if (!confirm(`Are you sure you want to unsubscribe ${site}? The site will be removed from your subscription and billing will be updated automatically.`)) {
             return;
         }
         
@@ -1656,14 +1701,14 @@
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to remove site');
+                throw new Error(data.error || data.message || 'Failed to unsubscribe site');
             }
             
-            showSuccess('Site removed successfully! Billing updated.');
+            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription item has been removed from Stripe and the database has been updated.`);
             loadDashboard(userEmail);
         } catch (error) {
-            console.error('[Dashboard] Error removing site:', error);
-            showError('Failed to remove site: ' + error.message);
+            console.error('[Dashboard] Error unsubscribing site:', error);
+            showError('Failed to unsubscribe site: ' + error.message);
         }
     }
     
