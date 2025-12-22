@@ -1219,11 +1219,6 @@
                                     💡 Add multiple sites, then click "Pay Now" to checkout. Price will be automatically determined.
                                 </p>
                                 
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
-                                    <input type="checkbox" id="one-time-payment-${subId}" style="cursor: pointer;">
-                                    <span style="font-size: 14px; color: #666;">One-time payment (add sites immediately without subscription)</span>
-                                </label>
-                                
                                 <!-- Pay Now Button (hidden until at least one site is added) -->
                                 <div id="pay-now-container-${subId}" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
                                     <button class="pay-now-button" data-subscription-id="${subId}" style="
@@ -1593,8 +1588,6 @@
             btn.addEventListener('click', async function() {
                 const subscriptionId = this.getAttribute('data-subscription-id');
                 const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
-                const oneTimePaymentCheckbox = document.getElementById(`one-time-payment-${subscriptionId}`);
-                const oneTimePayment = oneTimePaymentCheckbox ? oneTimePaymentCheckbox.checked : false;
                 
                 if (pendingSites.length === 0) {
                     showError('No sites to add. Please add at least one site.');
@@ -1625,8 +1618,7 @@
                         body: JSON.stringify({ 
                             sites: pendingSites,
                             email: userEmail,
-                            subscriptionId: subscriptionId,
-                            oneTimePayment: oneTimePayment
+                            subscriptionId: subscriptionId
                         })
                     });
                     
