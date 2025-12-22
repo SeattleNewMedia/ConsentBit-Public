@@ -921,6 +921,7 @@
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Item ID</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
                         <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
@@ -932,6 +933,12 @@
                         const isActive = siteData.status === 'active';
                         const statusColor = isActive ? '#4caf50' : '#f44336';
                         const statusBg = isActive ? '#e8f5e9' : '#ffebee';
+                        
+                        // Get expiration date (renewal_date or current_period_end)
+                        const renewalDate = siteData.renewal_date || siteData.current_period_end;
+                        const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
+                        const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
+                        const isInactiveButNotExpired = !isActive && renewalDate && !isExpired;
                         
                         return `
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
@@ -949,6 +956,11 @@
                                         color: ${statusColor};
                                         display: inline-block;
                                     ">${siteData.status || 'active'}</span>
+                                </td>
+                                <td style="padding: 15px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
+                                    ${renewalDateStr}
+                                    ${isExpired ? ' <span style="color: #f44336; font-size: 11px;">(Expired)</span>' : ''}
+                                    ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px; font-family: monospace;">
                                     ${siteData.item_id ? siteData.item_id.substring(0, 20) + '...' : 'N/A'}
@@ -1115,6 +1127,8 @@
                                                 const renewalDate = siteData.renewal_date || siteData.current_period_end;
                                                 const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
                                                 const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
+                                                const isInactive = siteData.status === 'inactive';
+                                                const isInactiveButNotExpired = isInactive && renewalDate && !isExpired;
                                                 const statusDisplay = siteData.status === 'cancelling' ? 'Cancelling' : 
                                                                       siteData.status === 'expired' ? 'Expired' : 
                                                                       siteData.status === 'inactive' ? 'Inactive' : 
@@ -1144,9 +1158,10 @@
                                                                 </div>
                                                             ` : ''}
                                                         </td>
-                                                        <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : '#666'};">
+                                                        <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
                                                             ${renewalDateStr}
                                                             ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
+                                                            ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                                         </td>
                                                         <td style="padding: 10px; font-size: 12px; color: #666;">
                                                             ${siteData.amount_paid ? `$${(siteData.amount_paid / 100).toFixed(2)}` : 'N/A'}
@@ -1432,7 +1447,7 @@
                     return;
                 }
                 
-                // Add to pending list
+                // Add to pending list (local)
                 pendingSites.push(site);
                 pendingSitesBySubscription[subscriptionId] = pendingSites;
                 
@@ -1454,7 +1469,45 @@
                     console.error('[Dashboard] ❌ Pending container not found after update!');
                 }
                 
-                showSuccess(`Site "${site}" added to pending list`);
+                // CRITICAL: Save to backend immediately so sites persist if page is refreshed
+                // This ensures sites are stored in database, not just in browser memory
+                (async () => {
+                    try {
+                        const userEmail = await getLoggedInEmail();
+                        if (!userEmail) {
+                            console.warn('[Dashboard] ⚠️ Cannot save site to backend - no user email available');
+                            showSuccess(`Site "${site}" added to pending list (not saved - will be lost on refresh)`);
+                            return;
+                        }
+                        
+                        console.log('[Dashboard] Saving site to backend immediately...');
+                        const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ 
+                                sites: [site], // Save single site
+                                email: userEmail,
+                                subscriptionId: subscriptionId
+                            })
+                        });
+                        
+                        const saveData = await saveResponse.json();
+                        
+                        if (saveResponse.ok) {
+                            console.log('[Dashboard] ✅ Site saved to backend successfully');
+                            showSuccess(`Site "${site}" added to pending list`);
+                        } else {
+                            console.error('[Dashboard] ❌ Failed to save site to backend:', saveData);
+                            showSuccess(`Site "${site}" added to pending list (save to backend failed - will be lost on refresh)`);
+                        }
+                    } catch (error) {
+                        console.error('[Dashboard] ❌ Error saving site to backend:', error);
+                        showSuccess(`Site "${site}" added to pending list (save error - will be lost on refresh)`);
+                    }
+                })();
             });
         });
         
@@ -1673,7 +1726,7 @@
     
     // Unsubscribe a site (removes from Stripe subscription and updates database)
     async function removeSite(site) {
-        if (!confirm(`Are you sure you want to unsubscribe ${site}? The site will be removed from your subscription and billing will be updated automatically.`)) {
+        if (!confirm(`Are you sure you want to unsubscribe ${site}? The site will be removed from your subscription and billing will be updated automatically. The site will remain visible as inactive with its expiration date.`)) {
             return;
         }
         
@@ -1704,7 +1757,7 @@
                 throw new Error(data.error || data.message || 'Failed to unsubscribe site');
             }
             
-            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription item has been removed from Stripe and the database has been updated.`);
+            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription item has been removed from Stripe and the database has been updated. The site will remain visible as inactive with its expiration date.`);
             loadDashboard(userEmail);
         } catch (error) {
             console.error('[Dashboard] Error unsubscribing site:', error);
