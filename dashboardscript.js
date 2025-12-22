@@ -713,52 +713,44 @@
         console.log('[Dashboard] Success:', message);
     }
     
-    // Helper function to get logged in user email
-    function getLoggedInEmail() {
-        // Try to get email from the member object if available
-        if (window.currentMember && window.currentMember.email) {
-            return window.currentMember.email.toLowerCase().trim();
-        }
-        
-        // Try to get from memberstack session
-        if (window.$memberstackDom) {
-            try {
-                const member = window.$memberstackDom.getCurrentMember();
-                if (member && member.data) {
-                    const email = member.data.auth?.email || member.data.email;
-                    if (email) {
-                        return email.toLowerCase().trim();
-                    }
-                }
-            } catch (e) {
-                console.error('[Dashboard] Error getting email from memberstack:', e);
-            }
-        }
-        
-        // Try to get from localStorage or sessionStorage
-        const storedEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
-        if (storedEmail) {
-            return storedEmail.toLowerCase().trim();
-        }
-        
-        return null;
-    }
+    // Global variable to store current user email
+    let currentUserEmail = null;
     
-    // Helper function to get logged in user email
-    function getLoggedInEmail() {
-        // Try to get email from the member object if available
-        if (window.currentMember && window.currentMember.email) {
-            return window.currentMember.email.toLowerCase().trim();
+    // Helper function to get logged in user email (async version)
+    async function getLoggedInEmail() {
+        // First, try the global variable (set when dashboard loads)
+        if (currentUserEmail) {
+            return currentUserEmail;
         }
         
-        // Try to get from memberstack session
+        // Try to get email from the member object if available
+        if (window.currentMember && window.currentMember.email) {
+            const email = window.currentMember.email.toLowerCase().trim();
+            currentUserEmail = email;
+            return email;
+        }
+        
+        // Try to get from memberstack session (async)
         if (window.$memberstackDom) {
             try {
-                const member = window.$memberstackDom.getCurrentMember();
-                if (member && member.data) {
-                    const email = member.data.auth?.email || member.data.email;
+                // Check if getCurrentMember is async
+                let member;
+                if (typeof window.$memberstackDom.getCurrentMember === 'function') {
+                    const result = window.$memberstackDom.getCurrentMember();
+                    // If it returns a promise, await it
+                    if (result && typeof result.then === 'function') {
+                        member = await result;
+                    } else {
+                        member = result;
+                    }
+                }
+                
+                if (member) {
+                    const email = member.data?.auth?.email || member.data?.email || member.email || member._email;
                     if (email) {
-                        return email.toLowerCase().trim();
+                        const normalizedEmail = email.toLowerCase().trim();
+                        currentUserEmail = normalizedEmail;
+                        return normalizedEmail;
                     }
                 }
             } catch (e) {
@@ -766,10 +758,26 @@
             }
         }
         
+        // Try Memberstack SDK directly if available
+        if (window.Memberstack) {
+            try {
+                const member = await window.Memberstack.getCurrentMember();
+                if (member && (member.email || member._email)) {
+                    const email = (member.email || member._email).toLowerCase().trim();
+                    currentUserEmail = email;
+                    return email;
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error getting email from Memberstack SDK:', e);
+            }
+        }
+        
         // Try to get from localStorage or sessionStorage
         const storedEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
         if (storedEmail) {
-            return storedEmail.toLowerCase().trim();
+            const email = storedEmail.toLowerCase().trim();
+            currentUserEmail = email;
+            return email;
         }
         
         return null;
@@ -1426,9 +1434,14 @@
                     
                     // Call backend to persist the removal
                     try {
-                        const userEmail = getLoggedInEmail();
+                        const userEmail = await getLoggedInEmail();
                         if (!userEmail) {
                             console.error('[Dashboard] No user email available for removing pending site');
+                            showError('Unable to get user email. Please refresh the page and try again.');
+                            // Revert local change on error
+                            pendingSites.splice(siteIndex, 0, removedSiteObj);
+                            pendingSitesBySubscription[subscriptionId] = pendingSites;
+                            updatePendingSitesDisplay(subscriptionId);
                             return;
                         }
                         
@@ -1460,7 +1473,7 @@
                             showError(`Failed to remove site: ${error}`);
                             
                             // Revert local change on error
-                            pendingSites.push(removedSite);
+                            pendingSites.splice(siteIndex, 0, removedSiteObj);
                             pendingSitesBySubscription[subscriptionId] = pendingSites;
                             updatePendingSitesDisplay(subscriptionId);
                         }
@@ -1469,7 +1482,7 @@
                         showError(`Error removing site: ${error.message}`);
                         
                         // Revert local change on error
-                        pendingSites.push(removedSite);
+                        pendingSites.splice(siteIndex, 0, removedSiteObj);
                         pendingSitesBySubscription[subscriptionId] = pendingSites;
                         updatePendingSitesDisplay(subscriptionId);
                     }
@@ -2084,6 +2097,9 @@
             loginPrompt.style.display = 'none';
             console.log('[Dashboard] ✅ Login prompt hidden');
         }
+        
+        // Store email globally for use by other functions
+        currentUserEmail = userEmail;
         
         // Load dashboard data
         console.log('[Dashboard] 🔄 Loading dashboard data for email:', userEmail);
