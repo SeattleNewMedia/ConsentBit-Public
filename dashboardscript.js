@@ -479,6 +479,20 @@
                 ">
                     💰 Payment
                 </button>
+                <button class="sidebar-item" data-section="licenses" style="
+                    width: 100%;
+                    padding: 15px 20px;
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    text-align: left;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: all 0.3s;
+                    border-left: 3px solid transparent;
+                ">
+                    🔑 License Keys
+                </button>
             </nav>
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
                 <button id="logout-button" style="
@@ -573,15 +587,55 @@
         paymentSection.className = 'content-section';
         paymentSection.style.cssText = 'display: none;';
         paymentSection.innerHTML = `
-            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💰 Payment History</h2>
                 <div id="payment-container">
                     <p style="color: #666;">Payment history will be displayed here.</p>
                 </div>
             </div>
+        `;
+        
+        const licensesSection = document.createElement('div');
+        licensesSection.id = 'licenses-section';
+        licensesSection.className = 'content-section';
+        licensesSection.style.cssText = 'display: none;';
+        licensesSection.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 Purchase License Keys</h2>
+                <div id="quantity-purchase-container">
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666;">Purchase license keys in bulk. Each quantity will generate a unique license key that can be used for any site.</p>
+                        <div style="display: flex; gap: 15px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Quantity</label>
+                                <input type="number" id="license-quantity-input" min="1" value="1" style="
+                                    width: 100%;
+                                    padding: 12px;
+                                    border: 2px solid #e0e0e0;
+                                    border-radius: 6px;
+                                    font-size: 16px;
+                                ">
+                            </div>
+                            <button id="purchase-quantity-button" style="
+                                padding: 12px 30px;
+                                background: #667eea;
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                font-size: 16px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                white-space: nowrap;
+                            ">Purchase Now</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 Your License Keys</h2>
-                <div id="licenses-container"></div>
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">📋 Your License Keys</h2>
+                <div id="licenses-list-container">
+                    <p style="color: #666;">Your license keys will be displayed here.</p>
+                </div>
             </div>
         `;
         
@@ -629,6 +683,7 @@
         mainContent.appendChild(domainsSection);
         mainContent.appendChild(subscriptionsSection);
         mainContent.appendChild(paymentSection);
+        mainContent.appendChild(licensesSection);
         mainContent.appendChild(sitesContainer);
         mainContent.appendChild(licensesContainer);
         mainContent.appendChild(loginPrompt);
@@ -874,6 +929,9 @@
             
             // Display subscriptions (including pending sites)
             displaySubscriptions(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
+            
+            // Load license keys
+            loadLicenseKeys(userEmail);
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
@@ -887,6 +945,235 @@
             if (domainsContainer) domainsContainer.innerHTML = errorMsg;
             if (subscriptionsContainer) subscriptionsContainer.innerHTML = errorMsg;
             if (sitesContainer) sitesContainer.innerHTML = errorMsg;
+        }
+    }
+    
+    // Load and display license keys
+    async function loadLicenseKeys(userEmail) {
+        const container = document.getElementById('licenses-list-container');
+        if (!container) return;
+        
+        try {
+            const response = await fetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load licenses: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            displayLicenseKeys(data.licenses || []);
+        } catch (error) {
+            console.error('[Dashboard] Error loading license keys:', error);
+            container.innerHTML = `<div style="text-align: center; padding: 40px; color: #f44336;">
+                <p>Failed to load license keys.</p>
+                <p style="font-size: 12px;">Error: ${error.message}</p>
+            </div>`;
+        }
+    }
+    
+    // Display license keys in table
+    function displayLicenseKeys(licenses) {
+        const container = document.getElementById('licenses-list-container');
+        if (!container) return;
+        
+        if (licenses.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔑</div>
+                    <p style="font-size: 18px; margin-bottom: 10px; color: #666;">No license keys yet</p>
+                    <p style="font-size: 14px; color: #999;">Purchase license keys using the form above</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Used For Site</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Purchase Type</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
+                        <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${licenses.map(license => {
+                        const isUsed = !!license.used_site_domain;
+                        const statusColor = isUsed ? '#4caf50' : '#2196f3';
+                        const statusBg = isUsed ? '#e8f5e9' : '#e3f2fd';
+                        const statusText = isUsed ? 'Used' : 'Available';
+                        const isQuantity = license.purchase_type === 'quantity';
+                        
+                        return `
+                            <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
+                                onmouseover="this.style.background='#f8f9fa'" 
+                                onmouseout="this.style.background='white'">
+                                <td style="padding: 15px; font-family: monospace; font-weight: 600; color: #333;">${license.license_key}</td>
+                                <td style="padding: 15px;">
+                                    <span style="
+                                        padding: 6px 12px;
+                                        border-radius: 20px;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        text-transform: uppercase;
+                                        background: ${statusBg};
+                                        color: ${statusColor};
+                                        display: inline-block;
+                                    ">${statusText}</span>
+                                </td>
+                                <td style="padding: 15px; color: ${isUsed ? '#4caf50' : '#999'};">
+                                    ${license.used_site_domain || '<span style="font-style: italic;">Not assigned</span>'}
+                                </td>
+                                <td style="padding: 15px; color: #666; font-size: 13px;">
+                                    ${license.purchase_type === 'quantity' ? 'Quantity Purchase' : 'Site Purchase'}
+                                </td>
+                                <td style="padding: 15px; color: #666; font-size: 13px;">
+                                    ${license.created_at ? new Date(license.created_at * 1000).toLocaleDateString() : 'N/A'}
+                                </td>
+                                <td style="padding: 15px; text-align: center;">
+                                    ${!isUsed ? `
+                                        <button class="copy-license-button" data-key="${license.license_key}" style="
+                                            padding: 8px 16px;
+                                            background: #2196f3;
+                                            color: white;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                        ">Copy</button>
+                                    ` : ''}
+                                    ${isQuantity && license.status === 'active' ? `
+                                        <button class="deactivate-license-button" data-key="${license.license_key}" style="
+                                            padding: 8px 16px;
+                                            margin-left: 8px;
+                                            background: #f44336;
+                                            color: white;
+                                            border: none;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                        ">Remove from Subscription</button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+        
+        // Add copy button handlers
+        container.querySelectorAll('.copy-license-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const key = this.getAttribute('data-key');
+                navigator.clipboard.writeText(key).then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    this.style.background = '#4caf50';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.style.background = '#2196f3';
+                    }, 2000);
+                });
+            });
+        });
+
+        // Add deactivate (remove from subscription) handlers for quantity licenses
+        container.querySelectorAll('.deactivate-license-button').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const key = this.getAttribute('data-key');
+                const confirmText = 'Are you sure you want to remove this license from the subscription?\n\n'
+                    + 'Stripe will prorate the current period and future invoices will be reduced for this quantity.';
+                if (!confirm(confirmText)) {
+                    return;
+                }
+
+                const button = this;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Removing...';
+
+                try {
+                    const response = await fetch(`${API_BASE}/deactivate-license`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            license_key: key,
+                            email: currentUserEmail
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'Failed to deactivate license');
+                    }
+
+                    showSuccess('License removed from subscription successfully. Stripe will handle proration for this change.');
+
+                    // Reload licenses and dashboard to reflect new quantity and billing
+                    if (currentUserEmail) {
+                        await Promise.all([
+                            loadLicenseKeys(currentUserEmail),
+                            loadDashboard(currentUserEmail)
+                        ]);
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Error deactivating license:', error);
+                    showError('Failed to deactivate license: ' + error.message);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+        });
+    }
+    
+    // Handle quantity purchase
+    async function handleQuantityPurchase(userEmail, quantity) {
+        const button = document.getElementById('purchase-quantity-button');
+        const originalText = button.textContent;
+        
+        try {
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            
+            const response = await fetch(`${API_BASE}/purchase-quantity`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    email: userEmail,
+                    quantity: parseInt(quantity)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Purchase failed');
+            }
+            
+            // Redirect to Stripe checkout
+            if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            } else {
+                throw new Error('No checkout URL received');
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error purchasing quantity:', error);
+            showError(`Failed to process purchase: ${error.message}`);
+            button.disabled = false;
+            button.textContent = originalText;
         }
     }
     
@@ -2211,6 +2498,20 @@
         const addSiteButton = document.getElementById('add-site-button');
         if (addSiteButton) {
             addSiteButton.addEventListener('click', () => addSite(userEmail));
+        }
+        
+        // Purchase quantity button
+        const purchaseQuantityButton = document.getElementById('purchase-quantity-button');
+        if (purchaseQuantityButton) {
+            purchaseQuantityButton.addEventListener('click', () => {
+                const quantityInput = document.getElementById('license-quantity-input');
+                const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
+                if (quantity < 1) {
+                    showError('Quantity must be at least 1');
+                    return;
+                }
+                handleQuantityPurchase(userEmail, quantity);
+            });
         }
         
         // Logout button
