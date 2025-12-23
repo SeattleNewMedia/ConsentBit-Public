@@ -1018,7 +1018,11 @@
                 </thead>
                 <tbody>
                     ${licenses.map(license => {
-                        const isUsed = !!license.used_site_domain;
+                        // For site-based purchases, use site_domain if used_site_domain is null
+                        // For quantity-based purchases, use used_site_domain (which is set when activated)
+                        const siteForDisplay = license.site_domain? license.site_domain : license.used_site_domain;
+                         
+                                               const isUsed = siteForDisplay ? true : false;
                         const statusColor = isUsed ? '#4caf50' : '#2196f3';
                         const statusBg = isUsed ? '#e8f5e9' : '#e3f2fd';
                         const statusText = isUsed ? 'Used' : 'Available';
@@ -1042,7 +1046,7 @@
                                     ">${statusText}</span>
                                 </td>
                                 <td style="padding: 15px; color: ${isUsed ? '#4caf50' : '#999'};">
-                                    ${license.used_site_domain || '<span style="font-style: italic;">Not assigned</span>'}
+                                    ${siteForDisplay || '<span style="font-style: italic;">Not assigned</span>'}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                     ${license.purchase_type === 'quantity' ? 'Quantity Purchase' : 'Site Purchase'}
