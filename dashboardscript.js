@@ -632,7 +632,20 @@
                 </div>
             </div>
             <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">📋 Your License Keys</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #333; font-size: 24px;">📋 Your License Keys</h2>
+                    <button id="generate-missing-licenses-button" style="
+                        padding: 10px 20px;
+                        background: #4caf50;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        white-space: nowrap;
+                    " title="Generate license keys for existing purchases">🔧 Generate Missing Licenses</button>
+                </div>
                 <div id="licenses-list-container">
                     <p style="color: #666;">Your license keys will be displayed here.</p>
                 </div>
@@ -2511,6 +2524,51 @@
                     return;
                 }
                 handleQuantityPurchase(userEmail, quantity);
+            });
+        }
+
+        // Generate missing licenses button
+        const generateMissingLicensesButton = document.getElementById('generate-missing-licenses-button');
+        if (generateMissingLicensesButton) {
+            generateMissingLicensesButton.addEventListener('click', async () => {
+                const button = generateMissingLicensesButton;
+                const originalText = button.textContent;
+                
+                try {
+                    button.disabled = true;
+                    button.textContent = 'Generating...';
+                    
+                    const response = await fetch(`${API_BASE}/generate-missing-licenses`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            email: userEmail
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'Failed to generate licenses');
+                    }
+
+                    if (data.totalGenerated > 0) {
+                        showSuccess(`Successfully generated ${data.totalGenerated} license key(s)! Refreshing...`);
+                        // Reload licenses
+                        if (userEmail) {
+                            await loadLicenseKeys(userEmail);
+                        }
+                    } else {
+                        showSuccess('All licenses are already generated. No missing licenses found.');
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Error generating missing licenses:', error);
+                    showError('Failed to generate licenses: ' + error.message);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
             });
         }
         
