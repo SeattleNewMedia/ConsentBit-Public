@@ -42,24 +42,18 @@
             
             // Check if SDK is ready
             if (window.$memberstackReady === true && memberstack) {
-                console.log('[Dashboard] ✅ SDK is ready!');
                 return memberstack;
             }
             
             // Also check if SDK exists even if ready flag isn't set yet
             if (memberstack) {
-                console.log('[Dashboard] SDK found, checking if ready...');
                 // Try to access a method to see if it's actually ready
                 if (memberstack.getCurrentMember || memberstack.onReady) {
-                    console.log('[Dashboard] SDK appears ready');
                     return memberstack;
                 }
             }
             
             if (attempts % 10 === 0) {
-                console.log(`[Dashboard] Still waiting for SDK... (${attempts * 0.5}s)`);
-                console.log('[Dashboard] $memberstackReady:', window.$memberstackReady);
-                console.log('[Dashboard] SDK available:', !!memberstack);
             }
             
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -92,17 +86,14 @@
                         memberstack.onReady,
                         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
                     ]);
-                    console.log('[Dashboard] ✅ SDK ready promise resolved');
                 } catch (error) {
                     console.warn('[Dashboard] ⚠️ SDK ready promise timeout or error:', error);
                     // Continue anyway - SDK might still work
                 }
             } else {
-                console.log('[Dashboard] ℹ️ SDK does not have onReady promise, continuing...');
             }
             
             // Additional wait to ensure SDK is fully initialized
-            console.log('[Dashboard] ⏳ Additional wait for SDK initialization...');
             await new Promise(resolve => setTimeout(resolve, 1500));
             
             // Try multiple ways to get the member
@@ -110,10 +101,8 @@
             
             // Method 1: memberstack.getCurrentMember
             if (memberstack.getCurrentMember && typeof memberstack.getCurrentMember === 'function') {
-                console.log('[Dashboard] 🔍 Method 1: Trying getCurrentMember()...');
                 try {
                     member = await memberstack.getCurrentMember();
-                    console.log('[Dashboard] ✅ Member data from getCurrentMember:', member);
                     if (member) {
                         // Check both direct and nested structure
                         const hasDirectId = !!(member.id || member._id);
@@ -121,16 +110,7 @@
                         const hasDirectEmail = !!(member.email || member._email);
                         const hasNestedEmail = !!(member.data && (member.data.email || member.data._email || member.data.auth?.email));
                         
-                        console.log('[Dashboard] Member structure analysis:');
-                        console.log('[Dashboard] - Has direct ID?', hasDirectId);
-                        console.log('[Dashboard] - Has nested ID (in .data)?', hasNestedId);
-                        console.log('[Dashboard] - Has direct email?', hasDirectEmail);
-                        console.log('[Dashboard] - Has nested email (in .data or .data.auth)?', hasNestedEmail);
-                        console.log('[Dashboard] - Member keys:', Object.keys(member));
                         if (member.data) {
-                            console.log('[Dashboard] - Member.data keys:', Object.keys(member.data));
-                            console.log('[Dashboard] - Member.data.auth?.email:', member.data.auth?.email);
-                            console.log('[Dashboard] - Member.data content:', member.data);
                         }
                     }
                 } catch (error) {
@@ -138,15 +118,12 @@
                     console.error('[Dashboard] Error details:', error.message, error.stack);
                 }
             } else {
-                console.log('[Dashboard] ⚠️ Method 1: getCurrentMember not available');
             }
             
             // Method 2: window.memberstack.getCurrentMember
             if ((!member || !member.id) && window.memberstack && window.memberstack.getCurrentMember) {
-                console.log('[Dashboard] 🔍 Method 2: Trying window.memberstack.getCurrentMember()...');
                 try {
                     member = await window.memberstack.getCurrentMember();
-                    console.log('[Dashboard] ✅ Member from window.memberstack:', member);
                 } catch (error) {
                     console.error('[Dashboard] ❌ Error with window.memberstack:', error);
                 }
@@ -155,10 +132,8 @@
             // Method 3: $memberstackDom.memberstack.getCurrentMember
             if ((!member || !member.id) && window.$memberstackDom) {
                 if (window.$memberstackDom.memberstack && window.$memberstackDom.memberstack.getCurrentMember) {
-                    console.log('[Dashboard] 🔍 Method 3: Trying $memberstackDom.memberstack.getCurrentMember()...');
                     try {
                         member = await window.$memberstackDom.memberstack.getCurrentMember();
-                        console.log('[Dashboard] ✅ Member from $memberstackDom.memberstack:', member);
                     } catch (error) {
                         console.error('[Dashboard] ❌ Error with $memberstackDom.memberstack:', error);
                     }
@@ -167,10 +142,8 @@
             
             // Method 4: Try $memberstackDom directly
             if ((!member || !member.id) && window.$memberstackDom && typeof window.$memberstackDom.getCurrentMember === 'function') {
-                console.log('[Dashboard] 🔍 Method 4: Trying $memberstackDom.getCurrentMember()...');
                 try {
                     member = await window.$memberstackDom.getCurrentMember();
-                    console.log('[Dashboard] ✅ Member from $memberstackDom:', member);
                 } catch (error) {
                     console.error('[Dashboard] ❌ Error with $memberstackDom:', error);
                 }
@@ -182,7 +155,6 @@
             
             // CRITICAL: Always check if member exists first
             if (!member) {
-                console.log('[Dashboard] ❌ Member is null or undefined - cannot proceed');
                 return null;
             }
             
@@ -193,12 +165,7 @@
                 actualMember = member.data;
 
             } else {
-                console.log('[Dashboard] ℹ️ Member data is NOT nested - using member directly');
-                console.log('[Dashboard] member.id:', member?.id);
-                console.log('[Dashboard] member.email:', member?.email);
-                console.log('[Dashboard] member.auth?.email:', member?.auth?.email);
             }
-            console.log('[Dashboard] ========================================');
             
             // Check for member ID in multiple possible locations
             // Memberstack might return id, _id, or the ID might be in a different structure
@@ -243,11 +210,6 @@
             const hasMemberDataWithId = !!(member && member.data && member.data.id);
             const hasMemberDataWithEmail = !!(member && member.data && member.data.auth && member.data.auth.email);
             
-            console.log('[Dashboard] 🔍 Additional validation checks:');
-            console.log('[Dashboard] - hasActualMemberWithId:', hasActualMemberWithId);
-            console.log('[Dashboard] - hasActualMemberWithEmail:', hasActualMemberWithEmail);
-            console.log('[Dashboard] - hasMemberDataWithId:', hasMemberDataWithId);
-            console.log('[Dashboard] - hasMemberDataWithEmail:', hasMemberDataWithEmail);
             
             // Accept member if ANY of these conditions are true:
             // 1. We found an ID anywhere
@@ -263,7 +225,6 @@
                                  hasMemberDataWithId ||
                                  hasMemberDataWithEmail;
             
-            console.log('[Dashboard] - Final isValidMember:', isValidMember);
             
             if (isValidMember) {
            
@@ -282,7 +243,6 @@
                            member?.Email || 
                            member?.EMAIL;
                 
-                console.log('[Dashboard] Email extraction:');
             
                 // Validate and normalize email
                 if (!email) {
@@ -299,17 +259,6 @@
                     console.error('[Dashboard] ❌ Invalid email format:', email);
                     return null;
                 }
-                
-                console.log('[Dashboard] ========================================');
-                console.log('[Dashboard] ✅✅✅ USER LOGGED IN ✅✅✅');
-                console.log('[Dashboard] ========================================');
-                console.log('[Dashboard] 📧 Email (normalized):', email);
-                console.log('[Dashboard] 👤 Member ID:', memberId);
-                console.log('[Dashboard] 📋 Email source:', actualMember?.email ? 'actualMember.email' : 
-                           (actualMember?._email ? 'actualMember._email' : 
-                           (member?.email ? 'member.email' : 'other')));
-                console.log('[Dashboard] Full member object:', JSON.stringify(member, null, 2));
-                console.log('[Dashboard] ========================================');
                 
                 // Store normalized email and member ID in member object for later use
                 // Use the original member object but add normalized data
@@ -339,21 +288,12 @@
             
                 
                 if (member) {
-                    console.log('[Dashboard] Member keys:', Object.keys(member));
                     if (member.data) {
-                        console.log('[Dashboard] Member.data keys:', Object.keys(member.data));
-                        console.log('[Dashboard] Member.data.id:', member.data.id);
-                        console.log('[Dashboard] Member.data._id:', member.data._id);
-                        console.log('[Dashboard] Member.data.email:', member.data.email);
-                        console.log('[Dashboard] Member.data.auth?.email:', member.data.auth?.email);
-                        console.log('[Dashboard] Full member.data:', JSON.stringify(member.data, null, 2));
                     }
-                    console.log('[Dashboard] Member ID value:', memberId || 'NONE');
                 }
                 
                 // If we have email but no ID, still accept it (some Memberstack responses might work this way)
                 if (hasEmail && actualMember) {
-                    console.log('[Dashboard] ℹ️ No ID but has email - accepting member anyway');
                     // Extract email from all possible locations including auth.email
                     let email = actualMember?.email || 
                                actualMember?._email || 
@@ -375,11 +315,9 @@
                         data: actualMember
                     };
                     
-                    console.log('[Dashboard] ✅ Returning member with email only (no ID)');
                     return returnMember;
                 }
                 
-                console.log('[Dashboard] ========================================');
                 return null;
             }
         } catch (error) {
@@ -396,11 +334,9 @@
     function createDashboardHTML() {
         // Check if dashboard already exists
         if (document.getElementById('dashboard-container')) {
-            console.log('[Dashboard] Dashboard HTML already exists, skipping creation');
             return;
         }
         
-        console.log('[Dashboard] 🏗️ Creating dashboard HTML structure with sidebar...');
         const body = document.body;
         
         if (!body) {
@@ -752,7 +688,6 @@
             firstSidebarItem.style.borderLeftColor = '#3498db';
         }
         
-        console.log('[Dashboard] ✅ Dashboard HTML structure with sidebar created successfully');
     }
     
     // Show error message
@@ -778,7 +713,6 @@
                 successDiv.style.display = 'none';
             }, 3000);
         }
-        console.log('[Dashboard] Success:', message);
     }
     
     // Global variable to store current user email
@@ -884,8 +818,6 @@
             sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
         }
         
-        console.log('[Dashboard] 📤 Sending API request with email:', userEmail);
-        console.log('[Dashboard] 🔗 Request URL:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
         
         try {
             // Try email-based endpoint first
@@ -897,11 +829,9 @@
                 credentials: 'include'
             });
             
-            console.log('[Dashboard] 📥 API Response status:', response.status);
             
             // If email endpoint doesn't work, try with session cookie
             if (!response.ok && response.status === 401) {
-                console.log('[Dashboard] Email endpoint returned 401, trying session-based endpoint...');
                 response = await fetch(`${API_BASE}/dashboard`, {
                     method: 'GET',
                     headers: {
@@ -909,7 +839,6 @@
                     },
                     credentials: 'include'
                 });
-                console.log('[Dashboard] 📥 Session-based API Response status:', response.status);
             }
             
             if (!response.ok) {
@@ -925,11 +854,13 @@
             }
             
             const data = await response.json();
-            console.log('[Dashboard] ✅ Dashboard data received:', data);
-            console.log('[Dashboard] 📊 Sites count:', Object.keys(data.sites || {}).length);
-            console.log('[Dashboard] 📊 Subscriptions count:', Object.keys(data.subscriptions || {}).length);
-            console.log('[Dashboard] 📋 Sites object:', data.sites);
-            console.log('[Dashboard] 📋 Subscriptions object:', data.subscriptions);
+            
+            // Store dashboard data globally for use in other functions
+            window.dashboardData = {
+                sites: data.sites || {},
+                subscriptions: data.subscriptions || {},
+                pendingSites: data.pendingSites || []
+            };
             
             // Check if sites exist but are empty
             if (data.sites && Object.keys(data.sites).length === 0) {
@@ -978,7 +909,9 @@
             }
             
             const data = await response.json();
-            displayLicenseKeys(data.licenses || []);
+            // Get subscriptions from dashboard data if available
+            const dashboardData = window.dashboardData || {};
+            displayLicenseKeys(data.licenses || [], dashboardData.subscriptions || {});
         } catch (error) {
             console.error('[Dashboard] Error loading license keys:', error);
             container.innerHTML = `<div style="text-align: center; padding: 40px; color: #f44336;">
@@ -989,18 +922,64 @@
     }
     
     // Display license keys in table
-    function displayLicenseKeys(licenses) {
+    function displayLicenseKeys(licenses, subscriptions = {}) {
         const container = document.getElementById('licenses-list-container');
         if (!container) return;
         
+        // Filter active subscriptions
+        const activeSubscriptions = Object.entries(subscriptions || {}).filter(([subId, sub]) => 
+            sub.status === 'active' || sub.status === 'trialing'
+        );
+        
+        let html = '';
+        
+        // Display active subscriptions section
+        if (activeSubscriptions.length > 0) {
+            html += `
+                <div style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">💳 Active Subscriptions</h3>
+                    <div style="display: grid; gap: 15px;">
+                        ${activeSubscriptions.map(([subId, sub]) => {
+                            const billingPeriod = sub.billingPeriod ? sub.billingPeriod.charAt(0).toUpperCase() + sub.billingPeriod.slice(1) : 'N/A';
+                            return `
+                                <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e0e0e0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <div>
+                                            <div style="font-weight: 600; color: #333; margin-bottom: 5px;">Subscription ${subId.substring(0, 20)}...</div>
+                                            <div style="font-size: 12px; color: #666;">
+                                                Status: <span style="color: #4caf50; font-weight: 600;">${sub.status || 'active'}</span>
+                                                ${sub.billingPeriod ? ` • Billing: <span style="font-weight: 600;">${billingPeriod}</span>` : ''}
+                                            </div>
+                                        </div>
+                                        <span style="
+                                            padding: 4px 12px;
+                                            border-radius: 20px;
+                                            font-size: 11px;
+                                            font-weight: 600;
+                                            background: #e8f5e9;
+                                            color: #4caf50;
+                                            text-transform: uppercase;
+                                        ">${sub.status || 'active'}</span>
+                                    </div>
+                                    ${sub.sitesCount ? `<div style="font-size: 12px; color: #666;">Sites: ${sub.sitesCount}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Display license keys
         if (licenses.length === 0) {
-            container.innerHTML = `
+            html += `
                 <div style="text-align: center; padding: 60px 20px; color: #999;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🔑</div>
                     <p style="font-size: 18px; margin-bottom: 10px; color: #666;">No license keys yet</p>
                     <p style="font-size: 14px; color: #999;">Purchase license keys using the form above</p>
                 </div>
             `;
+            container.innerHTML = html;
             return;
         }
         
@@ -1311,15 +1290,6 @@
         const container = document.getElementById('subscriptions-accordion-container');
         if (!container) return;
         
-        console.log('[Dashboard] displaySubscriptions called with:', {
-            subscriptionsCount: subscriptions ? Object.keys(subscriptions).length : 0,
-            subscriptions: subscriptions,
-            allSitesCount: allSites ? Object.keys(allSites).length : 0,
-            allSites: allSites,
-            pendingSitesCount: pendingSites ? pendingSites.length : 0,
-            pendingSites: pendingSites
-        });
-        
         if (Object.keys(subscriptions).length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; color: #999;">
@@ -1335,9 +1305,8 @@
             const sub = subscriptions[subId];
             const isExpanded = index === 0; // First subscription expanded by default
             
-            // Determine if monthly or yearly (check price interval)
-            // This would need to be fetched from Stripe or stored in subscription data
-            const billingPeriod = 'monthly'; // Placeholder - should be determined from price data
+            // Get billing period from subscription data (fetched from Stripe)
+            const billingPeriod = sub.billingPeriod || null;
             
             // Get sites for this subscription
             const subscriptionSites = Object.keys(allSites).filter(site => 
@@ -1390,7 +1359,7 @@
                                     font-weight: 600;
                                     background: #e3f2fd;
                                     color: #1976d2;
-                                ">${billingPeriod === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+                                ">${billingPeriod ? billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1) : 'N/A'}</span>
                             </div>
                             <div style="font-size: 13px; color: #666;">
                                 <div>Customer ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${sub.customerId || 'N/A'}</code></div>
@@ -1644,7 +1613,6 @@
             }
         });
         
-        console.log('[Dashboard] Pending sites by subscription (deduplicated):', pendingSitesBySubscription);
         
         // Function to update pending sites display
         function updatePendingSitesDisplay(subscriptionId) {
@@ -1659,7 +1627,6 @@
             }
             
             const pendingSites = pendingSitesBySubscription[subscriptionId] || [];
-            console.log('[Dashboard] Updating pending sites display for subscription:', subscriptionId, 'sites:', pendingSites);
             
             if (pendingSites.length === 0) {
                 pendingContainer.innerHTML = '';
@@ -1750,8 +1717,6 @@
                 pendingSites.push(site);
                 pendingSitesBySubscription[subscriptionId] = pendingSites;
                 
-                console.log('[Dashboard] Added site to pending list:', site, 'for subscription:', subscriptionId);
-                console.log('[Dashboard] Current pending sites:', pendingSites);
                 
                 // Clear input (keep the same input field, no need to clone)
                 siteInput.value = '';
@@ -1762,8 +1727,6 @@
                 // Verify display was updated
                 const pendingContainer = document.getElementById(`pending-sites-${subscriptionId}`);
                 if (pendingContainer) {
-                    console.log('[Dashboard] ✅ Pending container updated, innerHTML length:', pendingContainer.innerHTML.length);
-                    console.log('[Dashboard] ✅ Pending sites now visible in UI');
                 } else {
                     console.error('[Dashboard] ❌ Pending container not found after update!');
                 }
@@ -1779,7 +1742,6 @@
                             return;
                         }
                         
-                        console.log('[Dashboard] Saving site to backend immediately...');
                         const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
                             method: 'POST',
                             headers: {
@@ -1796,7 +1758,6 @@
                         const saveData = await saveResponse.json();
                         
                         if (saveResponse.ok) {
-                            console.log('[Dashboard] ✅ Site saved to backend successfully');
                             showSuccess(`Site "${site}" added to pending list`);
                         } else {
                             console.error('[Dashboard] ❌ Failed to save site to backend:', saveData);
@@ -1842,7 +1803,6 @@
                             return;
                         }
                         
-                        console.log('[Dashboard] Removing pending site:', removedSiteName, 'from subscription:', subscriptionId);
                         
                         const response = await fetch(`${API_BASE}/remove-pending-site`, {
                             method: 'POST',
@@ -1859,7 +1819,6 @@
                         
                         if (response.ok) {
                             const result = await response.json();
-                            console.log('[Dashboard] ✅ Site removed from backend:', result);
                             showSuccess(`Site "${removedSiteName}" removed from pending list`);
                             
                             // Refresh dashboard data to ensure sync
@@ -1912,7 +1871,6 @@
                 
                 try {
                     // Step 1: First save pending sites to backend
-                    console.log('[Dashboard] Step 1: Saving pending sites to backend...');
                     const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
                         method: 'POST',
                         headers: {
@@ -1932,7 +1890,6 @@
                         throw new Error(saveData.error || saveData.message || 'Failed to save pending sites');
                     }
                     
-                    console.log('[Dashboard] Step 2: Creating checkout session...');
                     
                     // Step 2: Create checkout session from pending sites
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
@@ -1953,7 +1910,6 @@
                         throw new Error(checkoutData.error || checkoutData.message || 'Failed to create checkout session');
                     }
                     
-                    console.log('[Dashboard] ✅ Checkout session created, redirecting to Stripe...');
                     
                     // Step 3: Redirect to Stripe checkout
                     if (checkoutData.url) {
@@ -2078,8 +2034,6 @@
         
         licensesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading licenses...</div>';
         
-        console.log('[Dashboard] 📤 Sending licenses API request with email:', userEmail);
-        console.log('[Dashboard] 🔗 Request URL:', `${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`);
         
         try {
             // Try email-based endpoint first
@@ -2091,11 +2045,9 @@
                 credentials: 'include'
             });
             
-            console.log('[Dashboard] 📥 Licenses API Response status:', response.status);
             
             // If email endpoint doesn't work, try with session cookie
             if (!response.ok && response.status === 401) {
-                console.log('[Dashboard] Licenses email endpoint returned 401, trying session-based endpoint...');
                 response = await fetch(`${API_BASE}/licenses`, {
                     method: 'GET',
                     headers: {
@@ -2103,7 +2055,6 @@
                     },
                     credentials: 'include'
                 });
-                console.log('[Dashboard] 📥 Session-based Licenses API Response status:', response.status);
             }
             
             if (!response.ok) {
@@ -2113,8 +2064,6 @@
             }
             
             const data = await response.json();
-            console.log('[Dashboard] ✅ Licenses data received:', data);
-            console.log('[Dashboard] 🔑 Licenses count:', (data.licenses || []).length);
             displayLicenses(data.licenses || []);
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading licenses:', error);
@@ -2219,15 +2168,9 @@
         const dashboardContainer = document.getElementById('dashboard-container');
         const loginPrompt = document.getElementById('login-prompt');
         
-        console.log('[Dashboard] ========================================');
-        console.log('[Dashboard] 🔄 Toggle visibility - isLoggedIn:', isLoggedIn);
-        console.log('[Dashboard] ========================================');
         
         if (dashboardContainer) {
             dashboardContainer.style.display = isLoggedIn ? 'block' : 'none';
-            console.log('[Dashboard] ✅ Dashboard container found');
-            console.log('[Dashboard] Dashboard container display set to:', dashboardContainer.style.display);
-            console.log('[Dashboard] Dashboard container computed display:', window.getComputedStyle(dashboardContainer).display);
         } else {
             console.error('[Dashboard] ❌ Dashboard container NOT found!');
             console.error('[Dashboard] This means createDashboardHTML() may have failed');
@@ -2235,18 +2178,14 @@
         
         if (loginPrompt) {
             loginPrompt.style.display = isLoggedIn ? 'none' : 'block';
-            console.log('[Dashboard] ✅ Login prompt found');
-            console.log('[Dashboard] Login prompt display set to:', loginPrompt.style.display);
         } else {
             console.warn('[Dashboard] ⚠️ Login prompt NOT found (this is okay if not needed)');
         }
         
-        console.log('[Dashboard] ========================================');
     }
     
     // Wait for Memberstack to be fully ready
     async function waitForMemberstackReady() {
-        console.log('[Dashboard] ⏳ Waiting for Memberstack to be fully ready...');
         
         // Method 1: Wait for $memberstackReady flag
         let attempts = 0;
@@ -2254,14 +2193,12 @@
         
         while (attempts < maxAttempts) {
             if (window.$memberstackReady === true) {
-                console.log('[Dashboard] ✅ $memberstackReady is true');
                 break;
             }
             await new Promise(resolve => setTimeout(resolve, 500));
             attempts++;
             
             if (attempts % 10 === 0) {
-                console.log(`[Dashboard] Still waiting for $memberstackReady... (${attempts * 0.5}s)`);
             }
         }
         
@@ -2275,12 +2212,10 @@
         // Method 3: Wait for onReady promise if available
         if (memberstack.onReady && typeof memberstack.onReady.then === 'function') {
             try {
-                console.log('[Dashboard] ⏳ Waiting for SDK onReady promise...');
                 await Promise.race([
                     memberstack.onReady,
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
                 ]);
-                console.log('[Dashboard] ✅ SDK onReady promise resolved');
             } catch (error) {
                 console.warn('[Dashboard] ⚠️ SDK onReady timeout, but continuing...');
             }
@@ -2289,20 +2224,15 @@
         // Additional wait to ensure everything is initialized
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        console.log('[Dashboard] ✅ Memberstack should be ready now');
         return true;
     }
     
     // Initialize dashboard
     async function initializeDashboard() {
-        console.log('[Dashboard] ========================================');
-        console.log('[Dashboard] 🚀 INITIALIZING DASHBOARD');
-        console.log('[Dashboard] ========================================');
         
         // Create dashboard HTML structure first (always show it)
         try {
             createDashboardHTML();
-            console.log('[Dashboard] ✅ Dashboard HTML created');
         } catch (error) {
             console.error('[Dashboard] ❌ Error creating dashboard HTML:', error);
             showError('Failed to create dashboard. Please refresh the page.');
@@ -2314,7 +2244,6 @@
         const dashboardContainer = document.getElementById('dashboard-container');
         if (dashboardContainer) {
             dashboardContainer.style.display = 'block';
-            console.log('[Dashboard] ✅ Dashboard container set to visible (default)');
         } else {
             console.error('[Dashboard] ❌ Dashboard container not found after creation!');
         }
@@ -2334,11 +2263,8 @@
                 toggleDashboardVisibility(false);
                 return;
             }
-            console.log('[Dashboard] ✅ Memberstack script tag found on retry');
         } else {
-            console.log('[Dashboard] ✅ Memberstack script tag found');
             const appId = scriptTag.getAttribute('data-memberstack-app');
-            console.log('[Dashboard] Memberstack App ID:', appId);
         }
         
         // Wait for Memberstack to be fully ready
@@ -2355,12 +2281,8 @@
         let retryCount = 0;
         const maxRetries = 8; // Increased retries
         
-        console.log('[Dashboard] 🔍 Starting session check with retry logic...');
         
         while (!member && retryCount < maxRetries) {
-            console.log(`[Dashboard] ========================================`);
-            console.log(`[Dashboard] 🔄 Session check attempt ${retryCount + 1}/${maxRetries}`);
-            console.log(`[Dashboard] ========================================`);
             
             member = await checkMemberstackSession();
             
@@ -2368,43 +2290,23 @@
                 retryCount++;
                 if (retryCount < maxRetries) {
                     const waitTime = 3000; // 3 seconds between retries
-                    console.log(`[Dashboard] ⏳ No member found, waiting ${waitTime/1000} seconds before retry...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
             } else {
-                console.log(`[Dashboard] ✅ Member found on attempt ${retryCount + 1}!`);
             }
         }
         
         if (!member) {
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] ❌❌❌ USER NOT LOGGED IN AFTER ALL RETRIES ❌❌❌');
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] 🔍 Final Debug Info:');
-            console.log('[Dashboard] - window.$memberstackReady:', window.$memberstackReady);
-            console.log('[Dashboard] - window.memberstack:', typeof window.memberstack, window.memberstack ? 'EXISTS ✅' : 'undefined ❌');
-            console.log('[Dashboard] - window.$memberstack:', typeof window.$memberstack, window.$memberstack ? 'EXISTS ✅' : 'undefined ❌');
-            console.log('[Dashboard] - window.Memberstack:', typeof window.Memberstack, window.Memberstack ? 'EXISTS ✅' : 'undefined ❌');
-            console.log('[Dashboard] - window.$memberstackDom:', typeof window.$memberstackDom, window.$memberstackDom ? 'EXISTS ✅' : 'undefined ❌');
             
             // Try one more direct check
             if (window.$memberstackDom && window.$memberstackDom.memberstack) {
-                console.log('[Dashboard] 🔍 Trying direct access to $memberstackDom.memberstack...');
                 try {
                     const directMember = await window.$memberstackDom.memberstack.getCurrentMember();
-                    console.log('[Dashboard] Direct member check result:', directMember);
                 } catch (e) {
                     console.error('[Dashboard] Direct member check error:', e);
                 }
             }
             
-            console.log('[Dashboard] ========================================');
-            console.log('[Dashboard] 💡 TROUBLESHOOTING:');
-            console.log('[Dashboard] 1. Make sure you are logged in via Memberstack');
-            console.log('[Dashboard] 2. Check if Memberstack SDK loaded correctly');
-            console.log('[Dashboard] 3. Try refreshing the page');
-            console.log('[Dashboard] 4. Check browser console for Memberstack errors');
-            console.log('[Dashboard] ========================================');
             
             // Only hide dashboard if we're sure user is not logged in
             toggleDashboardVisibility(false);
@@ -2422,9 +2324,6 @@
         }
         
         // User is logged in - ensure dashboard is visible
-        console.log('[Dashboard] ========================================');
-        console.log('[Dashboard] ✅✅✅ USER IS LOGGED IN - SHOWING DASHBOARD ✅✅✅');
-        console.log('[Dashboard] ========================================');
         
         // Extract email from member object (check multiple locations)
         let userEmail = member.normalizedEmail || 
@@ -2465,11 +2364,6 @@
             return;
         }
         
-        console.log('[Dashboard] ✅ User logged in');
-        console.log('[Dashboard] 📧 Logged in email (verified):', userEmail);
-        console.log('[Dashboard] 👤 Member ID:', member.id || member._id || 'N/A (using email only)');
-        console.log('[Dashboard] 🔍 Email will be used to fetch data from database/Stripe');
-        console.log('[Dashboard] ========================================');
         
         // FIRST: Force dashboard to be visible immediately
         toggleDashboardVisibility(true);
@@ -2480,7 +2374,6 @@
             dashboardContainerForce.style.display = 'block';
             dashboardContainerForce.style.visibility = 'visible';
             dashboardContainerForce.style.opacity = '1';
-            console.log('[Dashboard] ✅ Dashboard container forced to visible');
         } else {
             console.error('[Dashboard] ❌ Dashboard container not found after login!');
         }
@@ -2489,22 +2382,18 @@
         const loginPrompt = document.getElementById('login-prompt');
         if (loginPrompt) {
             loginPrompt.style.display = 'none';
-            console.log('[Dashboard] ✅ Login prompt hidden');
         }
         
         // Store email globally for use by other functions
         currentUserEmail = userEmail;
         
         // Load dashboard data
-        console.log('[Dashboard] 🔄 Loading dashboard data for email:', userEmail);
-        console.log('[Dashboard] 🔗 API endpoint:', `${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`);
         
         try {
             await Promise.all([
                 loadDashboard(userEmail),
                 loadLicenses(userEmail)
             ]);
-            console.log('[Dashboard] ✅ Dashboard data loaded successfully');
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard data:', error);
             showError('Failed to load dashboard data. Please refresh the page.');
@@ -2607,7 +2496,6 @@
             });
         }, 1000);
         
-        console.log('[Dashboard] ✅ Dashboard initialized successfully');
     }
     
     // Expose functions to global scope (for inline onclick handlers if needed)
