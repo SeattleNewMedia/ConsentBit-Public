@@ -949,7 +949,8 @@
                 updateSubscriptionSelector(data.activeSubscriptions);
             }
             
-            displayLicenseKeys(data.licenses || [], dashboardData.subscriptions || {});
+            // Display licenses with active subscriptions from API
+            displayLicenseKeys(data.licenses || [], dashboardData.subscriptions || {}, data.activeSubscriptions || []);
         } catch (error) {
             console.error('[Dashboard] Error loading license keys:', error);
             container.innerHTML = `<div style="text-align: center; padding: 40px; color: #f44336;">
@@ -960,46 +961,70 @@
     }
     
     // Display license keys in table
-    function displayLicenseKeys(licenses, subscriptions = {}) {
+    function displayLicenseKeys(licenses, subscriptions = {}, activeSubscriptionsFromAPI = []) {
         const container = document.getElementById('licenses-list-container');
         if (!container) return;
         
-        // Filter active subscriptions
-        const activeSubscriptions = Object.entries(subscriptions || {}).filter(([subId, sub]) => 
-            sub.status === 'active' || sub.status === 'trialing'
-        );
+        // Use activeSubscriptionsFromAPI if provided, otherwise filter from subscriptions object
+        let activeSubscriptions = [];
+        if (activeSubscriptionsFromAPI && activeSubscriptionsFromAPI.length > 0) {
+            activeSubscriptions = activeSubscriptionsFromAPI;
+        } else {
+            // Fallback: filter active subscriptions from subscriptions object
+            activeSubscriptions = Object.entries(subscriptions || {}).filter(([subId, sub]) => 
+                sub.status === 'active' || sub.status === 'trialing'
+            ).map(([subId, sub]) => ({
+                subscription_id: subId,
+                status: sub.status,
+                billing_period: sub.billingPeriod,
+                current_period_start: sub.current_period_start,
+                current_period_end: sub.current_period_end
+            }));
+        }
         
         let html = '';
         
-        // Display active subscriptions section
+        // Display active subscriptions section prominently
         if (activeSubscriptions.length > 0) {
             html += `
-                <div style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">💳 Active Subscriptions</h3>
+                <div style="margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 20px 0; color: white; font-size: 20px; font-weight: 600;">💳 Your Active Subscriptions</h3>
+                    <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">Select a subscription below to purchase additional license keys under that subscription.</p>
                     <div style="display: grid; gap: 15px;">
-                        ${activeSubscriptions.map(([subId, sub]) => {
-                            const billingPeriod = sub.billingPeriod ? sub.billingPeriod.charAt(0).toUpperCase() + sub.billingPeriod.slice(1) : 'N/A';
+                        ${activeSubscriptions.map(sub => {
+                            const billingPeriod = sub.billing_period ? sub.billing_period.charAt(0).toUpperCase() + sub.billing_period.slice(1) : 'N/A';
+                            const subId = sub.subscription_id || 'Unknown';
+                            const subIdShort = subId.length > 20 ? subId.substring(0, 20) + '...' : subId;
+                            const status = sub.status || 'active';
+                            const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
+                            
                             return `
-                                <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e0e0e0;">
+                                <div style="background: rgba(255,255,255,0.95); padding: 18px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; transition: transform 0.2s;" 
+                                     onclick="document.getElementById('subscription-select').value='${subId}'; document.getElementById('subscription-select').style.borderColor='#667eea'; document.getElementById('subscription-select').style.borderWidth='3px';"
+                                     onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
+                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <div>
-                                            <div style="font-weight: 600; color: #333; margin-bottom: 5px;">Subscription ${subId.substring(0, 20)}...</div>
-                                            <div style="font-size: 12px; color: #666;">
-                                                Status: <span style="color: #4caf50; font-weight: 600;">${sub.status || 'active'}</span>
-                                                ${sub.billingPeriod ? ` • Billing: <span style="font-weight: 600;">${billingPeriod}</span>` : ''}
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 700; color: #333; margin-bottom: 6px; font-size: 16px;">${subIdShort}</div>
+                                            <div style="font-size: 13px; color: #666; display: flex; gap: 15px; flex-wrap: wrap;">
+                                                <span><strong>Status:</strong> <span style="color: #4caf50; font-weight: 600;">${status.toUpperCase()}</span></span>
+                                                <span><strong>Billing:</strong> <span style="font-weight: 600;">${billingPeriod}</span></span>
+                                                ${periodEnd !== 'N/A' ? `<span><strong>Renews:</strong> ${periodEnd}</span>` : ''}
                                             </div>
                                         </div>
-                                        <span style="
-                                            padding: 4px 12px;
+                                        <div style="
+                                            padding: 8px 16px;
                                             border-radius: 20px;
-                                            font-size: 11px;
+                                            font-size: 12px;
                                             font-weight: 600;
-                                            background: #e8f5e9;
-                                            color: #4caf50;
+                                            background: #4caf50;
+                                            color: white;
                                             text-transform: uppercase;
-                                        ">${sub.status || 'active'}</span>
+                                        ">${status}</div>
                                     </div>
-                                    ${sub.sitesCount ? `<div style="font-size: 12px; color: #666;">Sites: ${sub.sitesCount}</div>` : ''}
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #667eea; font-weight: 600;">
+                                        👆 Click to select this subscription for license purchase
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
