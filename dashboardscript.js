@@ -1253,7 +1253,7 @@
                                 </td>
                                 <td style="padding: 15px; text-align: center;">
                                     ${isActive ? `
-                                        <button class="remove-site-button" data-site="${site}" style="
+                                        <button class="remove-site-button" data-site="${site}" data-subscription-id="${siteData.subscription_id || ''}" style="
                                             padding: 8px 16px;
                                             background: #f44336;
                                             color: white;
@@ -1280,7 +1280,8 @@
         container.querySelectorAll('.remove-site-button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const site = btn.getAttribute('data-site');
-                removeSite(site);
+                const subscriptionId = btn.getAttribute('data-subscription-id');
+                removeSite(site, subscriptionId);
             });
         });
     }
@@ -1977,18 +1978,32 @@
     }
     
     // Unsubscribe a site (removes from Stripe subscription and updates database)
-    async function removeSite(site) {
-        if (!confirm(`Are you sure you want to unsubscribe ${site}? The site will be removed from your subscription and billing will be updated automatically. The site will remain visible as inactive with its expiration date.`)) {
+    async function removeSite(site, subscriptionId) {
+        if (!confirm(`Are you sure you want to unsubscribe ${site}? The subscription will be canceled and billing will be updated automatically. The site will remain visible as inactive with its expiration date.`)) {
             return;
         }
         
         const member = await checkMemberstackSession();
         if (!member) {
-            showError('Not authenticated');
+            showError('Not authenticated. Please log in to continue.');
             return;
         }
         
-        const userEmail = member.email || member._email;
+        // Extract email from member object (handles various Memberstack response structures)
+        const userEmail = member.email || 
+                         member._email || 
+                         member.data?.email || 
+                         member.data?._email ||
+                         member.data?.auth?.email;
+        
+        if (!userEmail) {
+            showError('Unable to retrieve your email address. Please log out and log back in.');
+            console.error('[Dashboard] Member object missing email:', member);
+            return;
+        }
+        
+        // Normalize email (case-insensitive matching) - matches backend verification
+        const normalizedEmail = userEmail.toLowerCase().trim();
         
         try {
             const response = await fetch(`${API_BASE}/remove-site`, {
@@ -1998,22 +2013,54 @@
                 },
                 credentials: 'include',
                 body: JSON.stringify({ 
-                    site,
-                    email: userEmail 
+                    site: site.trim(),
+                    email: normalizedEmail,
+                    subscription_id: subscriptionId ? subscriptionId.trim() : null
                 })
             });
             
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || data.message || 'Failed to unsubscribe site');
+                // Handle specific error codes from backend
+                const errorCode = data.error;
+                const errorMessage = data.message || 'Failed to unsubscribe site';
+                
+                // Map specific error codes to user-friendly messages
+                let userMessage = errorMessage;
+                if (errorCode === 'memberstack_authentication_failed') {
+                    userMessage = 'Authentication failed. Please log out and log back in to continue.';
+                } else if (errorCode === 'memberstack_email_missing') {
+                    userMessage = 'Your account email is missing. Please contact support.';
+                } else if (errorCode === 'email_mismatch') {
+                    userMessage = 'Email verification failed. Please ensure you are logged in with the correct account.';
+                } else if (errorCode === 'memberstack_account_deleted') {
+                    userMessage = 'Your account has been deleted. Please contact support.';
+                } else if (errorCode === 'memberstack_account_inactive') {
+                    userMessage = 'Your account is inactive. Please contact support.';
+                } else if (errorCode === 'memberstack_verification_failed') {
+                    userMessage = 'Account verification failed. Please log out and log back in.';
+                } else if (errorCode === 'site_not_found') {
+                    userMessage = `Site "${site}" was not found in your subscriptions.`;
+                } else if (errorCode === 'subscription_not_found') {
+                    userMessage = 'Subscription not found. The subscription may have already been canceled.';
+                } else if (errorCode === 'unauthorized') {
+                    userMessage = 'You are not authorized to perform this action. Please log in again.';
+                }
+                
+                throw new Error(userMessage);
             }
             
-            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription item has been removed from Stripe and the database has been updated. The site will remain visible as inactive with its expiration date.`);
-            loadDashboard(userEmail);
+            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription has been canceled and will remain active until the end of the current billing period. The site will remain visible as inactive with its expiration date.`);
+            
+            // Reload dashboard to show updated data (use normalized email for consistency)
+            await loadDashboard(normalizedEmail);
         } catch (error) {
             console.error('[Dashboard] Error unsubscribing site:', error);
-            showError('Failed to unsubscribe site: ' + error.message);
+            
+            // Show user-friendly error message
+            const errorMessage = error.message || 'Failed to unsubscribe site. Please try again or contact support.';
+            showError(errorMessage);
         }
     }
     
@@ -2509,8 +2556,8 @@
         await addSite(userEmail);
     };
     
-    window.removeSite = async function(site) {
-        await removeSite(site);
+    window.removeSite = async function(site, subscriptionId) {
+        await removeSite(site, subscriptionId);
     };
     
     window.copyLicense = function(key) {
