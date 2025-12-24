@@ -541,28 +541,44 @@
                 <div id="quantity-purchase-container">
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <p style="margin: 0 0 15px 0; color: #666;">Purchase license keys in bulk. Each quantity will generate a unique license key that can be used for any site.</p>
-                        <div style="display: flex; gap: 15px; align-items: flex-end;">
-                            <div style="flex: 1;">
-                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Quantity</label>
-                                <input type="number" id="license-quantity-input" min="1" value="1" style="
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Select Subscription</label>
+                                <select id="subscription-select" style="
                                     width: 100%;
                                     padding: 12px;
                                     border: 2px solid #e0e0e0;
                                     border-radius: 6px;
                                     font-size: 16px;
+                                    background: white;
                                 ">
+                                    <option value="">Loading subscriptions...</option>
+                                </select>
+                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Select an active subscription to purchase licenses under</p>
                             </div>
-                            <button id="purchase-quantity-button" style="
-                                padding: 12px 30px;
-                                background: #667eea;
-                                color: white;
-                                border: none;
-                                border-radius: 6px;
-                                font-size: 16px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                white-space: nowrap;
-                            ">Purchase Now</button>
+                            <div style="display: flex; gap: 15px; align-items: flex-end;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Quantity</label>
+                                    <input type="number" id="license-quantity-input" min="1" value="1" style="
+                                        width: 100%;
+                                        padding: 12px;
+                                        border: 2px solid #e0e0e0;
+                                        border-radius: 6px;
+                                        font-size: 16px;
+                                    ">
+                                </div>
+                                <button id="purchase-quantity-button" style="
+                                    padding: 12px 30px;
+                                    background: #667eea;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 6px;
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    white-space: nowrap;
+                                ">Purchase Now</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -909,8 +925,30 @@
             }
             
             const data = await response.json();
+            console.log('[License API] Full response:', JSON.stringify(data, null, 2));
+            if (data.licenses) {
+              console.log(`[License API] Received ${data.licenses.length} license(s)`);
+              // Log subscription cancellation details for each license
+              data.licenses.forEach(license => {
+                if (license.subscription_id) {
+                  console.log(`[License API] License ${license.license_key} subscription details:`, {
+                    subscription_id: license.subscription_id,
+                    subscription_status: license.subscription_status,
+                    subscription_cancelled: license.subscription_cancelled,
+                    subscription_cancel_at_period_end: license.subscription_cancel_at_period_end,
+                    subscription_current_period_end: license.subscription_current_period_end
+                  });
+                }
+              });
+            }
             // Get subscriptions from dashboard data if available
             const dashboardData = window.dashboardData || {};
+            
+            // Update subscription selector with active subscriptions
+            if (data.activeSubscriptions) {
+                updateSubscriptionSelector(data.activeSubscriptions);
+            }
+            
             displayLicenseKeys(data.licenses || [], dashboardData.subscriptions || {});
         } catch (error) {
             console.error('[Dashboard] Error loading license keys:', error);
@@ -1001,11 +1039,50 @@
                         // For quantity-based purchases, use used_site_domain (which is set when activated)
                         const siteForDisplay = license.site_domain? license.site_domain : license.used_site_domain;
                          
-                                               const isUsed = siteForDisplay ? true : false;
-                        const statusColor = isUsed ? '#4caf50' : '#2196f3';
-                        const statusBg = isUsed ? '#e8f5e9' : '#e3f2fd';
-                        const statusText = isUsed ? 'Used' : 'Available';
+                        const isUsed = siteForDisplay ? true : false;
                         const isQuantity = license.purchase_type === 'quantity';
+                        
+                        // Check if license is associated with a cancelled subscription
+                        const isSubscriptionCancelled = license.subscription_cancelled || false;
+                        const isLicenseInactive = license.status === 'inactive';
+                        const isCancelled = isSubscriptionCancelled || isLicenseInactive;
+                        
+                        // Debug logging for cancelled subscriptions
+                        if (license.subscription_id) {
+                          console.log(`[License Display] License ${license.license_key}:`, {
+                            subscription_id: license.subscription_id,
+                            subscription_status: license.subscription_status,
+                            subscription_cancelled: license.subscription_cancelled,
+                            subscription_cancel_at_period_end: license.subscription_cancel_at_period_end,
+                            subscription_current_period_end: license.subscription_current_period_end,
+                            license_status: license.status,
+                            isSubscriptionCancelled: isSubscriptionCancelled,
+                            isLicenseInactive: isLicenseInactive,
+                            isCancelled: isCancelled
+                          });
+                        }
+                        
+                        // Determine status display
+                        let statusText, statusColor, statusBg;
+                        if (isCancelled) {
+                          if (license.subscription_cancel_at_period_end) {
+                            statusText = 'CANCELLING';
+                            statusColor = '#856404';
+                            statusBg = '#fff3cd';
+                          } else {
+                            statusText = 'CANCELLED';
+                            statusColor = '#721c24';
+                            statusBg = '#f8d7da';
+                          }
+                        } else if (isUsed) {
+                          statusText = 'USED';
+                          statusColor = '#4caf50';
+                          statusBg = '#e8f5e9';
+                        } else {
+                          statusText = 'AVAILABLE';
+                          statusColor = '#2196f3';
+                          statusBg = '#e3f2fd';
+                        }
                         
                         return `
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
@@ -1025,7 +1102,16 @@
                                     ">${statusText}</span>
                                 </td>
                                 <td style="padding: 15px; color: ${isUsed ? '#4caf50' : '#999'};">
-                                    ${siteForDisplay || '<span style="font-style: italic;">Not assigned</span>'}
+                                    <div>
+                                        ${siteForDisplay || '<span style="font-style: italic;">Not assigned</span>'}
+                                        ${isCancelled && siteForDisplay ? `
+                                            <div style="font-size: 10px; color: #856404; margin-top: 4px;">
+                                                ${license.subscription_cancel_at_period_end && license.subscription_current_period_end ? 
+                                                  `Cancels: ${new Date(license.subscription_current_period_end * 1000).toLocaleDateString()}` : 
+                                                  'Subscription Cancelled'}
+                                            </div>
+                                        ` : ''}
+                                    </div>
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                     ${license.purchase_type === 'quantity' ? 'Quantity Purchase' : 'Site Purchase'}
@@ -1134,10 +1220,45 @@
         });
     }
     
+    // Update subscription selector dropdown
+    function updateSubscriptionSelector(activeSubscriptions) {
+        const select = document.getElementById('subscription-select');
+        if (!select) return;
+        
+        // Clear existing options
+        select.innerHTML = '';
+        
+        if (!activeSubscriptions || activeSubscriptions.length === 0) {
+            select.innerHTML = '<option value="">No active subscriptions found</option>';
+            select.disabled = true;
+            return;
+        }
+        
+        select.disabled = false;
+        
+        // Add default option
+        select.innerHTML = '<option value="">Select a subscription...</option>';
+        
+        // Add subscription options
+        activeSubscriptions.forEach(sub => {
+            const billingPeriod = sub.billing_period ? sub.billing_period.charAt(0).toUpperCase() + sub.billing_period.slice(1) : 'N/A';
+            const subIdShort = sub.subscription_id ? sub.subscription_id.substring(0, 20) + '...' : 'Unknown';
+            const option = document.createElement('option');
+            option.value = sub.subscription_id;
+            option.textContent = `${subIdShort} - ${sub.status} (${billingPeriod})`;
+            select.appendChild(option);
+        });
+    }
+    
     // Handle quantity purchase
-    async function handleQuantityPurchase(userEmail, quantity) {
+    async function handleQuantityPurchase(userEmail, quantity, subscriptionId) {
         const button = document.getElementById('purchase-quantity-button');
         const originalText = button.textContent;
+        
+        if (!subscriptionId) {
+            showError('Please select a subscription');
+            return;
+        }
         
         try {
             button.disabled = true;
@@ -1149,7 +1270,8 @@
                 credentials: 'include',
                 body: JSON.stringify({
                     email: userEmail,
-                    quantity: parseInt(quantity)
+                    quantity: parseInt(quantity),
+                    subscription_id: subscriptionId
                 })
             });
             
@@ -1351,7 +1473,7 @@
                                         font-weight: 600;
                                         background: #fff3cd;
                                         color: #856404;
-                                    ">Ends: ${new Date((sub.current_period_end || 0) * 1000).toLocaleDateString()}</span>
+                                    ">Ends: ${sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A'}</span>
                                 ` : ''}
                                 <span style="
                                     padding: 4px 12px;
@@ -2458,12 +2580,19 @@
         if (purchaseQuantityButton) {
             purchaseQuantityButton.addEventListener('click', () => {
                 const quantityInput = document.getElementById('license-quantity-input');
+                const subscriptionSelect = document.getElementById('subscription-select');
                 const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
+                const subscriptionId = subscriptionSelect ? subscriptionSelect.value : null;
+                
+                if (!subscriptionId) {
+                    showError('Please select a subscription');
+                    return;
+                }
                 if (quantity < 1) {
                     showError('Quantity must be at least 1');
                     return;
                 }
-                handleQuantityPurchase(userEmail, quantity);
+                handleQuantityPurchase(userEmail, quantity, subscriptionId);
             });
         }
 
