@@ -1195,8 +1195,31 @@
         container.querySelectorAll('.deactivate-license-button').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const key = this.getAttribute('data-key');
-                const confirmText = 'Are you sure you want to remove this license from the subscription?\n\n'
-                    + 'Stripe will prorate the current period and future invoices will be reduced for this quantity.';
+                
+                // Check if this is an individual subscription (Use Case 3) by checking the license data
+                // For Use Case 3, each license has its own subscription, so no proration
+                const licenseData = licenses.find(l => l.license_key === key);
+                
+                // Heuristic: For quantity purchases, if the subscription_id appears only once in all licenses,
+                // it's likely an individual subscription (Use Case 3 creates one subscription per license)
+                let isIndividualSubscription = false;
+                if (licenseData?.purchase_type === 'quantity' && licenseData?.subscription_id) {
+                    const licensesWithSameSubscription = licenses.filter(l => 
+                        l.subscription_id === licenseData.subscription_id
+                    );
+                    // If only one license has this subscription_id, it's an individual subscription
+                    isIndividualSubscription = licensesWithSameSubscription.length === 1;
+                }
+                
+                let confirmText;
+                if (isIndividualSubscription) {
+                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
+                        + 'This license has its own individual subscription (Use Case 3). Canceling it will cancel the entire subscription for this license. NO PRORATION applies since each license has its own subscription. The subscription will remain active until the end of the current billing period.';
+                } else {
+                    confirmText = 'Are you sure you want to remove this license from the subscription?\n\n'
+                        + 'Stripe will prorate the current period and future invoices will be reduced for this quantity.';
+                }
+                
                 if (!confirm(confirmText)) {
                     return;
                 }
@@ -1223,7 +1246,14 @@
                         throw new Error(data.error || data.message || 'Failed to deactivate license');
                     }
 
-                    showSuccess('License removed from subscription successfully. Stripe will handle proration for this change.');
+                    // Show appropriate message based on response
+                    if (data.cancel_at_period_end) {
+                        // Individual subscription was canceled
+                        showSuccess(data.message || 'License subscription canceled successfully. The subscription will remain active until the end of the current billing period.');
+                    } else {
+                        // License was removed from shared subscription (proration applies)
+                        showSuccess(data.message || 'License removed from subscription successfully. Stripe will handle proration for this change.');
+                    }
 
                     // Reload licenses and dashboard to reflect new quantity and billing
                     if (currentUserEmail) {
@@ -2184,7 +2214,9 @@
     
     // Unsubscribe a site (removes from Stripe subscription and updates database)
     async function removeSite(site, subscriptionId) {
-        if (!confirm(`Are you sure you want to unsubscribe ${site}? The subscription will be canceled and billing will be updated automatically. The site will remain visible as inactive with its expiration date.`)) {
+        // First, we'll show a generic confirmation, then use the backend response for the actual message
+        // The backend will tell us if it's an individual subscription (no proration) or shared (proration)
+        if (!confirm(`Are you sure you want to unsubscribe ${site}? The subscription will be canceled.`)) {
             return;
         }
         
@@ -2256,7 +2288,13 @@
                 throw new Error(userMessage);
             }
             
-            showSuccess(`Site "${site}" has been unsubscribed successfully! The subscription has been canceled and will remain active until the end of the current billing period. The site will remain visible as inactive with its expiration date.`);
+            // Use the message from backend which includes proration info based on subscription type
+            const successMessage = data.message || 
+                (data.is_individual_subscription 
+                    ? `Site "${site}" has been unsubscribed successfully! This license has its own individual subscription, so canceling it will cancel the entire subscription (no proration). The subscription will remain active until the end of the current billing period.`
+                    : `Site "${site}" has been unsubscribed successfully! The subscription has been canceled and will remain active until the end of the current billing period. Stripe will prorate the current period and future invoices will be reduced. The site will remain visible as inactive with its expiration date.`);
+            
+            showSuccess(successMessage);
             
             // Reload dashboard to show updated data (use normalized email for consistency)
             await loadDashboard(normalizedEmail);
