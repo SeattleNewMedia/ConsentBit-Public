@@ -540,22 +540,10 @@
                 <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 Purchase License Keys</h2>
                 <div id="quantity-purchase-container">
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                        <p style="margin: 0 0 15px 0; color: #666;">Purchase license keys in bulk. Each quantity will generate a unique license key that can be used for any site.</p>
+                        <p style="margin: 0 0 15px 0; color: #666;">Purchase license keys in bulk. Each quantity will create a separate subscription (one per license) for individual management. Each license key can be used for any site.</p>
                         <div style="display: flex; flex-direction: column; gap: 15px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Select Subscription</label>
-                                <select id="subscription-select" style="
-                                    width: 100%;
-                                    padding: 12px;
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 6px;
-                                    font-size: 16px;
-                                    background: white;
-                                ">
-                                    <option value="">Loading subscriptions...</option>
-                                </select>
-                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Select an active subscription to purchase licenses under</p>
-                            </div>
+                            <!-- Subscription dropdown removed for Option 2: Creating separate subscriptions -->
+                            <!-- No existing subscription needed - each license gets its own new subscription -->
                             <div style="display: flex; gap: 15px; align-items: flex-end;">
                                 <div style="flex: 1;">
                                     <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Quantity</label>
@@ -999,8 +987,7 @@
                             const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
                             
                             return `
-                                <div style="background: rgba(255,255,255,0.95); padding: 18px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; transition: transform 0.2s;" 
-                                     onclick="document.getElementById('subscription-select').value='${subId}'; document.getElementById('subscription-select').style.borderColor='#667eea'; document.getElementById('subscription-select').style.borderWidth='3px';"
+                                <div style="background: rgba(255,255,255,0.95); padding: 18px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3);"
                                      onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
                                      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -1022,9 +1009,8 @@
                                             text-transform: uppercase;
                                         ">${status}</div>
                                     </div>
-                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #667eea; font-weight: 600;">
-                                        👆 Click to select this subscription for license purchase
-                                    </div>
+                                    <!-- Subscription selection removed for Option 2: Creating separate subscriptions -->
+                                    <!-- Each license purchase creates a new subscription, so no selection needed -->
                                 </div>
                             `;
                         }).join('')}
@@ -1276,14 +1262,13 @@
     }
     
     // Handle quantity purchase
-    async function handleQuantityPurchase(userEmail, quantity, subscriptionId) {
+    // Option 2: Creating separate subscriptions (one per license) - no existing subscription needed
+    async function handleQuantityPurchase(userEmail, quantity, subscriptionId = null) {
         const button = document.getElementById('purchase-quantity-button');
         const originalText = button.textContent;
         
-        if (!subscriptionId) {
-            showError('Please select a subscription');
-            return;
-        }
+        // No subscription selection required - we're creating NEW subscriptions
+        // subscriptionId is optional and not used for Option 2
         
         try {
             button.disabled = true;
@@ -1295,8 +1280,8 @@
                 credentials: 'include',
                 body: JSON.stringify({
                     email: userEmail,
-                    quantity: parseInt(quantity),
-                    subscription_id: subscriptionId
+                    quantity: parseInt(quantity)
+                    // subscription_id is optional - not needed for Option 2 (separate subscriptions)
                 })
             });
             
@@ -2601,23 +2586,19 @@
         }
         
         // Purchase quantity button
+        // Option 2: No subscription selection needed - creates new subscriptions
         const purchaseQuantityButton = document.getElementById('purchase-quantity-button');
         if (purchaseQuantityButton) {
             purchaseQuantityButton.addEventListener('click', () => {
                 const quantityInput = document.getElementById('license-quantity-input');
-                const subscriptionSelect = document.getElementById('subscription-select');
                 const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
-                const subscriptionId = subscriptionSelect ? subscriptionSelect.value : null;
                 
-                if (!subscriptionId) {
-                    showError('Please select a subscription');
-                    return;
-                }
+                // No subscription selection required - we're creating NEW subscriptions (Option 2)
                 if (quantity < 1) {
                     showError('Quantity must be at least 1');
                     return;
                 }
-                handleQuantityPurchase(userEmail, quantity, subscriptionId);
+                handleQuantityPurchase(userEmail, quantity);
             });
         }
 
