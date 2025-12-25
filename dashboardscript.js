@@ -1038,6 +1038,7 @@
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Subscription ID</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Used For Site</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Purchase Type</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
@@ -1111,6 +1112,16 @@
                                         color: ${statusColor};
                                         display: inline-block;
                                     ">${statusText}</span>
+                                </td>
+                                <td style="padding: 15px; font-family: monospace; font-size: 12px; color: #666;">
+                                    ${license.subscription_id ? `
+                                        <div style="font-weight: 500; color: #333;">${license.subscription_id}</div>
+                                        ${license.subscription_status ? `
+                                            <div style="font-size: 10px; color: #999; margin-top: 4px;">
+                                                ${license.subscription_status === 'active' ? '✓ Active' : license.subscription_status}
+                                            </div>
+                                        ` : ''}
+                                    ` : '<span style="font-style: italic; color: #999;">N/A</span>'}
                                 </td>
                                 <td style="padding: 15px; color: ${isUsed ? '#4caf50' : '#999'};">
                                     <div>
