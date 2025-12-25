@@ -1239,7 +1239,24 @@
                     const data = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(data.error || data.message || 'Failed to activate license');
+                        // Handle specific error types with user-friendly messages
+                        let errorMessage = data.message || data.error || 'Failed to activate license';
+                        
+                        if (data.error === 'license_not_found') {
+                            errorMessage = 'License key not found. Please check the license key and try again.';
+                        } else if (data.error === 'subscription_ended') {
+                            errorMessage = `This license key's subscription has ended on ${data.subscription_end_date_formatted || 'the end date'}. Please renew your subscription to continue using this license.`;
+                        } else if (data.error === 'subscription_cancelled') {
+                            errorMessage = `This license key's subscription has been cancelled. It will end on ${data.subscription_cancel_date_formatted || 'the cancellation date'}. Please reactivate your subscription to continue using this license.`;
+                        } else if (data.error === 'subscription_inactive') {
+                            errorMessage = `This license key's subscription is ${data.subscription_status || 'inactive'}. Please ensure your subscription is active to use this license.`;
+                        } else if (data.error === 'inactive_license') {
+                            errorMessage = 'This license is not active.';
+                        } else if (data.error === 'unauthorized') {
+                            errorMessage = 'This license key does not belong to your account.';
+                        }
+                        
+                        throw new Error(errorMessage);
                     }
                     
                     showSuccess(data.message || (isUpdating 
