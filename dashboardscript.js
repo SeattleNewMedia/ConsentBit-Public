@@ -1513,75 +1513,137 @@
                         border-top: 1px solid #e0e0e0;
                     ">
                         <div style="padding: 20px;">
-                            <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Sites in this subscription:</h4>
-                            <div id="subscription-sites-${subId}" style="margin-bottom: 20px;">
-                                ${subscriptionSites.length > 0 ? `
-                                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                                        <thead>
-                                            <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
-                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Site</th>
-                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
-                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Renewal Date</th>
-                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Amount Paid</th>
-                                                <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${subscriptionSites.map(site => {
-                                                const siteData = allSites[site];
-                                                const license = siteData.license;
-                                                const renewalDate = siteData.renewal_date || siteData.current_period_end;
-                                                const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
-                                                const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
-                                                const isInactive = siteData.status === 'inactive';
-                                                const isInactiveButNotExpired = isInactive && renewalDate && !isExpired;
-                                                const statusDisplay = siteData.status === 'cancelling' ? 'Cancelling' : 
-                                                                      siteData.status === 'expired' ? 'Expired' : 
-                                                                      siteData.status === 'inactive' ? 'Inactive' : 
-                                                                      siteData.status || 'Active';
-                                                const statusColor = siteData.status === 'active' ? '#4caf50' : 
-                                                                    siteData.status === 'cancelling' ? '#856404' : 
-                                                                    siteData.status === 'expired' ? '#721c24' : '#f44336';
-                                                const statusBg = siteData.status === 'active' ? '#e8f5e9' : 
-                                                                  siteData.status === 'cancelling' ? '#fff3cd' : 
-                                                                  siteData.status === 'expired' ? '#f8d7da' : '#ffebee';
-                                                
-                                                return `
-                                                    <tr style="border-bottom: 1px solid #f0f0f0;">
-                                                        <td style="padding: 10px; font-size: 13px; font-weight: 500;">${site}</td>
-                                                        <td style="padding: 10px;">
-                                                            <span style="
-                                                                padding: 4px 8px;
-                                                                border-radius: 12px;
-                                                                font-size: 11px;
-                                                                font-weight: 600;
-                                                                background: ${statusBg};
-                                                                color: ${statusColor};
-                                                            ">${statusDisplay}</span>
-                                                            ${siteData.cancel_at_period_end && !isExpired ? `
-                                                                <div style="font-size: 10px; color: #856404; margin-top: 4px;">
-                                                                    Cancels: ${renewalDateStr}
-                                                                </div>
-                                                            ` : ''}
-                                                        </td>
-                                                        <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
-                                                            ${renewalDateStr}
-                                                            ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
-                                                            ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
-                                                        </td>
-                                                        <td style="padding: 10px; font-size: 12px; color: #666;">
-                                                            ${siteData.amount_paid ? `$${(siteData.amount_paid / 100).toFixed(2)}` : 'N/A'}
-                                                        </td>
-                                                        <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
-                                                            ${license ? license.license_key.substring(0, 20) + '...' : 'N/A'}
-                                                        </td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                ` : '<p style="color: #999; font-size: 14px; margin-bottom: 20px;">No sites in this subscription yet.</p>'}
-                            </div>
+                            ${(() => {
+                                // Check if this subscription has quantity purchases (license keys instead of sites)
+                                const subscriptionItems = sub.items || [];
+                                const hasQuantityPurchases = subscriptionItems.some(item => item.purchase_type === 'quantity' || item.license_key);
+                                
+                                if (hasQuantityPurchases) {
+                                    // Display license keys for quantity purchases
+                                    const quantityItems = subscriptionItems.filter(item => item.purchase_type === 'quantity' || item.license_key);
+                                    return `
+                                        <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">License Keys in this subscription:</h4>
+                                        <div id="subscription-licenses-${subId}" style="margin-bottom: 20px;">
+                                            ${quantityItems.length > 0 ? `
+                                                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                                    <thead>
+                                                        <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License Key</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Item ID</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Created</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${quantityItems.map(item => {
+                                                            const statusColor = item.status === 'active' ? '#4caf50' : '#f44336';
+                                                            const statusBg = item.status === 'active' ? '#e8f5e9' : '#ffebee';
+                                                            const createdDate = item.created_at ? new Date(item.created_at * 1000).toLocaleDateString() : 'N/A';
+                                                            
+                                                            return `
+                                                                <tr style="border-bottom: 1px solid #f0f0f0;">
+                                                                    <td style="padding: 10px; font-size: 13px; font-family: monospace; font-weight: 600; color: #333;">
+                                                                        ${item.license_key || 'N/A'}
+                                                                    </td>
+                                                                    <td style="padding: 10px;">
+                                                                        <span style="
+                                                                            padding: 4px 8px;
+                                                                            border-radius: 12px;
+                                                                            font-size: 11px;
+                                                                            font-weight: 600;
+                                                                            background: ${statusBg};
+                                                                            color: ${statusColor};
+                                                                        ">${item.status || 'active'}</span>
+                                                                    </td>
+                                                                    <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
+                                                                        ${item.item_id ? item.item_id.substring(0, 20) + '...' : 'N/A'}
+                                                                    </td>
+                                                                    <td style="padding: 10px; font-size: 12px; color: #666;">
+                                                                        ${createdDate}
+                                                                    </td>
+                                                                </tr>
+                                                            `;
+                                                        }).join('')}
+                                                    </tbody>
+                                                </table>
+                                            ` : '<p style="color: #999; font-size: 14px; margin-bottom: 20px;">No license keys in this subscription yet.</p>'}
+                                        </div>
+                                    `;
+                                } else {
+                                    // Display sites for site purchases (existing logic)
+                                    return `
+                                        <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Sites in this subscription:</h4>
+                                        <div id="subscription-sites-${subId}" style="margin-bottom: 20px;">
+                                            ${subscriptionSites.length > 0 ? `
+                                                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                                    <thead>
+                                                        <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Site</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Renewal Date</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Amount Paid</th>
+                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${subscriptionSites.map(site => {
+                                                            const siteData = allSites[site];
+                                                            const license = siteData.license;
+                                                            const renewalDate = siteData.renewal_date || siteData.current_period_end;
+                                                            const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
+                                                            const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
+                                                            const isInactive = siteData.status === 'inactive';
+                                                            const isInactiveButNotExpired = isInactive && renewalDate && !isExpired;
+                                                            const statusDisplay = siteData.status === 'cancelling' ? 'Cancelling' : 
+                                                                                  siteData.status === 'expired' ? 'Expired' : 
+                                                                                  siteData.status === 'inactive' ? 'Inactive' : 
+                                                                                  siteData.status || 'Active';
+                                                            const statusColor = siteData.status === 'active' ? '#4caf50' : 
+                                                                                siteData.status === 'cancelling' ? '#856404' : 
+                                                                                siteData.status === 'expired' ? '#721c24' : '#f44336';
+                                                            const statusBg = siteData.status === 'active' ? '#e8f5e9' : 
+                                                                              siteData.status === 'cancelling' ? '#fff3cd' : 
+                                                                              siteData.status === 'expired' ? '#f8d7da' : '#ffebee';
+                                                            
+                                                            return `
+                                                                <tr style="border-bottom: 1px solid #f0f0f0;">
+                                                                    <td style="padding: 10px; font-size: 13px; font-weight: 500;">${site}</td>
+                                                                    <td style="padding: 10px;">
+                                                                        <span style="
+                                                                            padding: 4px 8px;
+                                                                            border-radius: 12px;
+                                                                            font-size: 11px;
+                                                                            font-weight: 600;
+                                                                            background: ${statusBg};
+                                                                            color: ${statusColor};
+                                                                        ">${statusDisplay}</span>
+                                                                        ${siteData.cancel_at_period_end && !isExpired ? `
+                                                                            <div style="font-size: 10px; color: #856404; margin-top: 4px;">
+                                                                                Cancels: ${renewalDateStr}
+                                                                            </div>
+                                                                        ` : ''}
+                                                                    </td>
+                                                                    <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
+                                                                        ${renewalDateStr}
+                                                                        ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
+                                                                        ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
+                                                                    </td>
+                                                                    <td style="padding: 10px; font-size: 12px; color: #666;">
+                                                                        ${siteData.amount_paid ? `$${(siteData.amount_paid / 100).toFixed(2)}` : 'N/A'}
+                                                                    </td>
+                                                                    <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
+                                                                        ${license ? license.license_key.substring(0, 20) + '...' : 'N/A'}
+                                                                    </td>
+                                                                </tr>
+                                                            `;
+                                                        }).join('')}
+                                                    </tbody>
+                                                </table>
+                                            ` : '<p style="color: #999; font-size: 14px; margin-bottom: 20px;">No sites in this subscription yet.</p>'}
+                                        </div>
+                                    `;
+                                }
+                            })()}
                             
                             <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
                                 <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Add Sites to This Subscription</h4>
