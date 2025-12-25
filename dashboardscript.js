@@ -1142,19 +1142,30 @@
                                     ${license.created_at ? new Date(license.created_at * 1000).toLocaleDateString() : 'N/A'}
                                 </td>
                                 <td style="padding: 15px; text-align: center;">
-                                    ${!isUsed ? `
-                                        <button class="copy-license-button" data-key="${license.license_key}" style="
+                                    <button class="copy-license-button" data-key="${license.license_key}" style="
+                                        padding: 8px 16px;
+                                        background: #2196f3;
+                                        color: white;
+                                        border: none;
+                                        border-radius: 6px;
+                                        cursor: pointer;
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        margin-right: 8px;
+                                    ">Copy</button>
+                                    ${isQuantity ? `
+                                        <button class="activate-license-button" data-key="${license.license_key}" data-current-site="${siteForDisplay || ''}" style="
                                             padding: 8px 16px;
-                                            background: #2196f3;
+                                            background: ${isUsed ? '#ff9800' : '#4caf50'};
                                             color: white;
                                             border: none;
                                             border-radius: 6px;
                                             cursor: pointer;
                                             font-size: 13px;
                                             font-weight: 600;
-                                        ">Copy</button>
+                                        ">${isUsed ? 'Update Site' : 'Activate'}</button>
                                     ` : ''}
-                                    ${isQuantity && license.status === 'active' ? `
+                                    ${isQuantity && license.status === 'active' && !isUsed ? `
                                         <button class="deactivate-license-button" data-key="${license.license_key}" style="
                                             padding: 8px 16px;
                                             margin-left: 8px;
@@ -1188,6 +1199,63 @@
                         this.style.background = '#2196f3';
                     }, 2000);
                 });
+            });
+        });
+        
+        // Add activate/update license handlers
+        container.querySelectorAll('.activate-license-button').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const key = this.getAttribute('data-key');
+                const currentSite = this.getAttribute('data-current-site') || '';
+                const isUpdating = currentSite !== '';
+                
+                const promptText = isUpdating 
+                    ? `Current site: ${currentSite}\n\nEnter the new site domain for this license:`
+                    : 'Enter the site domain for this license:';
+                
+                const siteDomain = prompt(promptText, currentSite);
+                
+                if (!siteDomain || !siteDomain.trim()) {
+                    return;
+                }
+                
+                const button = this;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = isUpdating ? 'Updating...' : 'Activating...';
+                
+                try {
+                    const response = await fetch(`${API_BASE}/activate-license`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            license_key: key,
+                            site_domain: siteDomain.trim(),
+                            email: currentUserEmail
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'Failed to activate license');
+                    }
+                    
+                    showSuccess(data.message || (isUpdating 
+                        ? `License site updated successfully to ${siteDomain.trim()}`
+                        : `License activated successfully for ${siteDomain.trim()}`));
+                    
+                    // Reload licenses to reflect changes
+                    if (currentUserEmail) {
+                        await loadLicenseKeys(currentUserEmail);
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Error activating/updating license:', error);
+                    showError('Failed to ' + (isUpdating ? 'update' : 'activate') + ' license: ' + error.message);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
             });
         });
 
