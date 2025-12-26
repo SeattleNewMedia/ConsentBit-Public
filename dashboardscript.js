@@ -13,6 +13,12 @@
     
     const API_BASE = 'https://consentbit-dashboard-test.web-8fb.workers.dev';
     
+    // Global variables for payment plan and price IDs (accessible to all functions)
+    let selectedPaymentPlan = null;
+    // Direct product IDs for monthly and yearly plans
+    let monthlyPriceId = 'prod_Tg3C9VY4GhshdE'; // Monthly product ID
+    let yearlyPriceId = 'prod_Tg3AbI4uIip8oO'; // Yearly product ID
+    
     // Function to get Memberstack SDK
     function getMemberstackSDK() {
         if (window.$memberstackReady === true) {
@@ -1803,14 +1809,14 @@
         const button = document.getElementById('purchase-quantity-button');
         const originalText = button.textContent;
         
+        // Price IDs are always available (set as defaults in dashboard)
         // Get selected payment plan price ID
-        const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
-                               selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
-        
-        if (!selectedPriceId) {
+        if (!selectedPaymentPlan || (selectedPaymentPlan !== 'monthly' && selectedPaymentPlan !== 'yearly')) {
             showError('Please select a payment plan (Monthly or Yearly) first');
             return;
         }
+        
+        const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : yearlyPriceId;
         
         // No subscription selection required - we're creating NEW subscriptions
         // subscriptionId is optional and not used for Option 2
@@ -2202,9 +2208,6 @@
     }
     
     // Setup event handlers for Use Case 2
-    // Store selected payment plan (backend will handle price IDs)
-    let selectedPaymentPlan = null;
-    
     // Setup payment plan selection handlers
     function setupPaymentPlanHandlers(userEmail) {
         // Payment plan selectors for site subscriptions
@@ -2325,7 +2328,52 @@
             });
         }
         
-        // Price IDs are now managed by backend - no need to fetch them
+        // Fetch price IDs from backend (non-blocking - defaults are already available)
+        // This will update price IDs if backend has different values, but won't block functionality
+        fetchPriceIds(userEmail).catch(() => {
+            // Silently fail - defaults are already set and available
+        });
+    }
+    
+    // Fetch price IDs from backend
+    async function fetchPriceIds(userEmail) {
+        try {
+            const priceOptionsResponse = await fetch(`${API_BASE}/get-price-options`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            
+            if (priceOptionsResponse.ok) {
+                const priceOptions = await priceOptionsResponse.json();
+                // Handle new format with price_id object or old format with direct price_id
+                if (priceOptions.monthly) {
+                    if (typeof priceOptions.monthly === 'string') {
+                        // Old format: direct price_id string
+                        monthlyPriceId = priceOptions.monthly;
+                    } else if (priceOptions.monthly.price_id) {
+                        // New format: object with price_id, discount, etc.
+                        monthlyPriceId = priceOptions.monthly.price_id;
+                    }
+                }
+                if (priceOptions.yearly) {
+                    if (typeof priceOptions.yearly === 'string') {
+                        // Old format: direct price_id string
+                        yearlyPriceId = priceOptions.yearly;
+                    } else if (priceOptions.yearly.price_id) {
+                        // New format: object with price_id, discount, etc.
+                        yearlyPriceId = priceOptions.yearly.price_id;
+                    }
+                }
+                
+                console.log('[Dashboard] Price IDs loaded from backend:', { monthly: monthlyPriceId, yearly: yearlyPriceId });
+            } else {
+                console.log('[Dashboard] Backend fetch failed, using default price IDs:', { monthly: monthlyPriceId, yearly: yearlyPriceId });
+            }
+        } catch (error) {
+            console.warn('[Dashboard] Could not fetch price IDs from backend, using defaults:', error);
+            console.log('[Dashboard] Using default price IDs:', { monthly: monthlyPriceId, yearly: yearlyPriceId });
+        }
     }
     
     function setupUseCase2Handlers(userEmail) {
