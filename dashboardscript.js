@@ -830,6 +830,54 @@
         mainContent.appendChild(licensesSection);
         mainContent.appendChild(sitesContainer);
         mainContent.appendChild(licensesContainer);
+        
+        // Loading overlay - blurred dashboard until data loads
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'dashboard-loading-overlay';
+        loadingOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        `;
+        loadingOverlay.innerHTML = `
+            <div style="
+                text-align: center;
+                padding: 40px;
+            ">
+                <div id="dashboard-loading-spinner" style="
+                    width: 60px;
+                    height: 60px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #667eea;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 25px;
+                "></div>
+                <h3 style="
+                    margin: 0 0 12px 0;
+                    color: #333;
+                    font-size: 22px;
+                    font-weight: 600;
+                ">Loading Dashboard</h3>
+                <p style="
+                    margin: 0;
+                    color: #666;
+                    font-size: 15px;
+                ">Fetching your data...</p>
+            </div>
+        `;
+        container.appendChild(loadingOverlay);
         mainContent.appendChild(loginPrompt);
         
         // Assemble container
@@ -999,6 +1047,9 @@
     
     // Load dashboard data
     async function loadDashboard(userEmail) {
+        // Show loading overlay
+        showDashboardLoadingOverlay();
+        
         // Update email display in header
         if (userEmail) {
             updateUserEmailDisplay(userEmail);
@@ -1121,11 +1172,119 @@
                 console.warn('[Dashboard] Could not load licenses:', licenseError);
             }
             
-            // Filter sites to only show those activated/used from license keys (Use Case 3)
-            // Include sites that are activated/used, and those that were activated but are now cancelled/cancelling
+            // Combine sites from Use Case 1 (direct payment link), Use Case 2 (site subscriptions), and Use Case 3 (license key subscriptions)
+            // Include sites that are active, cancelled, or cancelling
             const allSitesCombined = {};
             
-            // Only add sites from license key subscriptions (Use Case 3) - licenses that have used_site_domain
+            // STEP 0: Add sites from Use Case 1 (direct payment link - multiple sites in one subscription)
+            // These are subscriptions with items that have site_domain but no specific purchase_type metadata
+            Object.keys(data.subscriptions || {}).forEach(subscriptionId => {
+                const subscription = data.subscriptions[subscriptionId];
+                const items = subscription.items || [];
+                
+                // Check if this is NOT Use Case 2 or Use Case 3 (i.e., it's Use Case 1)
+                const isUseCase2 = subscription.purchase_type === 'site' || 
+                                  (items.length > 0 && items[0].purchase_type === 'site');
+                const isUseCase3 = items.length > 0 && items[0].purchase_type === 'quantity';
+                
+                // Use Case 1: Has site_domain in items but no purchase_type metadata (or purchase_type is not 'site' or 'quantity')
+                if (!isUseCase2 && !isUseCase3) {
+                    items.forEach(item => {
+                        const siteDomain = item.site || item.site_domain;
+                        if (siteDomain && siteDomain !== 'N/A' && !siteDomain.startsWith('license_') && !siteDomain.startsWith('quantity_')) {
+                            // Include if active, cancelled, or cancelling
+                            const isCancelled = subscription.cancel_at_period_end || 
+                                              subscription.status === 'canceled' || 
+                                              subscription.status === 'cancelling';
+                            const isActive = subscription.status === 'active' || 
+                                           subscription.status === 'trialing';
+                            
+                            if (isActive || isCancelled) {
+                                // Find license key for this site from licenses data
+                                const siteLicense = licensesData.find(lic => 
+                                    lic.subscription_id === subscriptionId && 
+                                    (lic.site_domain === siteDomain || lic.used_site_domain === siteDomain) &&
+                                    lic.purchase_type !== 'quantity' // Use Case 1 licenses have purchase_type 'site' or null
+                                );
+                                
+                                // Don't overwrite if already added from Use Case 2 or 3
+                                if (!allSitesCombined[siteDomain]) {
+                                    allSitesCombined[siteDomain] = {
+                                        item_id: item.item_id || item.id || 'N/A',
+                                        subscription_id: subscriptionId,
+                                        status: subscription.status || 'active',
+                                        created_at: subscription.created_at || item.created_at,
+                                        current_period_end: subscription.current_period_end,
+                                        renewal_date: subscription.current_period_end,
+                                        license: siteLicense ? {
+                                            license_key: siteLicense.license_key,
+                                            status: siteLicense.status,
+                                            created_at: siteLicense.created_at
+                                        } : null,
+                                        purchase_type: 'direct', // Mark as from direct payment link (Use Case 1)
+                                        cancel_at_period_end: subscription.cancel_at_period_end,
+                                        canceled_at: subscription.canceled_at
+                                    };
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // STEP 1: Add sites from Use Case 2 (site subscriptions with purchase_type === 'site')
+            // These are subscriptions where each site has its own subscription
+            Object.keys(data.subscriptions || {}).forEach(subscriptionId => {
+                const subscription = data.subscriptions[subscriptionId];
+                const items = subscription.items || [];
+                
+                // Check if this is a Use Case 2 subscription (purchase_type === 'site')
+                const isUseCase2 = subscription.purchase_type === 'site' || 
+                                  (items.length > 0 && items[0].purchase_type === 'site');
+                
+                if (isUseCase2) {
+                    // For Use Case 2, each subscription item represents a site
+                    items.forEach(item => {
+                        const siteDomain = item.site || item.site_domain;
+                        if (siteDomain) {
+                            // Include if active, cancelled, or cancelling
+                            const isCancelled = subscription.cancel_at_period_end || 
+                                             subscription.status === 'canceled' || 
+                                             subscription.status === 'cancelling';
+                            const isActive = subscription.status === 'active' || 
+                                           subscription.status === 'trialing';
+                            
+                            if (isActive || isCancelled) {
+                                // Find license key for this site from licenses data
+                                const siteLicense = licensesData.find(lic => 
+                                    lic.subscription_id === subscriptionId && 
+                                    lic.site_domain === siteDomain &&
+                                    lic.purchase_type === 'site'
+                                );
+                                
+                                allSitesCombined[siteDomain] = {
+                                    item_id: item.item_id || item.id || 'N/A',
+                                    subscription_id: subscriptionId,
+                                    status: subscription.status || 'active',
+                                    created_at: subscription.created_at || item.created_at,
+                                    current_period_end: subscription.current_period_end,
+                                    renewal_date: subscription.current_period_end,
+                                    license: siteLicense ? {
+                                        license_key: siteLicense.license_key,
+                                        status: siteLicense.status,
+                                        created_at: siteLicense.created_at
+                                    } : null,
+                                    purchase_type: 'site', // Mark as from site subscription
+                                    cancel_at_period_end: subscription.cancel_at_period_end,
+                                    canceled_at: subscription.canceled_at
+                                };
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // STEP 2: Add sites from Use Case 3 (license key subscriptions) - licenses that have used_site_domain
             licensesData.forEach(license => {
                 if (license.used_site_domain && license.purchase_type === 'quantity') {
                     const siteDomain = license.used_site_domain;
@@ -1133,12 +1292,16 @@
                     const subscription = data.subscriptions?.[license.subscription_id];
                     if (subscription) {
                         // Include if active, cancelled, or cancelling
-                        const isCancelled = subscription.cancel_at_period_end || subscription.status === 'canceled' || subscription.status === 'cancelling';
-                        const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+                        const isCancelled = subscription.cancel_at_period_end || 
+                                          subscription.status === 'canceled' || 
+                                          subscription.status === 'cancelling';
+                        const isActive = subscription.status === 'active' || 
+                                       subscription.status === 'trialing';
                         
                         // Only show sites that are activated/used (from license keys)
                         // Include both active and cancelled/cancelling ones
-                        if (isActive || isCancelled) {
+                        // Don't overwrite if already added from Use Case 2
+                        if ((isActive || isCancelled) && !allSitesCombined[siteDomain]) {
                             allSitesCombined[siteDomain] = {
                                 item_id: license.item_id || 'N/A',
                                 subscription_id: license.subscription_id,
@@ -1160,11 +1323,14 @@
                 }
             });
             
-            // Display only sites activated from license keys (Use Case 3)
+            // Display all sites (from both Use Case 2 and Use Case 3)
             displaySites(allSitesCombined);
             
             // Display subscribed items (including pending sites) - await async function
             await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
+            
+            // Hide loading overlay once data is loaded
+            hideDashboardLoadingOverlay();
             
             // Setup payment plan handlers
             setupPaymentPlanHandlers(userEmail);
@@ -1180,6 +1346,10 @@
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
+            
+            // Hide loading overlay on error
+            hideDashboardLoadingOverlay();
+            
             const errorMsg = `<div style="text-align: center; padding: 40px; color: #f44336;">
                 <p>Failed to load dashboard data.</p>
                 <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
@@ -1771,10 +1941,24 @@
                         const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
                         const isInactiveButNotExpired = !isActive && renewalDate && !isExpired;
                         
-                        // Determine source (Site Subscription or License Key Subscription)
-                        const source = siteData.purchase_type === 'quantity' ? 'License Key' : 'Site Subscription';
-                        const sourceColor = siteData.purchase_type === 'quantity' ? '#9c27b0' : '#2196f3';
-                        const sourceBg = siteData.purchase_type === 'quantity' ? '#f3e5f5' : '#e3f2fd';
+                        // Determine source (Direct Payment, Site Subscription, or License Key Subscription)
+                        let source = 'Site Subscription';
+                        let sourceColor = '#2196f3';
+                        let sourceBg = '#e3f2fd';
+                        
+                        if (siteData.purchase_type === 'quantity') {
+                            source = 'License Key';
+                            sourceColor = '#9c27b0';
+                            sourceBg = '#f3e5f5';
+                        } else if (siteData.purchase_type === 'direct') {
+                            source = 'Direct Payment';
+                            sourceColor = '#ff9800';
+                            sourceBg = '#fff3e0';
+                        } else if (siteData.purchase_type === 'site') {
+                            source = 'Site Subscription';
+                            sourceColor = '#2196f3';
+                            sourceBg = '#e3f2fd';
+                        }
                         
                         // Get license key
                         const licenseKey = siteData.license?.license_key || siteData.license_key || 'N/A';
@@ -3845,8 +4029,12 @@
                 loadDashboard(userEmail),
                 loadLicenses(userEmail)
             ]);
+            // Hide loading overlay after both loadDashboard and loadLicenses complete
+            hideDashboardLoadingOverlay();
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard data:', error);
+            // Hide loading overlay on error
+            hideDashboardLoadingOverlay();
             showError('Failed to load dashboard data. Please refresh the page.');
         }
         
