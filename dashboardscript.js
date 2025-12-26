@@ -1045,6 +1045,29 @@
         }
     }
     
+    // Show dashboard loading overlay
+    function showDashboardLoadingOverlay() {
+        const overlay = document.getElementById('dashboard-loading-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+            overlay.style.opacity = '1';
+            overlay.style.visibility = 'visible';
+        }
+    }
+    
+    // Hide dashboard loading overlay
+    function hideDashboardLoadingOverlay() {
+        const overlay = document.getElementById('dashboard-loading-overlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            overlay.style.visibility = 'hidden';
+            // Remove from display after transition completes
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300); // Match the transition duration
+        }
+    }
+    
     // Load dashboard data
     async function loadDashboard(userEmail) {
         // Show loading overlay
@@ -1329,8 +1352,8 @@
             // Display subscribed items (including pending sites) - await async function
             await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
             
-            // Hide loading overlay once data is loaded
-            hideDashboardLoadingOverlay();
+            // Note: Loading overlay is hidden in initializeDashboard after Promise.all completes
+            // This ensures both loadDashboard and loadLicenses finish before hiding
             
             // Setup payment plan handlers
             setupPaymentPlanHandlers(userEmail);
