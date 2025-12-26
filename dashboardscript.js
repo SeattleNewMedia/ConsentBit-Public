@@ -512,10 +512,8 @@
         subscriptionsSection.className = 'content-section';
         subscriptionsSection.style.cssText = 'display: none;';
         subscriptionsSection.innerHTML = `
-            <!-- Site Subscriptions Section -->
-            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🌐 Site Subscriptions</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Add sites to create separate subscriptions. Each site will get its own subscription and license key.</p>
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💳 Subscriptions</h2>
                 
                 <!-- Add Site Input -->
                 <div style="margin-bottom: 20px;">
@@ -566,18 +564,11 @@
                     </div>
                 </div>
                 
-                <!-- Site Subscriptions List -->
-                <div id="site-subscriptions-container">
-                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Your Site Subscriptions</h3>
-                    <div id="site-subscriptions-list"></div>
+                <!-- Subscribed Items List -->
+                <div id="subscribed-items-container">
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Your Subscribed Items</h3>
+                    <div id="subscribed-items-list"></div>
                 </div>
-            </div>
-            
-            <!-- License Key Subscriptions Section -->
-            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 License Key Subscriptions</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Subscriptions created from license key purchases. Each license key has its own subscription.</p>
-                <div id="license-key-subscriptions-container"></div>
             </div>
             
             <!-- Processing Overlay -->
@@ -683,19 +674,8 @@
                 </div>
             </div>
             <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="margin-bottom: 20px;">
                     <h2 style="margin: 0; color: #333; font-size: 24px;">📋 Your License Keys</h2>
-                    <button id="generate-missing-licenses-button" style="
-                        padding: 10px 20px;
-                        background: #4caf50;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 14px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        white-space: nowrap;
-                    " title="Generate license keys for existing purchases">🔧 Generate Missing Licenses</button>
                 </div>
                 <div id="licenses-list-container">
                     <p style="color: #666;">Your license keys will be displayed here.</p>
@@ -1035,9 +1015,8 @@
             // Display all sites (from both use cases)
             displaySites(allSitesCombined);
             
-            // Display subscriptions (including pending sites) - await async functions
-            await displaySiteSubscriptions(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
-            await displayLicenseKeySubscriptions(data.subscriptions || {}, data.sites || {});
+            // Display subscribed items (including pending sites) - await async function
+            await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
             
             // Setup event handlers for Use Case 2
             setupUseCase2Handlers(userEmail);
@@ -1713,11 +1692,12 @@
     }
     
     // Display Site Subscriptions (Use Case 2) - separate subscription per site
-    async function displaySiteSubscriptions(subscriptions, allSites, pendingSites = []) {
-        const container = document.getElementById('site-subscriptions-list');
+    // Display subscribed items in a simple list (combines Use Case 2 and Use Case 3)
+    async function displaySubscribedItems(subscriptions, allSites, pendingSites = []) {
+        const container = document.getElementById('subscribed-items-list');
         if (!container) return;
         
-        // Get licenses to identify Use Case 2 subscriptions
+        // Get licenses to identify subscriptions
         let licensesData = [];
         try {
             const userEmail = await getLoggedInEmail();
@@ -1733,232 +1713,106 @@
                 }
             }
         } catch (licenseError) {
-            console.warn('[Dashboard] Could not load licenses for filtering:', licenseError);
+            console.warn('[Dashboard] Could not load licenses:', licenseError);
         }
         
-        // Create map of subscription_id -> purchase_type from licenses
-        const subscriptionPurchaseTypes = {};
+        // Create map of subscription_id -> license data
+        const subscriptionLicenses = {};
         licensesData.forEach(license => {
             if (license.subscription_id) {
-                subscriptionPurchaseTypes[license.subscription_id] = license.purchase_type || 'site';
+                if (!subscriptionLicenses[license.subscription_id]) {
+                    subscriptionLicenses[license.subscription_id] = [];
+                }
+                subscriptionLicenses[license.subscription_id].push(license);
             }
         });
         
-        // Filter subscriptions by purchase_type='site' (Use Case 2)
-        const siteSubscriptions = {};
+        // Collect all subscribed items
+        const subscribedItems = [];
+        
         Object.keys(subscriptions).forEach(subId => {
             const sub = subscriptions[subId];
             const items = sub.items || [];
+            const purchaseType = subscriptionLicenses[subId]?.[0]?.purchase_type;
             
-            // Check if subscription is Use Case 2:
-            // 1. Has license with purchase_type='site'
-            // 2. Has item with site_domain (not quantity purchase)
-            const purchaseType = subscriptionPurchaseTypes[subId];
-            const hasSiteItem = items.some(item => item.site && item.site !== '');
-            const isUseCase2 = purchaseType === 'site' || (hasSiteItem && purchaseType !== 'quantity');
-            
-            if (isUseCase2) {
-                siteSubscriptions[subId] = sub;
-            }
-        });
-        
-        if (Object.keys(siteSubscriptions).length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #999;">
-                    <p style="font-size: 14px; margin: 0;">No site subscriptions yet. Add sites above to create subscriptions.</p>
-                </div>
-            `;
-        } else {
-            // Create map of subscription_id -> license data
-            const subscriptionLicenses = {};
-            licensesData.forEach(license => {
-                if (license.subscription_id && license.purchase_type === 'site') {
-                    if (!subscriptionLicenses[license.subscription_id]) {
-                        subscriptionLicenses[license.subscription_id] = [];
-                    }
-                    subscriptionLicenses[license.subscription_id].push(license);
-                }
-            });
-            
-            container.innerHTML = Object.keys(siteSubscriptions).map((subId, index) => {
-                const sub = siteSubscriptions[subId];
-                const items = sub.items || [];
+            if (purchaseType === 'site') {
+                // Use Case 2: Site subscriptions
                 const siteItem = items.find(item => item.site && item.site !== '');
                 const siteName = siteItem?.site || 'Unknown Site';
-                
-                // Get license key from licenses data (matching by site_domain)
                 const license = subscriptionLicenses[subId]?.find(l => 
                     (l.site_domain || l.used_site_domain)?.toLowerCase().trim() === siteName.toLowerCase().trim()
                 ) || subscriptionLicenses[subId]?.[0];
-                const licenseKey = license?.license_key || 'N/A';
                 
-                const billingPeriod = sub.billingPeriod || 'N/A';
-                const renewalDate = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
-                
-                return `
-                    <div style="
-                        border: 1px solid #e0e0e0;
-                        border-radius: 8px;
-                        padding: 20px;
-                        margin-bottom: 15px;
-                        background: white;
-                    ">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                            <div style="flex: 1;">
-                                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">${siteName}</h4>
-                                <div style="font-size: 12px; color: #666;">
-                                    <div>Subscription ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${subId.substring(0, 20)}...</code></div>
-                                    <div style="margin-top: 4px;">License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${licenseKey}</code></div>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <span style="
-                                    padding: 4px 12px;
-                                    border-radius: 20px;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
-                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
-                                ">${sub.status || 'active'}</span>
-                                <span style="
-                                    padding: 4px 12px;
-                                    border-radius: 20px;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                    background: #e3f2fd;
-                                    color: #1976d2;
-                                ">${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)}</span>
-                            </div>
-                        </div>
-                        <div style="font-size: 13px; color: #666; padding-top: 15px; border-top: 1px solid #f0f0f0;">
-                            <div>Renewal Date: ${renewalDate}</div>
-                            ${sub.cancel_at_period_end ? `<div style="color: #856404; margin-top: 4px;">⚠️ Cancels at period end</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Update pending sites display
-        updatePendingSitesDisplayUseCase2(pendingSites);
-    }
-    
-    // Display License Key Subscriptions (Use Case 3) - separate subscription per license
-    async function displayLicenseKeySubscriptions(subscriptions, allSites) {
-        const container = document.getElementById('license-key-subscriptions-container');
-        if (!container) return;
-        
-        // Get licenses to identify Use Case 3 subscriptions
-        let licensesData = [];
-        try {
-            const userEmail = await getLoggedInEmail();
-            if (userEmail) {
-                const licensesResponse = await fetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include'
+                subscribedItems.push({
+                    type: 'site',
+                    name: siteName,
+                    licenseKey: license?.license_key || 'N/A',
+                    status: sub.status || 'active',
+                    subscriptionId: subId
                 });
-                if (licensesResponse.ok) {
-                    const licensesResult = await licensesResponse.json();
-                    licensesData = licensesResult.licenses || [];
-                }
-            }
-        } catch (licenseError) {
-            console.warn('[Dashboard] Could not load licenses for filtering:', licenseError);
-        }
-        
-        // Create map of subscription_id -> purchase_type from licenses
-        const subscriptionPurchaseTypes = {};
-        licensesData.forEach(license => {
-            if (license.subscription_id) {
-                subscriptionPurchaseTypes[license.subscription_id] = license.purchase_type || 'site';
-            }
-        });
-        
-        // Filter subscriptions by purchase_type='quantity' (Use Case 3)
-        const licenseSubscriptions = {};
-        Object.keys(subscriptions).forEach(subId => {
-            const sub = subscriptions[subId];
-            const purchaseType = subscriptionPurchaseTypes[subId];
-            const isUseCase3 = purchaseType === 'quantity';
-            
-            if (isUseCase3) {
-                licenseSubscriptions[subId] = sub;
-            }
-        });
-        
-        if (Object.keys(licenseSubscriptions).length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #999;">
-                    <p style="font-size: 14px; margin: 0;">No license key subscriptions yet. Purchase license keys from the License Keys section.</p>
-                </div>
-            `;
-        } else {
-            // Create map of subscription_id -> license data
-            const subscriptionLicenses = {};
-            licensesData.forEach(license => {
-                if (license.subscription_id && license.purchase_type === 'quantity') {
-                    if (!subscriptionLicenses[license.subscription_id]) {
-                        subscriptionLicenses[license.subscription_id] = [];
-                    }
-                    subscriptionLicenses[license.subscription_id].push(license);
-                }
-            });
-            
-            container.innerHTML = Object.keys(licenseSubscriptions).map((subId, index) => {
-                const sub = licenseSubscriptions[subId];
-                
-                // Get license data for this subscription
+            } else if (purchaseType === 'quantity') {
+                // Use Case 3: License key subscriptions
                 const license = subscriptionLicenses[subId]?.[0];
                 const licenseKey = license?.license_key || 'N/A';
                 const usedSite = license?.used_site_domain || license?.site_domain || 'Not assigned';
                 
-                const billingPeriod = sub.billingPeriod || 'N/A';
-                const renewalDate = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
-                
-                return `
-                    <div style="
-                        border: 1px solid #e0e0e0;
-                        border-radius: 8px;
-                        padding: 20px;
-                        margin-bottom: 15px;
-                        background: white;
-                    ">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                subscribedItems.push({
+                    type: 'license',
+                    name: `License Key: ${licenseKey}`,
+                    licenseKey: licenseKey,
+                    usedSite: usedSite,
+                    status: sub.status || 'active',
+                    subscriptionId: subId
+                });
+            }
+        });
+        
+        // Update pending sites display
+        updatePendingSitesDisplayUseCase2(pendingSites);
+        
+        // Display subscribed items in a simple list
+        if (subscribedItems.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <p style="font-size: 14px; margin: 0;">No subscribed items yet. Add sites above to create subscriptions.</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div style="
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    padding: 15px;
+                ">
+                    ${subscribedItems.map(item => `
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 12px;
+                            margin-bottom: 8px;
+                            background: white;
+                            border-radius: 6px;
+                            border: 1px solid #e0e0e0;
+                        ">
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">License Key Subscription</h4>
+                                <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${item.type === 'site' ? '🌐 ' + item.name : '🔑 ' + item.name}</div>
                                 <div style="font-size: 12px; color: #666;">
-                                    <div>License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${licenseKey}</code></div>
-                                    <div style="margin-top: 4px;">Used Site: <span style="color: ${usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${usedSite}</span></div>
-                                    <div style="margin-top: 4px;">Subscription ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${subId.substring(0, 20)}...</code></div>
+                                    ${item.type === 'site' ? `License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${item.licenseKey}</code>` : `Used Site: <span style="color: ${item.usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${item.usedSite}</span>`}
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <span style="
-                                    padding: 4px 12px;
-                                    border-radius: 20px;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
-                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
-                                ">${sub.status || 'active'}</span>
-                                <span style="
-                                    padding: 4px 12px;
-                                    border-radius: 20px;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                    background: #e3f2fd;
-                                    color: #1976d2;
-                                ">${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)}</span>
-                            </div>
+                            <span style="
+                                padding: 4px 12px;
+                                border-radius: 20px;
+                                font-size: 11px;
+                                font-weight: 600;
+                                background: ${item.status === 'active' ? '#e8f5e9' : '#ffebee'};
+                                color: ${item.status === 'active' ? '#4caf50' : '#f44336'};
+                            ">${item.status}</span>
                         </div>
-                        <div style="font-size: 13px; color: #666; padding-top: 15px; border-top: 1px solid #f0f0f0;">
-                            <div>Renewal Date: ${renewalDate}</div>
-                            ${sub.cancel_at_period_end ? `<div style="color: #856404; margin-top: 4px;">⚠️ Cancels at period end</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                    `).join('')}
+                </div>
+            `;
         }
     }
     
@@ -3480,50 +3334,6 @@
             });
         }
 
-        // Generate missing licenses button
-        const generateMissingLicensesButton = document.getElementById('generate-missing-licenses-button');
-        if (generateMissingLicensesButton) {
-            generateMissingLicensesButton.addEventListener('click', async () => {
-                const button = generateMissingLicensesButton;
-                const originalText = button.textContent;
-                
-                try {
-                    button.disabled = true;
-                    button.textContent = 'Generating...';
-                    
-                    const response = await fetch(`${API_BASE}/generate-missing-licenses`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            email: userEmail
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || data.message || 'Failed to generate licenses');
-                    }
-
-                    if (data.totalGenerated > 0) {
-                        showSuccess(`Successfully generated ${data.totalGenerated} license key(s)! Refreshing...`);
-                        // Reload licenses
-                        if (userEmail) {
-                            await loadLicenseKeys(userEmail);
-                        }
-                    } else {
-                        showSuccess('All licenses are already generated. No missing licenses found.');
-                    }
-                } catch (error) {
-                    console.error('[Dashboard] Error generating missing licenses:', error);
-                    showError('Failed to generate licenses: ' + error.message);
-                } finally {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
-            });
-        }
         
         // Logout button
         const logoutButton = document.getElementById('logout-button');
