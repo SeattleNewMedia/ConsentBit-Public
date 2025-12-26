@@ -385,7 +385,7 @@
                     transition: all 0.3s;
                     border-left: 3px solid transparent;
                 ">
-                    🌐 Domains/Sites
+                    🌐 Subscriptions
                 </button>
                 <button class="sidebar-item" data-section="subscriptions" style="
                     width: 100%;
@@ -399,22 +399,9 @@
                     transition: all 0.3s;
                     border-left: 3px solid transparent;
                 ">
-                    💳 Subscriptions
+                    💳 Domain-Subscriptions
                 </button>
-                <button class="sidebar-item" data-section="payment" style="
-                    width: 100%;
-                    padding: 15px 20px;
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    text-align: left;
-                    cursor: pointer;
-                    font-size: 16px;
-                    transition: all 0.3s;
-                    border-left: 3px solid transparent;
-                ">
-                    💰 Payment
-                </button>
+                
                 <button class="sidebar-item" data-section="licenses" style="
                     width: 100%;
                     padding: 15px 20px;
@@ -427,7 +414,7 @@
                     transition: all 0.3s;
                     border-left: 3px solid transparent;
                 ">
-                    🔑 License Keys
+                    🔑 License Keys/Purchases
                 </button>
             </nav>
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
@@ -465,8 +452,16 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         `;
         header.innerHTML = `
-            <h1 style="margin: 0; color: #333; font-size: 28px;">License Dashboard</h1>
-            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage your sites, subscriptions, and payments</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 style="margin: 0; color: #333; font-size: 28px;">Cons</h1>
+                    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage your sites, subscriptions, and payments</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: #666; font-size: 12px; margin-bottom: 4px;">Logged in as</div>
+                    <div id="user-email-display" style="color: #333; font-size: 14px; font-weight: 600; word-break: break-all; max-width: 300px;">Loading...</div>
+                </div>
+            </div>
         `;
         
         // Error message
@@ -515,28 +510,65 @@
             <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💳 Subscriptions</h2>
                 
+                <!-- Payment Option Selector -->
+                <div style="margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <label style="display: block; margin-bottom: 12px; color: #333; font-weight: 600; font-size: 16px;">Select Payment Plan</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="
+                            flex: 1;
+                            padding: 15px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            background: white;
+                            transition: all 0.3s;
+                            text-align: center;
+                        " id="monthly-plan-label">
+                            <input type="radio" name="payment-plan" value="monthly" id="payment-plan-monthly" style="margin-right: 8px;">
+                            <span style="font-weight: 600; color: #333;">Monthly</span>
+                        </label>
+                        <label style="
+                            flex: 1;
+                            padding: 15px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            background: white;
+                            transition: all 0.3s;
+                            text-align: center;
+                        " id="yearly-plan-label">
+                            <input type="radio" name="payment-plan" value="yearly" id="payment-plan-yearly" style="margin-right: 8px;">
+                            <span style="font-weight: 600; color: #333;">Yearly</span>
+                        </label>
+                    </div>
+                </div>
+                
                 <!-- Add Site Input -->
                 <div style="margin-bottom: 20px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <input type="text" id="new-site-input-usecase2" placeholder="Enter site domain (e.g., example.com)" style="
+                        <input type="text" id="new-site-input-usecase2" placeholder="Enter site domain (e.g., example.com)" disabled style="
                             flex: 1;
                             padding: 12px;
                             border: 2px solid #e0e0e0;
                             border-radius: 6px;
                             font-size: 16px;
+                            background: #f5f5f5;
+                            color: #999;
+                            cursor: not-allowed;
                         ">
-                        <button id="add-site-button-usecase2" style="
+                        <button id="add-site-button-usecase2" disabled style="
                             padding: 12px 30px;
-                            background: #667eea;
+                            background: #cccccc;
                             color: white;
                             border: none;
                             border-radius: 6px;
                             font-size: 16px;
                             font-weight: 600;
-                            cursor: pointer;
+                            cursor: not-allowed;
                             white-space: nowrap;
                         ">Add to List</button>
                     </div>
+                    <p style="margin: 0; color: #999; font-size: 12px;">Please select a payment plan above to enable site input</p>
                 </div>
                 
                 <!-- Pending Sites List -->
@@ -579,43 +611,73 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: rgba(0, 0, 0, 0.85);
                 z-index: 10000;
                 justify-content: center;
                 align-items: center;
+                backdrop-filter: blur(4px);
             ">
                 <div style="
                     background: white;
-                    border-radius: 12px;
-                    padding: 40px;
+                    border-radius: 16px;
+                    padding: 50px 40px;
                     text-align: center;
-                    max-width: 400px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    max-width: 450px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    animation: fadeIn 0.3s ease-in;
                 ">
-                    <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 20px;">Subscription Creation in Progress</h3>
-                    <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">Please wait while we create your subscriptions. Do not refresh the page.</p>
+                    <div id="processing-spinner" style="
+                        width: 60px;
+                        height: 60px;
+                        border: 4px solid #f3f3f3;
+                        border-top: 4px solid #667eea;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 25px;
+                    "></div>
+                    <h3 id="processing-title" style="margin: 0 0 12px 0; color: #333; font-size: 22px; font-weight: 600;">Processing Your Payment</h3>
+                    <p id="processing-message" style="color: #666; margin: 0 0 25px 0; font-size: 15px; line-height: 1.5;">Setting up your subscriptions... This may take a few moments.</p>
                     <div style="
                         width: 100%;
-                        height: 4px;
+                        height: 6px;
                         background: #e0e0e0;
-                        border-radius: 2px;
+                        border-radius: 3px;
                         overflow: hidden;
+                        margin-bottom: 15px;
                     ">
                         <div id="processing-progress" style="
                             height: 100%;
-                            background: #667eea;
+                            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
                             width: 0%;
-                            animation: progress 2s infinite;
+                            transition: width 0.3s ease;
+                            border-radius: 3px;
                         "></div>
                     </div>
+                    <p id="processing-status" style="color: #999; margin: 0; font-size: 13px; font-style: italic;">Initializing...</p>
                 </div>
             </div>
             <style>
-                @keyframes progress {
-                    0% { width: 0%; }
-                    50% { width: 70%; }
-                    100% { width: 100%; }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+                .skeleton-loader {
+                    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                    background-size: 200% 100%;
+                    animation: loading 1.5s infinite;
+                    border-radius: 4px;
+                }
+                @keyframes loading {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
                 }
             </style>
         `;
@@ -643,32 +705,70 @@
                 <div id="quantity-purchase-container">
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <p style="margin: 0 0 15px 0; color: #666;">Purchase license keys in bulk. Each quantity will create a separate subscription (one per license) for individual management. Each license key can be used for any site.</p>
+                        
+                        <!-- Payment Option Selector for License Keys -->
+                        <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px;">
+                            <label style="display: block; margin-bottom: 12px; color: #333; font-weight: 600; font-size: 14px;">Select Payment Plan</label>
+                            <div style="display: flex; gap: 15px;">
+                                <label style="
+                                    flex: 1;
+                                    padding: 12px;
+                                    border: 2px solid #e0e0e0;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    background: white;
+                                    transition: all 0.3s;
+                                    text-align: center;
+                                " id="monthly-plan-label-license">
+                                    <input type="radio" name="payment-plan-license" value="monthly" id="payment-plan-monthly-license" style="margin-right: 8px;">
+                                    <span style="font-weight: 600; color: #333;">Monthly</span>
+                                </label>
+                                <label style="
+                                    flex: 1;
+                                    padding: 12px;
+                                    border: 2px solid #e0e0e0;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    background: white;
+                                    transition: all 0.3s;
+                                    text-align: center;
+                                " id="yearly-plan-label-license">
+                                    <input type="radio" name="payment-plan-license" value="yearly" id="payment-plan-yearly-license" style="margin-right: 8px;">
+                                    <span style="font-weight: 600; color: #333;">Yearly</span>
+                                </label>
+                            </div>
+                        </div>
+                        
                         <div style="display: flex; flex-direction: column; gap: 15px;">
                             <!-- Subscription dropdown removed for Option 2: Creating separate subscriptions -->
                             <!-- No existing subscription needed - each license gets its own new subscription -->
                             <div style="display: flex; gap: 15px; align-items: flex-end;">
                                 <div style="flex: 1;">
                                     <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">Quantity</label>
-                                    <input type="number" id="license-quantity-input" min="1" value="1" style="
+                                    <input type="number" id="license-quantity-input" min="1" value="1" disabled style="
                                         width: 100%;
                                         padding: 12px;
                                         border: 2px solid #e0e0e0;
                                         border-radius: 6px;
                                         font-size: 16px;
+                                        background: #f5f5f5;
+                                        color: #999;
+                                        cursor: not-allowed;
                                     ">
                                 </div>
-                                <button id="purchase-quantity-button" style="
+                                <button id="purchase-quantity-button" disabled style="
                                     padding: 12px 30px;
-                                    background: #667eea;
+                                    background: #cccccc;
                                     color: white;
                                     border: none;
                                     border-radius: 6px;
                                     font-size: 16px;
                                     font-weight: 600;
-                                    cursor: pointer;
+                                    cursor: not-allowed;
                                     white-space: nowrap;
                                 ">Purchase Now</button>
                             </div>
+                            <p style="margin: 0; color: #999; font-size: 12px;">Please select a payment plan above to enable quantity input</p>
                         </div>
                     </div>
                 </div>
@@ -847,6 +947,7 @@
                     if (email) {
                         const normalizedEmail = email.toLowerCase().trim();
                         currentUserEmail = normalizedEmail;
+                        updateUserEmailDisplay(normalizedEmail);
                         return normalizedEmail;
                     }
                 }
@@ -862,6 +963,7 @@
                 if (member && (member.email || member._email)) {
                     const email = (member.email || member._email).toLowerCase().trim();
                     currentUserEmail = email;
+                    updateUserEmailDisplay(email);
                     return email;
                 }
             } catch (e) {
@@ -874,14 +976,34 @@
         if (storedEmail) {
             const email = storedEmail.toLowerCase().trim();
             currentUserEmail = email;
+            updateUserEmailDisplay(email);
             return email;
         }
         
         return null;
     }
     
+    // Function to update user email display in header
+    function updateUserEmailDisplay(email) {
+        const emailDisplay = document.getElementById('user-email-display');
+        if (emailDisplay) {
+            if (email) {
+                emailDisplay.textContent = email;
+                emailDisplay.style.color = '#333';
+            } else {
+                emailDisplay.textContent = 'Not logged in';
+                emailDisplay.style.color = '#999';
+            }
+        }
+    }
+    
     // Load dashboard data
     async function loadDashboard(userEmail) {
+        // Update email display in header
+        if (userEmail) {
+            updateUserEmailDisplay(userEmail);
+        }
+        
         // Try new container first, fallback to legacy
         const domainsContainer = document.getElementById('domains-table-container');
         const subscriptionsContainer = document.getElementById('subscriptions-accordion-container');
@@ -899,18 +1021,38 @@
             if (loadingContainer) {
                 loadingContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #f44336;">Invalid email address. Please log out and log in again.</div>';
             }
+            updateUserEmailDisplay(null);
             return;
         }
         
-        // Show loading state
+        // Show skeleton loaders for better UX
         if (domainsContainer) {
-            domainsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading domains...</div>';
+            domainsContainer.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 20px;">
+                    <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%;"></div>
+                </div>
+            `;
         }
         if (subscriptionsContainer) {
-            subscriptionsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading subscriptions...</div>';
+            subscriptionsContainer.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 20px;">
+                    <div class="skeleton-loader" style="height: 20px; width: 250px; margin-bottom: 20px;"></div>
+                    <div class="skeleton-loader" style="height: 80px; width: 100%; margin-bottom: 15px;"></div>
+                    <div class="skeleton-loader" style="height: 80px; width: 100%;"></div>
+                </div>
+            `;
         }
         if (sitesContainer) {
-            sitesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading sites...</div>';
+            sitesContainer.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 20px;">
+                    <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
+                    <div class="skeleton-loader" style="height: 60px; width: 100%; margin-bottom: 10px;"></div>
+                    <div class="skeleton-loader" style="height: 60px; width: 100%;"></div>
+                </div>
+            `;
         }
         
         
@@ -979,22 +1121,28 @@
                 console.warn('[Dashboard] Could not load licenses:', licenseError);
             }
             
-            // Merge sites from both use cases
-            const allSitesCombined = { ...(data.sites || {}) };
+            // Filter sites to only show those activated/used from license keys (Use Case 3)
+            // Include sites that are activated/used, and those that were activated but are now cancelled/cancelling
+            const allSitesCombined = {};
             
-            // Add sites from license key subscriptions (Use Case 3) - licenses that have used_site_domain
+            // Only add sites from license key subscriptions (Use Case 3) - licenses that have used_site_domain
             licensesData.forEach(license => {
                 if (license.used_site_domain && license.purchase_type === 'quantity') {
                     const siteDomain = license.used_site_domain;
-                    // Only add if not already in sites (avoid duplicates)
-                    if (!allSitesCombined[siteDomain]) {
-                        // Get subscription data for this license
-                        const subscription = data.subscriptions?.[license.subscription_id];
-                        if (subscription) {
+                    // Get subscription data for this license
+                    const subscription = data.subscriptions?.[license.subscription_id];
+                    if (subscription) {
+                        // Include if active, cancelled, or cancelling
+                        const isCancelled = subscription.cancel_at_period_end || subscription.status === 'canceled' || subscription.status === 'cancelling';
+                        const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+                        
+                        // Only show sites that are activated/used (from license keys)
+                        // Include both active and cancelled/cancelling ones
+                        if (isActive || isCancelled) {
                             allSitesCombined[siteDomain] = {
                                 item_id: license.item_id || 'N/A',
                                 subscription_id: license.subscription_id,
-                                status: license.status || 'active',
+                                status: license.status || subscription.status || 'active',
                                 created_at: license.created_at,
                                 current_period_end: subscription.current_period_end,
                                 renewal_date: subscription.current_period_end,
@@ -1012,11 +1160,14 @@
                 }
             });
             
-            // Display all sites (from both use cases)
+            // Display only sites activated from license keys (Use Case 3)
             displaySites(allSitesCombined);
             
             // Display subscribed items (including pending sites) - await async function
             await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
+            
+            // Setup payment plan handlers
+            setupPaymentPlanHandlers(userEmail);
             
             // Setup event handlers for Use Case 2
             setupUseCase2Handlers(userEmail);
@@ -1177,7 +1328,7 @@
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Subscription ID</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Used For Site</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Activated For Site</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Purchase Type</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
                         <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
@@ -1215,7 +1366,7 @@
                             statusBg = '#f8d7da';
                           }
                         } else if (isUsed) {
-                          statusText = 'USED';
+                          statusText = 'ACTIVATED';
                           statusColor = '#4caf50';
                           statusBg = '#e8f5e9';
                         } else {
@@ -1403,7 +1554,7 @@
                 }
             });
         });
-
+        
         // Add deactivate (remove from subscription) handlers for quantity licenses
         container.querySelectorAll('.deactivate-license-button').forEach(btn => {
             btn.addEventListener('click', async function() {
@@ -1521,6 +1672,15 @@
         const button = document.getElementById('purchase-quantity-button');
         const originalText = button.textContent;
         
+        // Get selected payment plan price ID
+        const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
+                               selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
+        
+        if (!selectedPriceId) {
+            showError('Please select a payment plan (Monthly or Yearly) first');
+            return;
+        }
+        
         // No subscription selection required - we're creating NEW subscriptions
         // subscriptionId is optional and not used for Option 2
         
@@ -1534,7 +1694,8 @@
                 credentials: 'include',
                 body: JSON.stringify({
                     email: userEmail,
-                    quantity: parseInt(quantity)
+                    quantity: parseInt(quantity),
+                    price_id: selectedPriceId
                     // subscription_id is optional - not needed for Option 2 (separate subscriptions)
                 })
             });
@@ -1670,7 +1831,7 @@
                                             transition: all 0.3s;
                                         " onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" 
                                            onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">
-                                            Unsubscribe
+                                            Cancel Subscription
                                         </button>
                                     ` : '<span style="color: #999; font-size: 12px;">Unsubscribed</span>'}
                                 </td>
@@ -1737,11 +1898,33 @@
             
             if (purchaseType === 'site') {
                 // Use Case 2: Site subscriptions
-                const siteItem = items.find(item => item.site && item.site !== '');
-                const siteName = siteItem?.site || 'Unknown Site';
-                const license = subscriptionLicenses[subId]?.find(l => 
-                    (l.site_domain || l.used_site_domain)?.toLowerCase().trim() === siteName.toLowerCase().trim()
-                ) || subscriptionLicenses[subId]?.[0];
+                // Get site name from license data (most reliable source for Use Case 2)
+                const license = subscriptionLicenses[subId]?.[0];
+                
+                // Try to get site name from license data first (used_site_domain is set when license is created for Use Case 2)
+                let siteName = license?.used_site_domain || license?.site_domain;
+                
+                // If not in license data or it's a placeholder, try subscription item
+                if (!siteName || siteName.startsWith('license_') || siteName.startsWith('quantity_') || siteName === 'N/A') {
+                    const siteItem = items.find(item => {
+                        const itemSite = item.site || item.site_domain;
+                        return itemSite && itemSite !== '' && 
+                               !itemSite.startsWith('license_') && 
+                               !itemSite.startsWith('quantity_') &&
+                               itemSite !== 'N/A';
+                    });
+                    siteName = siteItem?.site || siteItem?.site_domain || siteName;
+                }
+                
+                // Final fallback - ensure we never show a license key as the site name
+                if (!siteName || 
+                    siteName.startsWith('license_') || 
+                    siteName.startsWith('quantity_') || 
+                    siteName.startsWith('KEY-') ||
+                    siteName === 'N/A' ||
+                    siteName === license?.license_key) {
+                    siteName = 'Unknown Site';
+                }
                 
                 subscribedItems.push({
                     type: 'site',
@@ -1798,7 +1981,7 @@
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${item.type === 'site' ? '🌐 ' + item.name : '🔑 ' + item.name}</div>
                                 <div style="font-size: 12px; color: #666;">
-                                    ${item.type === 'site' ? `License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${item.licenseKey}</code>` : `Used Site: <span style="color: ${item.usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${item.usedSite}</span>`}
+                                    ${item.type === 'site' ? `License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${item.licenseKey}</code>` : `Activated Site: <span style="color: ${item.usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${item.usedSite}</span>`}
                                 </div>
                             </div>
                             <span style="
@@ -1874,6 +2057,217 @@
     }
     
     // Setup event handlers for Use Case 2
+    // Store selected payment plan and price IDs
+    let selectedPaymentPlan = null;
+    let monthlyPriceId = null;
+    let yearlyPriceId = null;
+    
+    // Setup payment plan selection handlers
+    function setupPaymentPlanHandlers(userEmail) {
+        // Payment plan selectors for site subscriptions
+        const monthlyPlan = document.getElementById('payment-plan-monthly');
+        const yearlyPlan = document.getElementById('payment-plan-yearly');
+        const monthlyLabel = document.getElementById('monthly-plan-label');
+        const yearlyLabel = document.getElementById('yearly-plan-label');
+        
+        // Payment plan selectors for license keys
+        const monthlyPlanLicense = document.getElementById('payment-plan-monthly-license');
+        const yearlyPlanLicense = document.getElementById('payment-plan-yearly-license');
+        const monthlyLabelLicense = document.getElementById('monthly-plan-label-license');
+        const yearlyLabelLicense = document.getElementById('yearly-plan-label-license');
+        
+        // Function to enable/disable inputs based on payment plan selection
+        function toggleInputs(enabled, isLicense = false) {
+            if (isLicense) {
+                const quantityInput = document.getElementById('license-quantity-input');
+                const purchaseButton = document.getElementById('purchase-quantity-button');
+                if (quantityInput) {
+                    quantityInput.disabled = !enabled;
+                    quantityInput.style.background = enabled ? 'white' : '#f5f5f5';
+                    quantityInput.style.color = enabled ? '#333' : '#999';
+                    quantityInput.style.cursor = enabled ? 'text' : 'not-allowed';
+                }
+                if (purchaseButton) {
+                    purchaseButton.disabled = !enabled;
+                    purchaseButton.style.background = enabled ? '#667eea' : '#cccccc';
+                    purchaseButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
+                }
+            } else {
+                const siteInput = document.getElementById('new-site-input-usecase2');
+                const addButton = document.getElementById('add-site-button-usecase2');
+                if (siteInput) {
+                    siteInput.disabled = !enabled;
+                    siteInput.style.background = enabled ? 'white' : '#f5f5f5';
+                    siteInput.style.color = enabled ? '#333' : '#999';
+                    siteInput.style.cursor = enabled ? 'text' : 'not-allowed';
+                }
+                if (addButton) {
+                    addButton.disabled = !enabled;
+                    addButton.style.background = enabled ? '#667eea' : '#cccccc';
+                    addButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
+                }
+            }
+        }
+        
+        // Function to update label styles
+        function updateLabelStyles(selected, isLicense = false) {
+            if (isLicense) {
+                if (monthlyLabelLicense) {
+                    monthlyLabelLicense.style.border = selected === 'monthly' ? '2px solid #667eea' : '2px solid #e0e0e0';
+                    monthlyLabelLicense.style.background = selected === 'monthly' ? '#f0f4ff' : 'white';
+                }
+                if (yearlyLabelLicense) {
+                    yearlyLabelLicense.style.border = selected === 'yearly' ? '2px solid #667eea' : '2px solid #e0e0e0';
+                    yearlyLabelLicense.style.background = selected === 'yearly' ? '#f0f4ff' : 'white';
+                }
+            } else {
+                if (monthlyLabel) {
+                    monthlyLabel.style.border = selected === 'monthly' ? '2px solid #667eea' : '2px solid #e0e0e0';
+                    monthlyLabel.style.background = selected === 'monthly' ? '#f0f4ff' : 'white';
+                }
+                if (yearlyLabel) {
+                    yearlyLabel.style.border = selected === 'yearly' ? '2px solid #667eea' : '2px solid #e0e0e0';
+                    yearlyLabel.style.background = selected === 'yearly' ? '#f0f4ff' : 'white';
+                }
+            }
+        }
+        
+        // Function to fetch price IDs from user's subscriptions and environment
+        async function fetchPriceIds(userEmail) {
+            try {
+                // First, try to get price IDs from database (via API)
+                try {
+                    const priceOptionsResponse = await fetch(`${API_BASE}/get-price-options`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include'
+                    });
+                    
+                    if (priceOptionsResponse.ok) {
+                        const priceOptions = await priceOptionsResponse.json();
+                        // Handle new format with price_id object or old format with direct price_id
+                        if (priceOptions.monthly) {
+                            if (typeof priceOptions.monthly === 'string') {
+                                // Old format: direct price_id string
+                                monthlyPriceId = priceOptions.monthly;
+                            } else if (priceOptions.monthly.price_id) {
+                                // New format: object with price_id, discount, etc.
+                                monthlyPriceId = priceOptions.monthly.price_id;
+                            }
+                        }
+                        if (priceOptions.yearly) {
+                            if (typeof priceOptions.yearly === 'string') {
+                                // Old format: direct price_id string
+                                yearlyPriceId = priceOptions.yearly;
+                            } else if (priceOptions.yearly.price_id) {
+                                // New format: object with price_id, discount, etc.
+                                yearlyPriceId = priceOptions.yearly.price_id;
+                            }
+                        }
+                    }
+                } catch (envError) {
+                    console.warn('[Dashboard] Could not fetch price options from database/environment:', envError);
+                }
+                
+                // Then, try to get from user's existing subscriptions (more accurate)
+                const response = await fetch(`${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const subscriptions = data.subscriptions || {};
+                    
+                    // Find monthly and yearly prices from subscriptions
+                    for (const subId in subscriptions) {
+                        const sub = subscriptions[subId];
+                        const items = sub.items || [];
+                        const billingPeriod = sub.billingPeriod || '';
+                        
+                        if (items.length > 0) {
+                            const priceId = items[0].price;
+                            if (priceId) {
+                                // Use billingPeriod from subscription to determine monthly/yearly
+                                // Override environment variables with actual subscription prices
+                                if (billingPeriod === 'monthly' || billingPeriod === 'month') {
+                                    monthlyPriceId = priceId;
+                                } else if (billingPeriod === 'yearly' || billingPeriod === 'year') {
+                                    yearlyPriceId = priceId;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If we have at least one price ID, log success
+                if (monthlyPriceId || yearlyPriceId) {
+                    console.log('[Dashboard] Price IDs loaded:', { monthly: monthlyPriceId, yearly: yearlyPriceId });
+                } else {
+                    console.warn('[Dashboard] No price IDs found. User needs to have existing subscriptions or configure MONTHLY_PRICE_ID/YEARLY_PRICE_ID in environment.');
+                }
+            } catch (error) {
+                console.warn('[Dashboard] Could not fetch price IDs:', error);
+            }
+        }
+        
+        // Handler for site subscription payment plan
+        function handlePaymentPlanChange(plan, isLicense = false) {
+            selectedPaymentPlan = plan;
+            updateLabelStyles(plan, isLicense);
+            toggleInputs(true, isLicense);
+            
+            // Hide helper text
+            if (isLicense) {
+                const helperText = document.querySelector('#quantity-purchase-container p[style*="color: #999"]');
+                if (helperText) helperText.style.display = 'none';
+            } else {
+                const helperText = document.querySelector('#subscriptions-section p[style*="color: #999"]');
+                if (helperText) helperText.style.display = 'none';
+            }
+        }
+        
+        // Setup handlers for site subscriptions
+        if (monthlyPlan) {
+            monthlyPlan.addEventListener('change', () => {
+                if (monthlyPlan.checked) {
+                    handlePaymentPlanChange('monthly', false);
+                }
+            });
+        }
+        
+        if (yearlyPlan) {
+            yearlyPlan.addEventListener('change', () => {
+                if (yearlyPlan.checked) {
+                    handlePaymentPlanChange('yearly', false);
+                }
+            });
+        }
+        
+        // Setup handlers for license keys
+        if (monthlyPlanLicense) {
+            monthlyPlanLicense.addEventListener('change', () => {
+                if (monthlyPlanLicense.checked) {
+                    handlePaymentPlanChange('monthly', true);
+                }
+            });
+        }
+        
+        if (yearlyPlanLicense) {
+            yearlyPlanLicense.addEventListener('change', () => {
+                if (yearlyPlanLicense.checked) {
+                    handlePaymentPlanChange('yearly', true);
+                }
+            });
+        }
+        
+        // Fetch price IDs on load
+        if (userEmail) {
+            fetchPriceIds(userEmail);
+        }
+    }
+    
     function setupUseCase2Handlers(userEmail) {
         // Add site button
         const addButton = document.getElementById('add-site-button-usecase2');
@@ -1887,13 +2281,22 @@
                     return;
                 }
                 
+                // Get selected payment plan price ID
+                const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
+                                       selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
+                
+                if (!selectedPriceId) {
+                    showError('Please select a payment plan (Monthly or Yearly) first');
+                    return;
+                }
+                
                 try {
                     const response = await fetch(`${API_BASE}/add-sites-batch`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ 
-                            sites: [{ site: site }],
+                            sites: [{ site: site, price: selectedPriceId }],
                             email: userEmail
                         })
                     });
@@ -1972,13 +2375,24 @@
                         throw new Error('Failed to save pending sites');
                     }
                     
+                    // Get selected payment plan price ID
+                    const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
+                                           selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
+                    
+                    if (!selectedPriceId) {
+                        hideProcessingOverlay();
+                        showError('Please select a payment plan (Monthly or Yearly) first');
+                        return;
+                    }
+                    
                     // Create checkout
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ 
-                            email: userEmail
+                            email: userEmail,
+                            price_id: selectedPriceId
                         })
                     });
                     
@@ -1999,19 +2413,96 @@
         }
     }
     
-    // Show processing overlay
-    function showProcessingOverlay() {
+    // Show processing overlay with enhanced messaging
+    function showProcessingOverlay(message = null, status = null) {
         const overlay = document.getElementById('processing-overlay');
         if (overlay) {
             overlay.style.display = 'flex';
+            
+            // Update message if provided
+            if (message) {
+                const messageEl = document.getElementById('processing-message');
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+            }
+            
+            // Update status if provided
+            if (status) {
+                const statusEl = document.getElementById('processing-status');
+                if (statusEl) {
+                    statusEl.textContent = status;
+                }
+            }
+            
+            // Reset progress
+            const progressEl = document.getElementById('processing-progress');
+            if (progressEl) {
+                progressEl.style.width = '0%';
+            }
         }
     }
     
-    // Hide processing overlay
+    // Update processing overlay progress and message
+    function updateProcessingOverlay(progress, message = null, status = null) {
+        const progressEl = document.getElementById('processing-progress');
+        if (progressEl) {
+            progressEl.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+        }
+        
+        if (message) {
+            const messageEl = document.getElementById('processing-message');
+            if (messageEl) {
+                messageEl.textContent = message;
+            }
+        }
+        
+        if (status) {
+            const statusEl = document.getElementById('processing-status');
+            if (statusEl) {
+                statusEl.textContent = status;
+            }
+        }
+    }
+    
+    // Hide processing overlay with smooth transition
     function hideProcessingOverlay() {
         const overlay = document.getElementById('processing-overlay');
         if (overlay) {
-            overlay.style.display = 'none';
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                overlay.style.opacity = '1';
+                overlay.style.transition = '';
+            }, 300);
+        }
+    }
+    
+    // Show skeleton loader in content areas
+    function showSkeletonLoaders() {
+        const domainsContainer = document.getElementById('domains-table-container');
+        const subscriptionsContainer = document.getElementById('subscriptions-accordion-container');
+        
+        if (domainsContainer) {
+            domainsContainer.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 20px;">
+                    <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                    <div class="skeleton-loader" style="height: 50px; width: 100%;"></div>
+                </div>
+            `;
+        }
+        
+        if (subscriptionsContainer) {
+            subscriptionsContainer.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 20px;">
+                    <div class="skeleton-loader" style="height: 20px; width: 250px; margin-bottom: 20px;"></div>
+                    <div class="skeleton-loader" style="height: 80px; width: 100%; margin-bottom: 15px;"></div>
+                    <div class="skeleton-loader" style="height: 80px; width: 100%;"></div>
+                </div>
+            `;
         }
     }
     
@@ -2022,15 +2513,36 @@
         const sessionId = urlParams.get('session_id');
         
         if (paymentSuccess || sessionId) {
-            // Show overlay immediately
-            showProcessingOverlay();
+            // Show skeleton loaders in content areas
+            showSkeletonLoaders();
             
-            // Poll for subscription creation (check every 2 seconds, max 30 seconds)
+            // Show overlay immediately with initial message
+            showProcessingOverlay(
+                'Processing your payment and creating subscriptions...',
+                'Please wait, this may take a few moments.'
+            );
+            
+            // Poll for subscription creation (check every 2 seconds, max 60 seconds)
             let pollCount = 0;
-            const maxPolls = 15; // 30 seconds total
+            const maxPolls = 30; // 60 seconds total
+            let previousSubscriptionCount = 0;
+            
+            // Update progress based on poll count
+            const updateProgress = () => {
+                const progress = Math.min(90, (pollCount / maxPolls) * 90); // Cap at 90% until complete
+                updateProcessingOverlay(
+                    progress,
+                    pollCount < 5 ? 'Processing payment...' :
+                    pollCount < 10 ? 'Creating subscriptions...' :
+                    pollCount < 15 ? 'Setting up your account...' :
+                    'Finalizing your subscriptions...',
+                    `Checking for updates... (${pollCount}/${maxPolls})`
+                );
+            };
             
             const pollInterval = setInterval(async () => {
                 pollCount++;
+                updateProgress();
                 
                 try {
                     const userEmail = await getLoggedInEmail();
@@ -2051,21 +2563,42 @@
                         const data = await response.json();
                         
                         // Check if subscriptions were created (compare with previous state)
-                        const newSubscriptions = Object.keys(data.subscriptions || {});
-                        const hasNewSubscriptions = newSubscriptions.length > 0;
+                        const currentSubscriptionCount = Object.keys(data.subscriptions || {}).length;
+                        const hasNewSubscriptions = currentSubscriptionCount > previousSubscriptionCount;
+                        
+                        // Also check for pending sites being removed (indicates processing)
+                        const pendingSitesCount = (data.pendingSites || []).length;
+                        const isProcessingComplete = hasNewSubscriptions || (pollCount >= 5 && pendingSitesCount === 0 && previousSubscriptionCount > 0);
+                        
+                        if (hasNewSubscriptions) {
+                            previousSubscriptionCount = currentSubscriptionCount;
+                        }
                         
                         // If we have subscriptions or polled enough times, hide overlay and reload
-                        if (hasNewSubscriptions || pollCount >= maxPolls) {
+                        if (isProcessingComplete || pollCount >= maxPolls) {
                             clearInterval(pollInterval);
+                            
+                            // Show completion message briefly
+                            updateProcessingOverlay(
+                                100,
+                                'Almost done! Loading your dashboard...',
+                                'Finalizing...'
+                            );
+                            
+                            // Wait a moment for user to see completion
+                            await new Promise(resolve => setTimeout(resolve, 800));
+                            
                             hideProcessingOverlay();
                             
                             // Remove payment params from URL
                             const newUrl = window.location.pathname;
                             window.history.replaceState({}, '', newUrl);
                             
-                            // Reload dashboard
+                            // Reload dashboard with fresh data
                             await loadDashboard(userEmail);
-                            showSuccess('Subscriptions created successfully!');
+                            
+                            // Show success message
+                            showSuccess('Payment successful! Your subscriptions have been created.');
                         }
                     }
                 } catch (error) {
@@ -3261,6 +3794,9 @@
             return;
         }
         
+        // Update email display in header
+        updateUserEmailDisplay(userEmail);
+        
         // Validate email format one more time
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(userEmail)) {
@@ -3297,9 +3833,13 @@
         
         // Store email globally for use by other functions
         currentUserEmail = userEmail;
+        updateUserEmailDisplay(userEmail);
+        
+        // Check if returning from payment (BEFORE loading data - show overlay immediately)
+        // This ensures the overlay appears right away while data loads
+        checkPaymentReturn();
         
         // Load dashboard data
-        
         try {
             await Promise.all([
                 loadDashboard(userEmail),
@@ -3324,6 +3864,17 @@
             purchaseQuantityButton.addEventListener('click', () => {
                 const quantityInput = document.getElementById('license-quantity-input');
                 const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
+                
+                // Check if payment plan is selected
+                const monthlyPlanLicense = document.getElementById('payment-plan-monthly-license');
+                const yearlyPlanLicense = document.getElementById('payment-plan-yearly-license');
+                const selectedPlan = monthlyPlanLicense?.checked ? 'monthly' : 
+                                   yearlyPlanLicense?.checked ? 'yearly' : null;
+                
+                if (!selectedPlan) {
+                    showError('Please select a payment plan (Monthly or Yearly) first');
+                    return;
+                }
                 
                 // No subscription selection required - we're creating NEW subscriptions (Option 2)
                 if (quantity < 1) {
