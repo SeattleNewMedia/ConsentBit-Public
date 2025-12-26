@@ -512,10 +512,121 @@
         subscriptionsSection.className = 'content-section';
         subscriptionsSection.style.cssText = 'display: none;';
         subscriptionsSection.innerHTML = `
-            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">💳 Your Subscriptions</h2>
-                <div id="subscriptions-accordion-container"></div>
+            <!-- Site Subscriptions Section -->
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🌐 Site Subscriptions</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Add sites to create separate subscriptions. Each site will get its own subscription and license key.</p>
+                
+                <!-- Add Site Input -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="new-site-input-usecase2" placeholder="Enter site domain (e.g., example.com)" style="
+                            flex: 1;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 6px;
+                            font-size: 16px;
+                        ">
+                        <button id="add-site-button-usecase2" style="
+                            padding: 12px 30px;
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            white-space: nowrap;
+                        ">Add to List</button>
+                    </div>
+                </div>
+                
+                <!-- Pending Sites List -->
+                <div id="pending-sites-usecase2-container" style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Pending Sites</h3>
+                    <div id="pending-sites-usecase2-list" style="
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        padding: 15px;
+                        min-height: 50px;
+                    ">
+                        <p style="color: #999; margin: 0; font-size: 14px;">No pending sites. Add sites above to get started.</p>
+                    </div>
+                    <div id="pay-now-container-usecase2" style="margin-top: 15px; display: none;">
+                        <button id="pay-now-button-usecase2" style="
+                            padding: 12px 30px;
+                            background: #4caf50;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">💳 Pay Now</button>
+                    </div>
+                </div>
+                
+                <!-- Site Subscriptions List -->
+                <div id="site-subscriptions-container">
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Your Site Subscriptions</h3>
+                    <div id="site-subscriptions-list"></div>
+                </div>
             </div>
+            
+            <!-- License Key Subscriptions Section -->
+            <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🔑 License Key Subscriptions</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Subscriptions created from license key purchases. Each license key has its own subscription.</p>
+                <div id="license-key-subscriptions-container"></div>
+            </div>
+            
+            <!-- Processing Overlay -->
+            <div id="processing-overlay" style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 10000;
+                justify-content: center;
+                align-items: center;
+            ">
+                <div style="
+                    background: white;
+                    border-radius: 12px;
+                    padding: 40px;
+                    text-align: center;
+                    max-width: 400px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                ">
+                    <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 20px;">Subscription Creation in Progress</h3>
+                    <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">Please wait while we create your subscriptions. Do not refresh the page.</p>
+                    <div style="
+                        width: 100%;
+                        height: 4px;
+                        background: #e0e0e0;
+                        border-radius: 2px;
+                        overflow: hidden;
+                    ">
+                        <div id="processing-progress" style="
+                            height: 100%;
+                            background: #667eea;
+                            width: 0%;
+                            animation: progress 2s infinite;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes progress {
+                    0% { width: 0%; }
+                    50% { width: 70%; }
+                    100% { width: 100%; }
+                }
+            </style>
         `;
         
         const paymentSection = document.createElement('div');
@@ -872,14 +983,70 @@
                 console.warn('[Dashboard] ⚠️ This might mean sites were filtered out or not stored correctly');
             }
             
-            // Display sites/domains
-            displaySites(data.sites || {});
+            // Load licenses to get sites from license key subscriptions (Use Case 3)
+            let licensesData = [];
+            try {
+                const licensesResponse = await fetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                if (licensesResponse.ok) {
+                    const licensesResult = await licensesResponse.json();
+                    licensesData = licensesResult.licenses || [];
+                }
+            } catch (licenseError) {
+                console.warn('[Dashboard] Could not load licenses:', licenseError);
+            }
             
-            // Display subscriptions (including pending sites)
-            displaySubscriptions(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
+            // Merge sites from both use cases
+            const allSitesCombined = { ...(data.sites || {}) };
+            
+            // Add sites from license key subscriptions (Use Case 3) - licenses that have used_site_domain
+            licensesData.forEach(license => {
+                if (license.used_site_domain && license.purchase_type === 'quantity') {
+                    const siteDomain = license.used_site_domain;
+                    // Only add if not already in sites (avoid duplicates)
+                    if (!allSitesCombined[siteDomain]) {
+                        // Get subscription data for this license
+                        const subscription = data.subscriptions?.[license.subscription_id];
+                        if (subscription) {
+                            allSitesCombined[siteDomain] = {
+                                item_id: license.item_id || 'N/A',
+                                subscription_id: license.subscription_id,
+                                status: license.status || 'active',
+                                created_at: license.created_at,
+                                current_period_end: subscription.current_period_end,
+                                renewal_date: subscription.current_period_end,
+                                license: {
+                                    license_key: license.license_key,
+                                    status: license.status,
+                                    created_at: license.created_at
+                                },
+                                purchase_type: 'quantity', // Mark as from license key subscription
+                                cancel_at_period_end: subscription.cancel_at_period_end,
+                                canceled_at: subscription.canceled_at
+                            };
+                        }
+                    }
+                }
+            });
+            
+            // Display all sites (from both use cases)
+            displaySites(allSitesCombined);
+            
+            // Display subscriptions (including pending sites) - await async functions
+            await displaySiteSubscriptions(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
+            await displayLicenseKeySubscriptions(data.subscriptions || {}, data.sites || {});
+            
+            // Setup event handlers for Use Case 2
+            setupUseCase2Handlers(userEmail);
             
             // Load license keys
             loadLicenseKeys(userEmail);
+            
+            // Check if returning from payment and show overlay
+            checkPaymentReturn();
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
@@ -913,19 +1080,11 @@
             }
             
             const data = await response.json();
-            console.log('[License API] Full response:', JSON.stringify(data, null, 2));
             if (data.licenses) {
-              console.log(`[License API] Received ${data.licenses.length} license(s)`);
               // Log subscription cancellation details for each license
               data.licenses.forEach(license => {
                 if (license.subscription_id) {
-                  console.log(`[License API] License ${license.license_key} subscription details:`, {
-                    subscription_id: license.subscription_id,
-                    subscription_status: license.subscription_status,
-                    subscription_cancelled: license.subscription_cancelled,
-                    subscription_cancel_at_period_end: license.subscription_cancel_at_period_end,
-                    subscription_current_period_end: license.subscription_current_period_end
-                  });
+                  // Subscription details available
                 }
               });
             }
@@ -1061,17 +1220,7 @@
                         
                         // Debug logging for cancelled subscriptions
                         if (license.subscription_id) {
-                          console.log(`[License Display] License ${license.license_key}:`, {
-                            subscription_id: license.subscription_id,
-                            subscription_status: license.subscription_status,
-                            subscription_cancelled: license.subscription_cancelled,
-                            subscription_cancel_at_period_end: license.subscription_cancel_at_period_end,
-                            subscription_current_period_end: license.subscription_current_period_end,
-                            license_status: license.status,
-                            isSubscriptionCancelled: isSubscriptionCancelled,
-                            isLicenseInactive: isLicenseInactive,
-                            isCancelled: isCancelled
-                          });
+                          // Subscription details available
                         }
                         
                         // Determine status display
@@ -1461,9 +1610,10 @@
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Source</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Item ID</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
                         <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
                     </tr>
@@ -1481,11 +1631,29 @@
                         const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
                         const isInactiveButNotExpired = !isActive && renewalDate && !isExpired;
                         
+                        // Determine source (Site Subscription or License Key Subscription)
+                        const source = siteData.purchase_type === 'quantity' ? 'License Key' : 'Site Subscription';
+                        const sourceColor = siteData.purchase_type === 'quantity' ? '#9c27b0' : '#2196f3';
+                        const sourceBg = siteData.purchase_type === 'quantity' ? '#f3e5f5' : '#e3f2fd';
+                        
+                        // Get license key
+                        const licenseKey = siteData.license?.license_key || siteData.license_key || 'N/A';
+                        
                         return `
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
                                 onmouseover="this.style.background='#f8f9fa'" 
                                 onmouseout="this.style.background='white'">
                                 <td style="padding: 15px; font-weight: 500; color: #333;">${site}</td>
+                                <td style="padding: 15px;">
+                                    <span style="
+                                        padding: 4px 10px;
+                                        border-radius: 12px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        background: ${sourceBg};
+                                        color: ${sourceColor};
+                                    ">${source}</span>
+                                </td>
                                 <td style="padding: 15px;">
                                     <span style="
                                         padding: 6px 12px;
@@ -1503,8 +1671,8 @@
                                     ${isExpired ? ' <span style="color: #f44336; font-size: 11px;">(Expired)</span>' : ''}
                                     ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                 </td>
-                                <td style="padding: 15px; color: #666; font-size: 13px; font-family: monospace;">
-                                    ${siteData.item_id ? siteData.item_id.substring(0, 20) + '...' : 'N/A'}
+                                <td style="padding: 15px; color: #666; font-size: 12px; font-family: monospace;">
+                                    ${licenseKey !== 'N/A' ? licenseKey.substring(0, 20) + '...' : 'N/A'}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                     ${siteData.created_at ? new Date(siteData.created_at * 1000).toLocaleDateString() : 'N/A'}
@@ -1544,8 +1712,522 @@
         });
     }
     
-    // Display subscriptions in accordion format
-    function displaySubscriptions(subscriptions, allSites, pendingSites = []) {
+    // Display Site Subscriptions (Use Case 2) - separate subscription per site
+    async function displaySiteSubscriptions(subscriptions, allSites, pendingSites = []) {
+        const container = document.getElementById('site-subscriptions-list');
+        if (!container) return;
+        
+        // Get licenses to identify Use Case 2 subscriptions
+        let licensesData = [];
+        try {
+            const userEmail = await getLoggedInEmail();
+            if (userEmail) {
+                const licensesResponse = await fetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                if (licensesResponse.ok) {
+                    const licensesResult = await licensesResponse.json();
+                    licensesData = licensesResult.licenses || [];
+                }
+            }
+        } catch (licenseError) {
+            console.warn('[Dashboard] Could not load licenses for filtering:', licenseError);
+        }
+        
+        // Create map of subscription_id -> purchase_type from licenses
+        const subscriptionPurchaseTypes = {};
+        licensesData.forEach(license => {
+            if (license.subscription_id) {
+                subscriptionPurchaseTypes[license.subscription_id] = license.purchase_type || 'site';
+            }
+        });
+        
+        // Filter subscriptions by purchase_type='site' (Use Case 2)
+        const siteSubscriptions = {};
+        Object.keys(subscriptions).forEach(subId => {
+            const sub = subscriptions[subId];
+            const items = sub.items || [];
+            
+            // Check if subscription is Use Case 2:
+            // 1. Has license with purchase_type='site'
+            // 2. Has item with site_domain (not quantity purchase)
+            const purchaseType = subscriptionPurchaseTypes[subId];
+            const hasSiteItem = items.some(item => item.site && item.site !== '');
+            const isUseCase2 = purchaseType === 'site' || (hasSiteItem && purchaseType !== 'quantity');
+            
+            if (isUseCase2) {
+                siteSubscriptions[subId] = sub;
+            }
+        });
+        
+        if (Object.keys(siteSubscriptions).length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <p style="font-size: 14px; margin: 0;">No site subscriptions yet. Add sites above to create subscriptions.</p>
+                </div>
+            `;
+        } else {
+            // Create map of subscription_id -> license data
+            const subscriptionLicenses = {};
+            licensesData.forEach(license => {
+                if (license.subscription_id && license.purchase_type === 'site') {
+                    if (!subscriptionLicenses[license.subscription_id]) {
+                        subscriptionLicenses[license.subscription_id] = [];
+                    }
+                    subscriptionLicenses[license.subscription_id].push(license);
+                }
+            });
+            
+            container.innerHTML = Object.keys(siteSubscriptions).map((subId, index) => {
+                const sub = siteSubscriptions[subId];
+                const items = sub.items || [];
+                const siteItem = items.find(item => item.site && item.site !== '');
+                const siteName = siteItem?.site || 'Unknown Site';
+                
+                // Get license key from licenses data (matching by site_domain)
+                const license = subscriptionLicenses[subId]?.find(l => 
+                    (l.site_domain || l.used_site_domain)?.toLowerCase().trim() === siteName.toLowerCase().trim()
+                ) || subscriptionLicenses[subId]?.[0];
+                const licenseKey = license?.license_key || 'N/A';
+                
+                const billingPeriod = sub.billingPeriod || 'N/A';
+                const renewalDate = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
+                
+                return `
+                    <div style="
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 20px;
+                        margin-bottom: 15px;
+                        background: white;
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">${siteName}</h4>
+                                <div style="font-size: 12px; color: #666;">
+                                    <div>Subscription ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${subId.substring(0, 20)}...</code></div>
+                                    <div style="margin-top: 4px;">License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${licenseKey}</code></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
+                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
+                                ">${sub.status || 'active'}</span>
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: #e3f2fd;
+                                    color: #1976d2;
+                                ">${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 13px; color: #666; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                            <div>Renewal Date: ${renewalDate}</div>
+                            ${sub.cancel_at_period_end ? `<div style="color: #856404; margin-top: 4px;">⚠️ Cancels at period end</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Update pending sites display
+        updatePendingSitesDisplayUseCase2(pendingSites);
+    }
+    
+    // Display License Key Subscriptions (Use Case 3) - separate subscription per license
+    async function displayLicenseKeySubscriptions(subscriptions, allSites) {
+        const container = document.getElementById('license-key-subscriptions-container');
+        if (!container) return;
+        
+        // Get licenses to identify Use Case 3 subscriptions
+        let licensesData = [];
+        try {
+            const userEmail = await getLoggedInEmail();
+            if (userEmail) {
+                const licensesResponse = await fetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                if (licensesResponse.ok) {
+                    const licensesResult = await licensesResponse.json();
+                    licensesData = licensesResult.licenses || [];
+                }
+            }
+        } catch (licenseError) {
+            console.warn('[Dashboard] Could not load licenses for filtering:', licenseError);
+        }
+        
+        // Create map of subscription_id -> purchase_type from licenses
+        const subscriptionPurchaseTypes = {};
+        licensesData.forEach(license => {
+            if (license.subscription_id) {
+                subscriptionPurchaseTypes[license.subscription_id] = license.purchase_type || 'site';
+            }
+        });
+        
+        // Filter subscriptions by purchase_type='quantity' (Use Case 3)
+        const licenseSubscriptions = {};
+        Object.keys(subscriptions).forEach(subId => {
+            const sub = subscriptions[subId];
+            const purchaseType = subscriptionPurchaseTypes[subId];
+            const isUseCase3 = purchaseType === 'quantity';
+            
+            if (isUseCase3) {
+                licenseSubscriptions[subId] = sub;
+            }
+        });
+        
+        if (Object.keys(licenseSubscriptions).length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <p style="font-size: 14px; margin: 0;">No license key subscriptions yet. Purchase license keys from the License Keys section.</p>
+                </div>
+            `;
+        } else {
+            // Create map of subscription_id -> license data
+            const subscriptionLicenses = {};
+            licensesData.forEach(license => {
+                if (license.subscription_id && license.purchase_type === 'quantity') {
+                    if (!subscriptionLicenses[license.subscription_id]) {
+                        subscriptionLicenses[license.subscription_id] = [];
+                    }
+                    subscriptionLicenses[license.subscription_id].push(license);
+                }
+            });
+            
+            container.innerHTML = Object.keys(licenseSubscriptions).map((subId, index) => {
+                const sub = licenseSubscriptions[subId];
+                
+                // Get license data for this subscription
+                const license = subscriptionLicenses[subId]?.[0];
+                const licenseKey = license?.license_key || 'N/A';
+                const usedSite = license?.used_site_domain || license?.site_domain || 'Not assigned';
+                
+                const billingPeriod = sub.billingPeriod || 'N/A';
+                const renewalDate = sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A';
+                
+                return `
+                    <div style="
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 20px;
+                        margin-bottom: 15px;
+                        background: white;
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">License Key Subscription</h4>
+                                <div style="font-size: 12px; color: #666;">
+                                    <div>License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${licenseKey}</code></div>
+                                    <div style="margin-top: 4px;">Used Site: <span style="color: ${usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${usedSite}</span></div>
+                                    <div style="margin-top: 4px;">Subscription ID: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${subId.substring(0, 20)}...</code></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: ${sub.status === 'active' ? '#e8f5e9' : '#ffebee'};
+                                    color: ${sub.status === 'active' ? '#4caf50' : '#f44336'};
+                                ">${sub.status || 'active'}</span>
+                                <span style="
+                                    padding: 4px 12px;
+                                    border-radius: 20px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: #e3f2fd;
+                                    color: #1976d2;
+                                ">${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 13px; color: #666; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                            <div>Renewal Date: ${renewalDate}</div>
+                            ${sub.cancel_at_period_end ? `<div style="color: #856404; margin-top: 4px;">⚠️ Cancels at period end</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+    
+    // Update pending sites display for Use Case 2
+    function updatePendingSitesDisplayUseCase2(pendingSites) {
+        const container = document.getElementById('pending-sites-usecase2-list');
+        const payNowContainer = document.getElementById('pay-now-container-usecase2');
+        
+        if (!container) return;
+        
+        // Filter pending sites (all pending sites for Use Case 2)
+        const allPendingSites = pendingSites || [];
+        
+        if (allPendingSites.length === 0) {
+            container.innerHTML = '<p style="color: #999; margin: 0; font-size: 14px;">No pending sites. Add sites above to get started.</p>';
+            if (payNowContainer) payNowContainer.style.display = 'none';
+        } else {
+            container.innerHTML = allPendingSites.map((ps, idx) => {
+                const siteName = ps.site || ps.site_domain || ps;
+                return `
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 10px 15px;
+                        background: white;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 6px;
+                        margin-bottom: 8px;
+                    ">
+                        <span style="font-size: 14px; color: #333;">${siteName}</span>
+                        <button 
+                            class="remove-pending-site-usecase2" 
+                            data-site-index="${idx}"
+                            style="
+                                padding: 6px 12px;
+                                background: #f44336;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                font-weight: 600;
+                                cursor: pointer;
+                            ">
+                            Remove
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            if (payNowContainer) {
+                payNowContainer.style.display = 'block';
+                const button = document.getElementById('pay-now-button-usecase2');
+                if (button) {
+                    button.innerHTML = `💳 Pay Now (${allPendingSites.length} site${allPendingSites.length === 1 ? '' : 's'})`;
+                }
+            }
+        }
+    }
+    
+    // Setup event handlers for Use Case 2
+    function setupUseCase2Handlers(userEmail) {
+        // Add site button
+        const addButton = document.getElementById('add-site-button-usecase2');
+        const siteInput = document.getElementById('new-site-input-usecase2');
+        
+        if (addButton && siteInput) {
+            addButton.addEventListener('click', async () => {
+                const site = siteInput.value.trim();
+                if (!site) {
+                    showError('Please enter a site domain');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE}/add-sites-batch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            sites: [{ site: site }],
+                            email: userEmail
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        siteInput.value = '';
+                        showSuccess(`Site "${site}" added to pending list`);
+                        await loadDashboard(userEmail);
+                    } else {
+                        const error = await response.json();
+                        showError(error.message || 'Failed to add site');
+                    }
+                } catch (error) {
+                    showError('Failed to add site: ' + error.message);
+                }
+            });
+        }
+        
+        // Remove pending site buttons
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('remove-pending-site-usecase2')) {
+                const index = parseInt(e.target.getAttribute('data-site-index'));
+                // Get pending sites from dashboard data
+                const pendingSites = window.dashboardData?.pendingSites || [];
+                if (index >= 0 && index < pendingSites.length) {
+                    const site = pendingSites[index].site || pendingSites[index].site_domain || pendingSites[index];
+                    try {
+                        const response = await fetch(`${API_BASE}/remove-pending-site`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                email: userEmail,
+                                site: site
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            await loadDashboard(userEmail);
+                        } else {
+                            showError('Failed to remove site');
+                        }
+                    } catch (error) {
+                        showError('Failed to remove site: ' + error.message);
+                    }
+                }
+            }
+        });
+        
+        // Pay Now button
+        const payNowButton = document.getElementById('pay-now-button-usecase2');
+        if (payNowButton) {
+            payNowButton.addEventListener('click', async () => {
+                const pendingSites = window.dashboardData?.pendingSites || [];
+                if (pendingSites.length === 0) {
+                    showError('No sites to add. Please add at least one site.');
+                    return;
+                }
+                
+                // Show processing overlay
+                showProcessingOverlay();
+                
+                try {
+                    // Save pending sites
+                    const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            sites: pendingSites,
+                            email: userEmail
+                        })
+                    });
+                    
+                    if (!saveResponse.ok) {
+                        throw new Error('Failed to save pending sites');
+                    }
+                    
+                    // Create checkout
+                    const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            email: userEmail
+                        })
+                    });
+                    
+                    const checkoutData = await checkoutResponse.json();
+                    
+                    if (checkoutResponse.ok && checkoutData.url) {
+                        // Keep overlay visible and redirect
+                        window.location.href = checkoutData.url;
+                    } else {
+                        hideProcessingOverlay();
+                        showError(checkoutData.message || 'Failed to create checkout session');
+                    }
+                } catch (error) {
+                    hideProcessingOverlay();
+                    showError('Failed to process payment: ' + error.message);
+                }
+            });
+        }
+    }
+    
+    // Show processing overlay
+    function showProcessingOverlay() {
+        const overlay = document.getElementById('processing-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+        }
+    }
+    
+    // Hide processing overlay
+    function hideProcessingOverlay() {
+        const overlay = document.getElementById('processing-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+    
+    // Check if returning from payment and show overlay
+    function checkPaymentReturn() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentSuccess = urlParams.get('payment') === 'success';
+        const sessionId = urlParams.get('session_id');
+        
+        if (paymentSuccess || sessionId) {
+            // Show overlay immediately
+            showProcessingOverlay();
+            
+            // Poll for subscription creation (check every 2 seconds, max 30 seconds)
+            let pollCount = 0;
+            const maxPolls = 15; // 30 seconds total
+            
+            const pollInterval = setInterval(async () => {
+                pollCount++;
+                
+                try {
+                    const userEmail = await getLoggedInEmail();
+                    if (!userEmail) {
+                        clearInterval(pollInterval);
+                        hideProcessingOverlay();
+                        return;
+                    }
+                    
+                    // Reload dashboard data
+                    const response = await fetch(`${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Check if subscriptions were created (compare with previous state)
+                        const newSubscriptions = Object.keys(data.subscriptions || {});
+                        const hasNewSubscriptions = newSubscriptions.length > 0;
+                        
+                        // If we have subscriptions or polled enough times, hide overlay and reload
+                        if (hasNewSubscriptions || pollCount >= maxPolls) {
+                            clearInterval(pollInterval);
+                            hideProcessingOverlay();
+                            
+                            // Remove payment params from URL
+                            const newUrl = window.location.pathname;
+                            window.history.replaceState({}, '', newUrl);
+                            
+                            // Reload dashboard
+                            await loadDashboard(userEmail);
+                            showSuccess('Subscriptions created successfully!');
+                        }
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Error polling for subscriptions:', error);
+                    if (pollCount >= maxPolls) {
+                        clearInterval(pollInterval);
+                        hideProcessingOverlay();
+                        showError('Subscription creation may still be in progress. Please refresh the page in a moment.');
+                    }
+                }
+            }, 2000);
+        }
+    }
+    
+    // OLD FUNCTION - Keep for backward compatibility but mark as deprecated
+    function displaySubscriptions_OLD(subscriptions, allSites, pendingSites = []) {
         const container = document.getElementById('subscriptions-accordion-container');
         if (!container) return;
         
@@ -2200,8 +2882,8 @@
                         credentials: 'include',
                         body: JSON.stringify({ 
                             sites: pendingSites,
-                            email: userEmail,
-                            subscriptionId: subscriptionId
+                            email: userEmail
+                            // No subscriptionId needed - Use Case 2 creates separate subscriptions
                         })
                     });
                     
@@ -2212,7 +2894,7 @@
                     }
                     
                     
-                    // Step 2: Create checkout session from pending sites
+                    // Step 2: Create checkout session from pending sites (Use Case 2 - separate subscriptions)
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
                         method: 'POST',
                         headers: {
@@ -2220,8 +2902,8 @@
                         },
                         credentials: 'include',
                         body: JSON.stringify({ 
-                            email: userEmail,
-                            subscriptionId: subscriptionId
+                            email: userEmail
+                            // No subscriptionId needed - Use Case 2 creates separate subscriptions for each site
                         })
                     });
                     
