@@ -679,6 +679,16 @@
                     0% { background-position: 200% 0; }
                     100% { background-position: -200% 0; }
                 }
+                @keyframes slideIn {
+                    from { 
+                        opacity: 0; 
+                        transform: translateY(-10px); 
+                    }
+                    to { 
+                        opacity: 1; 
+                        transform: translateY(0); 
+                    }
+                }
             </style>
         `;
         
@@ -831,53 +841,6 @@
         mainContent.appendChild(sitesContainer);
         mainContent.appendChild(licensesContainer);
         
-        // Loading overlay - blurred dashboard until data loads
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'dashboard-loading-overlay';
-        loadingOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-        `;
-        loadingOverlay.innerHTML = `
-            <div style="
-                text-align: center;
-                padding: 40px;
-            ">
-                <div id="dashboard-loading-spinner" style="
-                    width: 60px;
-                    height: 60px;
-                    border: 4px solid #f3f3f3;
-                    border-top: 4px solid #667eea;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 25px;
-                "></div>
-                <h3 style="
-                    margin: 0 0 12px 0;
-                    color: #333;
-                    font-size: 22px;
-                    font-weight: 600;
-                ">Loading Dashboard</h3>
-                <p style="
-                    margin: 0;
-                    color: #666;
-                    font-size: 15px;
-                ">Fetching your data...</p>
-            </div>
-        `;
-        container.appendChild(loadingOverlay);
         mainContent.appendChild(loginPrompt);
         
         // Assemble container
@@ -1045,33 +1008,8 @@
         }
     }
     
-    // Show dashboard loading overlay
-    function showDashboardLoadingOverlay() {
-        const overlay = document.getElementById('dashboard-loading-overlay');
-        if (overlay) {
-            overlay.style.display = 'flex';
-            overlay.style.opacity = '1';
-            overlay.style.visibility = 'visible';
-        }
-    }
-    
-    // Hide dashboard loading overlay
-    function hideDashboardLoadingOverlay() {
-        const overlay = document.getElementById('dashboard-loading-overlay');
-        if (overlay) {
-            overlay.style.opacity = '0';
-            overlay.style.visibility = 'hidden';
-            // Remove from display after transition completes
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300); // Match the transition duration
-        }
-    }
-    
     // Load dashboard data
     async function loadDashboard(userEmail) {
-        // Show loading overlay
-        showDashboardLoadingOverlay();
         
         // Update email display in header
         if (userEmail) {
@@ -1167,10 +1105,13 @@
             const data = await response.json();
             
             // Store dashboard data globally for use in other functions
+            // Merge backend pending sites with local ones (local takes precedence if exists)
+            const existingLocalPending = window.dashboardData?.pendingSites || [];
             window.dashboardData = {
                 sites: data.sites || {},
                 subscriptions: data.subscriptions || {},
-                pendingSites: data.pendingSites || []
+                // Use local pending sites if they exist, otherwise use backend
+                pendingSites: existingLocalPending.length > 0 ? existingLocalPending : (data.pendingSites || [])
             };
             
             // Check if sites exist but are empty
@@ -1369,9 +1310,6 @@
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard:', error);
             console.error('[Dashboard] Error details:', error.message);
-            
-            // Hide loading overlay on error
-            hideDashboardLoadingOverlay();
             
             const errorMsg = `<div style="text-align: center; padding: 40px; color: #f44336;">
                 <p>Failed to load dashboard data.</p>
@@ -2264,10 +2202,8 @@
     }
     
     // Setup event handlers for Use Case 2
-    // Store selected payment plan and price IDs
+    // Store selected payment plan (backend will handle price IDs)
     let selectedPaymentPlan = null;
-    let monthlyPriceId = null;
-    let yearlyPriceId = null;
     
     // Setup payment plan selection handlers
     function setupPaymentPlanHandlers(userEmail) {
@@ -2339,86 +2275,6 @@
             }
         }
         
-        // Function to fetch price IDs from user's subscriptions and environment
-        async function fetchPriceIds(userEmail) {
-            try {
-                // First, try to get price IDs from database (via API)
-                try {
-                    const priceOptionsResponse = await fetch(`${API_BASE}/get-price-options`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include'
-                    });
-                    
-                    if (priceOptionsResponse.ok) {
-                        const priceOptions = await priceOptionsResponse.json();
-                        // Handle new format with price_id object or old format with direct price_id
-                        if (priceOptions.monthly) {
-                            if (typeof priceOptions.monthly === 'string') {
-                                // Old format: direct price_id string
-                                monthlyPriceId = priceOptions.monthly;
-                            } else if (priceOptions.monthly.price_id) {
-                                // New format: object with price_id, discount, etc.
-                                monthlyPriceId = priceOptions.monthly.price_id;
-                            }
-                        }
-                        if (priceOptions.yearly) {
-                            if (typeof priceOptions.yearly === 'string') {
-                                // Old format: direct price_id string
-                                yearlyPriceId = priceOptions.yearly;
-                            } else if (priceOptions.yearly.price_id) {
-                                // New format: object with price_id, discount, etc.
-                                yearlyPriceId = priceOptions.yearly.price_id;
-                            }
-                        }
-                    }
-                } catch (envError) {
-                    console.warn('[Dashboard] Could not fetch price options from database/environment:', envError);
-                }
-                
-                // Then, try to get from user's existing subscriptions (more accurate)
-                const response = await fetch(`${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const subscriptions = data.subscriptions || {};
-                    
-                    // Find monthly and yearly prices from subscriptions
-                    for (const subId in subscriptions) {
-                        const sub = subscriptions[subId];
-                        const items = sub.items || [];
-                        const billingPeriod = sub.billingPeriod || '';
-                        
-                        if (items.length > 0) {
-                            const priceId = items[0].price;
-                            if (priceId) {
-                                // Use billingPeriod from subscription to determine monthly/yearly
-                                // Override environment variables with actual subscription prices
-                                if (billingPeriod === 'monthly' || billingPeriod === 'month') {
-                                    monthlyPriceId = priceId;
-                                } else if (billingPeriod === 'yearly' || billingPeriod === 'year') {
-                                    yearlyPriceId = priceId;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // If we have at least one price ID, log success
-                if (monthlyPriceId || yearlyPriceId) {
-                    console.log('[Dashboard] Price IDs loaded:', { monthly: monthlyPriceId, yearly: yearlyPriceId });
-                } else {
-                    console.warn('[Dashboard] No price IDs found. User needs to have existing subscriptions or configure MONTHLY_PRICE_ID/YEARLY_PRICE_ID in environment.');
-                }
-            } catch (error) {
-                console.warn('[Dashboard] Could not fetch price IDs:', error);
-            }
-        }
-        
         // Handler for site subscription payment plan
         function handlePaymentPlanChange(plan, isLicense = false) {
             selectedPaymentPlan = plan;
@@ -2469,10 +2325,7 @@
             });
         }
         
-        // Fetch price IDs on load
-        if (userEmail) {
-            fetchPriceIds(userEmail);
-        }
+        // Price IDs are now managed by backend - no need to fetch them
     }
     
     function setupUseCase2Handlers(userEmail) {
@@ -2488,67 +2341,70 @@
                     return;
                 }
                 
-                // Get selected payment plan price ID
-                const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
-                                       selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
-                
-                if (!selectedPriceId) {
+                // Validate payment plan is selected
+                if (!selectedPaymentPlan || (selectedPaymentPlan !== 'monthly' && selectedPaymentPlan !== 'yearly')) {
                     showError('Please select a payment plan (Monthly or Yearly) first');
                     return;
                 }
                 
-                try {
-                    const response = await fetch(`${API_BASE}/add-sites-batch`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ 
-                            sites: [{ site: site, price: selectedPriceId }],
-                            email: userEmail
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        siteInput.value = '';
-                        showSuccess(`Site "${site}" added to pending list`);
-                        await loadDashboard(userEmail);
-                    } else {
-                        const error = await response.json();
-                        showError(error.message || 'Failed to add site');
-                    }
-                } catch (error) {
-                    showError('Failed to add site: ' + error.message);
+                // Initialize dashboardData if not exists
+                if (!window.dashboardData) {
+                    window.dashboardData = {};
                 }
+                if (!window.dashboardData.pendingSites) {
+                    window.dashboardData.pendingSites = [];
+                }
+                
+                // Check if site already exists in pending list (case-insensitive)
+                const siteLower = site.toLowerCase().trim();
+                const alreadyExists = window.dashboardData.pendingSites.some(ps => {
+                    const existingSite = (ps.site || ps.site_domain || ps).toLowerCase().trim();
+                    return existingSite === siteLower;
+                });
+                
+                if (alreadyExists) {
+                    showError(`Site "${site}" is already in the pending list`);
+                    return;
+                }
+                
+                // Add to local pending list (no backend call)
+                window.dashboardData.pendingSites.push({
+                    site: site,
+                    billing_period: selectedPaymentPlan
+                });
+                
+                // Update display immediately
+                updatePendingSitesDisplayUseCase2(window.dashboardData.pendingSites);
+                
+                // Clear input and show success
+                siteInput.value = '';
+                showSuccess(`Site "${site}" added to pending list`);
             });
         }
         
-        // Remove pending site buttons
-        document.addEventListener('click', async (e) => {
+        // Remove pending site buttons (local only - no backend call until Pay Now)
+        document.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-pending-site-usecase2')) {
                 const index = parseInt(e.target.getAttribute('data-site-index'));
                 // Get pending sites from dashboard data
-                const pendingSites = window.dashboardData?.pendingSites || [];
+                if (!window.dashboardData) {
+                    window.dashboardData = {};
+                }
+                if (!window.dashboardData.pendingSites) {
+                    window.dashboardData.pendingSites = [];
+                }
+                
+                const pendingSites = window.dashboardData.pendingSites;
                 if (index >= 0 && index < pendingSites.length) {
                     const site = pendingSites[index].site || pendingSites[index].site_domain || pendingSites[index];
-                    try {
-                        const response = await fetch(`${API_BASE}/remove-pending-site`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                email: userEmail,
-                                site: site
-                            })
-                        });
-                        
-                        if (response.ok) {
-                            await loadDashboard(userEmail);
-                        } else {
-                            showError('Failed to remove site');
-                        }
-                    } catch (error) {
-                        showError('Failed to remove site: ' + error.message);
-                    }
+                    
+                    // Remove from local list
+                    pendingSites.splice(index, 1);
+                    
+                    // Update display immediately
+                    updatePendingSitesDisplayUseCase2(pendingSites);
+                    
+                    showSuccess(`Site "${site}" removed from pending list`);
                 }
             }
         });
@@ -2563,43 +2419,50 @@
                     return;
                 }
                 
+                // Validate payment plan is selected
+                if (!selectedPaymentPlan || (selectedPaymentPlan !== 'monthly' && selectedPaymentPlan !== 'yearly')) {
+                    showError('Please select a payment plan (Monthly or Yearly) first');
+                    return;
+                }
+                
                 // Show processing overlay
                 showProcessingOverlay();
                 
                 try {
-                    // Save pending sites
+                    // Prepare sites array for backend (extract just site names)
+                    const sitesToSend = pendingSites.map(ps => ({
+                        site: ps.site || ps.site_domain || ps
+                    }));
+                    
+                    // Save pending sites to backend (first time connecting to backend)
                     const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ 
-                            sites: pendingSites,
-                            email: userEmail
+                            sites: sitesToSend,
+                            email: userEmail,
+                            billing_period: selectedPaymentPlan
                         })
                     });
                     
                     if (!saveResponse.ok) {
-                        throw new Error('Failed to save pending sites');
+                        const errorData = await saveResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'Failed to save pending sites');
                     }
                     
-                    // Get selected payment plan price ID
-                    const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : 
-                                           selectedPaymentPlan === 'yearly' ? yearlyPriceId : null;
+                    // Store pending sites in sessionStorage for immediate display after payment
+                    sessionStorage.setItem('pendingSitesForPayment', JSON.stringify(pendingSites));
+                    sessionStorage.setItem('selectedPaymentPlan', selectedPaymentPlan);
                     
-                    if (!selectedPriceId) {
-                        hideProcessingOverlay();
-                        showError('Please select a payment plan (Monthly or Yearly) first');
-                        return;
-                    }
-                    
-                    // Create checkout
+                    // Create checkout - backend will determine price ID from billing_period
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ 
                             email: userEmail,
-                            price_id: selectedPriceId
+                            billing_period: selectedPaymentPlan
                         })
                     });
                     
@@ -2713,110 +2576,101 @@
         }
     }
     
-    // Check if returning from payment and show overlay
-    function checkPaymentReturn() {
+    // Check if returning from payment and immediately add items to frontend
+    async function checkPaymentReturn() {
         const urlParams = new URLSearchParams(window.location.search);
         const paymentSuccess = urlParams.get('payment') === 'success';
         const sessionId = urlParams.get('session_id');
         
         if (paymentSuccess || sessionId) {
-            // Show skeleton loaders in content areas
-            showSkeletonLoaders();
+            // Get pending sites from sessionStorage
+            const storedPendingSites = sessionStorage.getItem('pendingSitesForPayment');
+            const selectedPlan = sessionStorage.getItem('selectedPaymentPlan');
             
-            // Show overlay immediately with initial message
-            showProcessingOverlay(
-                'Processing your payment and creating subscriptions...',
-                'Please wait, this may take a few moments.'
-            );
-            
-            // Poll for subscription creation (check every 2 seconds, max 60 seconds)
-            let pollCount = 0;
-            const maxPolls = 30; // 60 seconds total
-            let previousSubscriptionCount = 0;
-            
-            // Update progress based on poll count
-            const updateProgress = () => {
-                const progress = Math.min(90, (pollCount / maxPolls) * 90); // Cap at 90% until complete
-                updateProcessingOverlay(
-                    progress,
-                    pollCount < 5 ? 'Processing payment...' :
-                    pollCount < 10 ? 'Creating subscriptions...' :
-                    pollCount < 15 ? 'Setting up your account...' :
-                    'Finalizing your subscriptions...',
-                    `Checking for updates... (${pollCount}/${maxPolls})`
-                );
-            };
-            
-            const pollInterval = setInterval(async () => {
-                pollCount++;
-                updateProgress();
-                
+            if (storedPendingSites) {
                 try {
-                    const userEmail = await getLoggedInEmail();
-                    if (!userEmail) {
-                        clearInterval(pollInterval);
-                        hideProcessingOverlay();
-                        return;
-                    }
+                    const pendingSites = JSON.parse(storedPendingSites);
                     
-                    // Reload dashboard data
-                    const response = await fetch(`${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
+                    // Immediately add items to subscribed list for better UX
+                    const container = document.getElementById('subscribed-items-list');
+                    if (container && pendingSites.length > 0) {
+                        // Get current subscribed items HTML
+                        let currentHTML = container.innerHTML;
                         
-                        // Check if subscriptions were created (compare with previous state)
-                        const currentSubscriptionCount = Object.keys(data.subscriptions || {}).length;
-                        const hasNewSubscriptions = currentSubscriptionCount > previousSubscriptionCount;
-                        
-                        // Also check for pending sites being removed (indicates processing)
-                        const pendingSitesCount = (data.pendingSites || []).length;
-                        const isProcessingComplete = hasNewSubscriptions || (pollCount >= 5 && pendingSitesCount === 0 && previousSubscriptionCount > 0);
-                        
-                        if (hasNewSubscriptions) {
-                            previousSubscriptionCount = currentSubscriptionCount;
+                        // If container is empty or shows "no items" message, replace it
+                        if (currentHTML.includes('No subscribed items') || currentHTML.trim() === '') {
+                            currentHTML = '<div style="background: #f8f9fa; border-radius: 8px; padding: 15px;"></div>';
                         }
                         
-                        // If we have subscriptions or polled enough times, hide overlay and reload
-                        if (isProcessingComplete || pollCount >= maxPolls) {
-                            clearInterval(pollInterval);
-                            
-                            // Show completion message briefly
-                            updateProcessingOverlay(
-                                100,
-                                'Almost done! Loading your dashboard...',
-                                'Finalizing...'
-                            );
-                            
-                            // Wait a moment for user to see completion
-                            await new Promise(resolve => setTimeout(resolve, 800));
-                            
-                            hideProcessingOverlay();
-                            
-                            // Remove payment params from URL
-                            const newUrl = window.location.pathname;
-                            window.history.replaceState({}, '', newUrl);
-                            
-                            // Reload dashboard with fresh data
-                            await loadDashboard(userEmail);
-                            
-                            // Show success message
-                            showSuccess('Payment successful! Your subscriptions have been created.');
+                        // Extract the inner div if it exists
+                        let itemsContainer = container.querySelector('div[style*="background: #f8f9fa"]');
+                        if (!itemsContainer) {
+                            // Create container if it doesn't exist
+                            container.innerHTML = '<div style="background: #f8f9fa; border-radius: 8px; padding: 15px;"></div>';
+                            itemsContainer = container.querySelector('div');
                         }
+                        
+                        // Add new items immediately
+                        const newItemsHTML = pendingSites.map(ps => {
+                            const siteName = ps.site || ps.site_domain || ps;
+                            return `
+                                <div style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    padding: 12px;
+                                    margin-bottom: 8px;
+                                    background: white;
+                                    border-radius: 6px;
+                                    border: 1px solid #e0e0e0;
+                                    animation: slideIn 0.3s ease-out;
+                                ">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🌐 ${siteName}</div>
+                                        <div style="font-size: 12px; color: #666;">
+                                            License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">Processing...</code>
+                                        </div>
+                                    </div>
+                                    <span style="
+                                        padding: 4px 12px;
+                                        border-radius: 20px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        background: #fff3cd;
+                                        color: #856404;
+                                    ">Processing</span>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        // Append new items to existing items
+                        itemsContainer.innerHTML = (itemsContainer.innerHTML || '') + newItemsHTML;
+                        
+                        // Show success message
+                        showSuccess(`Payment successful! ${pendingSites.length} site${pendingSites.length === 1 ? '' : 's'} added to your subscriptions.`);
                     }
+                    
+                    // Clear sessionStorage
+                    sessionStorage.removeItem('pendingSitesForPayment');
+                    sessionStorage.removeItem('selectedPaymentPlan');
+                    
+                    // Remove payment params from URL
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, '', newUrl);
+                    
                 } catch (error) {
-                    console.error('[Dashboard] Error polling for subscriptions:', error);
-                    if (pollCount >= maxPolls) {
-                        clearInterval(pollInterval);
-                        hideProcessingOverlay();
-                        showError('Subscription creation may still be in progress. Please refresh the page in a moment.');
-                    }
+                    console.error('[Dashboard] Error adding items immediately:', error);
                 }
-            }, 2000);
+            }
+            
+            // Reload dashboard data in background to sync with backend
+            const userEmail = await getLoggedInEmail();
+            if (userEmail) {
+                // Reload in background without blocking UI
+                loadDashboard(userEmail).catch(err => {
+                    console.error('[Dashboard] Error reloading dashboard:', err);
+                });
+            }
         }
     }
     
@@ -4052,12 +3906,8 @@
                 loadDashboard(userEmail),
                 loadLicenses(userEmail)
             ]);
-            // Hide loading overlay after both loadDashboard and loadLicenses complete
-            hideDashboardLoadingOverlay();
         } catch (error) {
             console.error('[Dashboard] ❌ Error loading dashboard data:', error);
-            // Hide loading overlay on error
-            hideDashboardLoadingOverlay();
             showError('Failed to load dashboard data. Please refresh the page.');
         }
         
