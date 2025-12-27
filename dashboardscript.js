@@ -489,36 +489,44 @@
         
         // Add new handlers
         document.querySelectorAll('.load-more-button').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const section = this.getAttribute('data-section');
                 const tab = this.getAttribute('data-tab');
                 const total = parseInt(this.getAttribute('data-total'));
                 const displayed = parseInt(this.getAttribute('data-displayed'));
                 
-                // Update pagination state
-                if (!paginationState[section]) {
-                    paginationState[section] = {};
-                }
-                const currentPage = paginationState[section][tab] || 1;
-                paginationState[section][tab] = currentPage + 1;
+                // Calculate offset: use the number of items already displayed
+                const offset = displayed;
                 
-                // Reload the appropriate section
-                if (section === 'licenses') {
-                    // Trigger license keys reload
+                // Disable button and show loading state
+                const button = this;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Loading...';
+                
+                try {
                     const userEmail = currentUserEmail;
-                    if (userEmail) {
-                        loadLicenseKeys(userEmail);
+                    if (!userEmail) {
+                        throw new Error('User email not available');
                     }
-                } else if (section === 'sites') {
-                    // Trigger sites reload
-                    const sites = window.dashboardData?.sites || {};
-                    displaySites(sites);
-                } else if (section === 'subscriptions') {
-                    // Trigger subscriptions reload
-                    const subscriptions = window.dashboardData?.subscriptions || {};
-                    const allSites = window.dashboardData?.sites || {};
-                    const pendingSites = window.dashboardData?.pendingSites || [];
-                    displaySubscribedItems(subscriptions, allSites, pendingSites);
+                    
+                    // Reload the appropriate section with offset
+                    if (section === 'licenses') {
+                        // Load more license keys with offset
+                        await loadLicenseKeys(userEmail, tab, offset);
+                    } else if (section === 'sites') {
+                        // Load more sites with offset
+                        await loadDashboard(userEmail, false, 'sites', tab, offset);
+                    } else if (section === 'subscriptions') {
+                        // Load more subscriptions with offset
+                        await loadDashboard(userEmail, false, 'subscriptions', tab, offset);
+                    }
+                } catch (error) {
+                    console.error(`[Load More] Error loading more ${section}:`, error);
+                    showError(`Failed to load more items: ${error.message}`);
+                    // Re-enable button on error
+                    button.disabled = false;
+                    button.textContent = originalText;
                 }
             });
         });
@@ -2343,6 +2351,7 @@
                                              ">
                                             <button class="menu-copy-license-button" 
                                                     data-key="${license.license_key}"
+                                                    title="Copy License Key"
                                                     style="
                                                         width: 100%;
                                                         padding: 10px 16px;
@@ -2352,20 +2361,17 @@
                                                         text-align: left;
                                                         cursor: pointer;
                                                         font-size: 14px;
-                                                        display: flex;
-                                                        align-items: center;
-                                                        gap: 10px;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#f5f5f5';"
                                                     onmouseout="this.style.background='white';">
-                                                <span style="font-size: 16px;">📋</span>
-                                                <span>Copy License Key</span>
+                                                Copy License Key
                                             </button>
                                             ${(isQuantity && !isUsed) || (!isQuantity && isUsed && !isCancelled) ? `
                                             <button class="menu-activate-license-button" 
                                                     data-key="${license.license_key}"
                                                     data-current-site="${siteForDisplay || ''}"
+                                                    title="${isUsed ? 'Update Site' : 'Activate License'}"
                                                     style="
                                                         width: 100%;
                                                         padding: 10px 16px;
@@ -2375,15 +2381,11 @@
                                                         text-align: left;
                                                         cursor: pointer;
                                                         font-size: 14px;
-                                                        display: flex;
-                                                        align-items: center;
-                                                        gap: 10px;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#f5f5f5';"
                                                     onmouseout="this.style.background='white';">
-                                                <span style="font-size: 16px;">${isUsed ? '🔄' : '✅'}</span>
-                                                <span>${isUsed ? 'Update Site' : 'Activate'}</span>
+                                                ${isUsed ? 'Update Site' : 'Activate'}
                                             </button>
                                             ` : ''}
                                             ${license.subscription_id && license.status === 'active' && !isCancelled ? `
@@ -2391,6 +2393,7 @@
                                                     data-key="${license.license_key}"
                                                     data-subscription-id="${license.subscription_id}"
                                                     data-purchase-type="${license.purchase_type || ''}"
+                                                    title="Cancel Subscription"
                                                     style="
                                                         width: 100%;
                                                         padding: 10px 16px;
@@ -2400,39 +2403,11 @@
                                                         text-align: left;
                                                         cursor: pointer;
                                                         font-size: 14px;
-                                                        display: flex;
-                                                        align-items: center;
-                                                        gap: 10px;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#ffebee';"
                                                     onmouseout="this.style.background='white';">
-                                                <span style="font-size: 16px;">🚫</span>
-                                                <span>Cancel Subscription</span>
-                                            </button>
-                                            ` : ''}
-                                            ${isQuantity && license.status === 'active' && !isUsed && !isCancelled ? `
-                                            <button class="menu-deactivate-license-button" 
-                                                    data-key="${license.license_key}"
-                                                    data-purchase-type="${license.purchase_type || ''}"
-                                                    style="
-                                                        width: 100%;
-                                                        padding: 10px 16px;
-                                                        background: white;
-                                                        color: #f44336;
-                                                        border: none;
-                                                        text-align: left;
-                                                        cursor: pointer;
-                                                        font-size: 14px;
-                                                        display: flex;
-                                                        align-items: center;
-                                                        gap: 10px;
-                                                        transition: background 0.2s;
-                                                    "
-                                                    onmouseover="this.style.background='#ffebee';"
-                                                    onmouseout="this.style.background='white';">
-                                                <span style="font-size: 16px;">➖</span>
-                                                <span>Remove from Subscription</span>
+                                                Cancel Subscription
                                             </button>
                                             ` : ''}
                                         </div>
@@ -2583,7 +2558,7 @@
                 }
                 
                 const button = this;
-                const originalTitle = button.title;
+                const originalTitle = button.title || (isUpdating ? 'Update Site' : 'Activate License');
                 button.disabled = true;
                 button.title = isUpdating ? 'Updating...' : 'Activating...';
                 
@@ -2668,15 +2643,20 @@
                 // Get purchase type from button data attribute
                 const purchaseType = this.closest('tr')?.getAttribute('data-purchase-type') || 
                                     this.getAttribute('data-purchase-type') || '';
-                const isIndividualSubscription = purchaseType === 'quantity';
                 
-                let confirmText;
-                if (isIndividualSubscription) {
-                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
-                        + 'This license has its own individual subscription. Canceling it will cancel the entire subscription for this license. The subscription will remain active until the end of the current billing period.';
+                // Note: Backend automatically detects if it's an individual subscription (Use Case 3)
+                // or a shared subscription and handles accordingly:
+                // - Individual: Cancels subscription (cancel_at_period_end), stays active until expiration, no proration
+                // - Shared: Reduces quantity with proration (immediate billing adjustment)
+                let confirmText = 'Are you sure you want to cancel this license subscription?\n\n';
+                
+                if (purchaseType === 'quantity') {
+                    confirmText += 'This will cancel the subscription for this license. ';
+                    confirmText += 'The subscription will remain active until the expiration date, and you will not be charged for renewal. ';
+                    confirmText += 'No proration will be applied (no immediate refund or charge adjustment).';
                 } else {
-                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
-                        + 'The subscription will be canceled and will remain active until the end of the current billing period.';
+                    confirmText += 'If this is an individual subscription, it will be canceled and remain active until expiration. ';
+                    confirmText += 'If this is part of a shared subscription, the quantity will be reduced with proration (immediate billing adjustment).';
                 }
                 
                 if (!confirm(confirmText)) {
@@ -2732,97 +2712,9 @@
             });
         });
         
-        // Add deactivate (remove from subscription) handlers for quantity licenses
-        container.querySelectorAll('.menu-deactivate-license-button').forEach(btn => {
-            btn.addEventListener('click', async function(e) {
-                e.stopPropagation();
-                const key = this.getAttribute('data-key');
-                
-                // Get purchase type from button data attribute
-                const purchaseType = this.closest('tr')?.getAttribute('data-purchase-type') || 
-                                    this.getAttribute('data-purchase-type') || '';
-                const subscriptionId = this.closest('tr')?.getAttribute('data-subscription-id') || 
-                                     this.getAttribute('data-subscription-id') || '';
-                
-                // For Use Case 3, each license has its own subscription, so no proration
-                // Heuristic: For quantity purchases, if the subscription_id appears only once in all licenses,
-                // it's likely an individual subscription (Use Case 3 creates one subscription per license)
-                let isIndividualSubscription = false;
-                if (purchaseType === 'quantity' && subscriptionId) {
-                    const licensesWithSameSubscription = licenses.filter(l => 
-                        l.subscription_id === subscriptionId
-                    );
-                    // If only one license has this subscription_id, it's an individual subscription
-                    isIndividualSubscription = licensesWithSameSubscription.length === 1;
-                }
-                
-                let confirmText;
-                if (isIndividualSubscription) {
-                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
-                        + 'This license has its own individual subscription (Use Case 3). Canceling it will cancel the entire subscription for this license. NO PRORATION applies since each license has its own subscription. The subscription will remain active until the end of the current billing period.';
-                } else {
-                    confirmText = 'Are you sure you want to remove this license from the subscription?\n\n'
-                        + 'Stripe will prorate the current period and future invoices will be reduced for this quantity.';
-                }
-                
-                if (!confirm(confirmText)) {
-                    return;
-                }
-
-                const button = this;
-                const originalTitle = button.title;
-                button.disabled = true;
-                button.title = 'Removing...';
-
-                try {
-                    const response = await fetch(`${API_BASE}/deactivate-license`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            license_key: key,
-                            email: currentUserEmail
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || data.message || 'Failed to deactivate license');
-                    }
-
-                    // Show appropriate message based on response
-                    if (data.cancel_at_period_end) {
-                        // Individual subscription was canceled
-                        showSuccess(data.message || 'License subscription canceled successfully. The subscription will remain active until the end of the current billing period.');
-                    } else {
-                        // License was removed from shared subscription (proration applies)
-                        showSuccess(data.message || 'License removed from subscription successfully. Stripe will handle proration for this change.');
-                    }
-
-                    // Close menu
-                    const menu = button.closest('.license-actions-menu');
-                    if (menu) menu.style.display = 'none';
-
-                    // Silently update licenses and dashboard to reflect new quantity and billing
-                    if (currentUserEmail) {
-                        clearCache('dashboard'); // Clear cache for fresh data
-                        await Promise.all([
-                            loadLicenseKeys(currentUserEmail),
-                            silentDashboardUpdate(currentUserEmail).catch(() => {
-                                // Fallback to regular reload if silent update fails
-                                return loadDashboard(currentUserEmail, false);
-                            })
-                        ]);
-                    }
-                } catch (error) {
-                    console.error('[Dashboard] Error deactivating license:', error);
-                    showError('Failed to deactivate license: ' + error.message);
-                    button.disabled = false;
-                    button.title = originalTitle;
-                }
-            });
-        });
+        // Note: "Remove from Subscription" functionality merged into "Cancel Subscription"
+        // Both actions use the same endpoint (/deactivate-license) and handler (menu-cancel-license-subscription-button)
+        // The "Remove from Subscription" button has been removed from the UI
     }
     
     // Update subscription selector dropdown
@@ -3292,21 +3184,18 @@
                                                     title="Cancel Subscription"
                                                     style="
                                                         width: 100%;
-                                                        padding: 12px;
+                                                        padding: 10px 16px;
                                                         background: white;
                                                         color: #f44336;
                                                         border: none;
-                                                        text-align: center;
+                                                        text-align: left;
                                                         cursor: pointer;
-                                                        font-size: 20px;
-                                                        display: flex;
-                                                        align-items: center;
-                                                        justify-content: center;
+                                                        font-size: 14px;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#ffebee';"
                                                     onmouseout="this.style.background='white';">
-                                                🚫
+                                                Cancel Subscription
                                             </button>
                                         </div>
                                     </div>
@@ -3722,21 +3611,18 @@
                                                                     title="Copy License Key"
                                                                     style="
                                                                         width: 100%;
-                                                                        padding: 12px;
+                                                                        padding: 10px 16px;
                                                                         background: white;
                                                                         color: #333;
                                                                         border: none;
-                                                                        text-align: center;
+                                                                        text-align: left;
                                                                         cursor: pointer;
-                                                                        font-size: 20px;
-                                                                        display: flex;
-                                                                        align-items: center;
-                                                                        justify-content: center;
+                                                                        font-size: 14px;
                                                                         transition: background 0.2s;
                                                                     "
                                                                     onmouseover="this.style.background='#f5f5f5';"
                                                                     onmouseout="this.style.background='white';">
-                                                                📋
+                                                                Copy License Key
                                                             </button>
                                                             ` : ''}
                                                         </div>
@@ -3851,7 +3737,8 @@
                     
                     try {
                         await navigator.clipboard.writeText(licenseKey);
-                        const originalTitle = this.title;
+                        // Update tooltip to show success
+                        const originalTitle = this.title || 'Copy License Key';
                         this.title = 'Copied!';
                         this.style.color = '#4caf50';
                         setTimeout(() => {
