@@ -1519,7 +1519,7 @@
     }
     
     // Load dashboard data
-    async function loadDashboard(userEmail, showLoaders = false) {
+    async function loadDashboard(userEmail, showLoaders = false, type = null, status = null, offset = 0) {
         
         // Update email display in header
         if (userEmail) {
@@ -1582,16 +1582,28 @@
         
         
         try {
+            // Build query parameters for server-side pagination
+            const params = new URLSearchParams({ email: userEmail });
+            if (type) params.append('type', type);
+            if (status) params.append('status', status);
+            if (offset > 0) {
+                params.append('limit', ITEMS_PER_PAGE);
+                params.append('offset', offset);
+            }
+            
+            // Don't use cache for paginated requests (need fresh data)
+            const useCache = offset === 0 && !type && !status;
+            
             // Try email-based endpoint first (with caching)
-            let response = await cachedFetch(`${API_BASE}/dashboard?email=${encodeURIComponent(userEmail)}`, {
+            let response = await cachedFetch(`${API_BASE}/dashboard?${params.toString()}`, {
                 method: 'GET'
-            }, true); // Use cache
+            }, useCache);
             
             // If email endpoint doesn't work, try with session cookie
             if (!response.ok && response.status === 401) {
-                response = await cachedFetch(`${API_BASE}/dashboard`, {
+                response = await cachedFetch(`${API_BASE}/dashboard?${params.toString()}`, {
                     method: 'GET'
-                }, true); // Use cache
+                }, useCache);
             }
             
             if (!response.ok) {
