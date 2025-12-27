@@ -375,9 +375,7 @@
         `;
         
         sidebar.innerHTML = `
-            <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <h2 style="margin: 0; font-size: 20px; color: white;">📋 Dashboard</h2>
-            </div>
+          
             <nav style="padding: 10px 0;">
                 <button class="sidebar-item active" data-section="domains" style="
                     width: 100%;
@@ -424,7 +422,7 @@
                 </button>
             </nav>
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
-                <button id="logout-button" style="
+                <button id="logout-button" data-ms-action="logout" style="
                     width: 100%;
                     padding: 12px;
                     background: #e74c3c;
@@ -460,7 +458,7 @@
         header.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                    <h1 style="margin: 0; color: #333; font-size: 28px;">Cons</h1>
+                    <h1 style="margin: 0; color: #333; font-size: 28px;">ConsentBit Dashboard</h1>
                     <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage your sites, subscriptions, and payments</p>
                 </div>
                 <div style="text-align: right;">
@@ -1015,7 +1013,7 @@
     }
     
     // Load dashboard data
-    async function loadDashboard(userEmail) {
+    async function loadDashboard(userEmail, showLoaders = false) {
         
         // Update email display in header
         if (userEmail) {
@@ -1043,34 +1041,37 @@
             return;
         }
         
-        // Show skeleton loaders for better UX
-        if (domainsContainer) {
-            domainsContainer.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 20px;">
-                    <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
-                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
-                    <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
-                    <div class="skeleton-loader" style="height: 50px; width: 100%;"></div>
-                </div>
-            `;
-        }
-        if (subscriptionsContainer) {
-            subscriptionsContainer.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 20px;">
-                    <div class="skeleton-loader" style="height: 20px; width: 250px; margin-bottom: 20px;"></div>
-                    <div class="skeleton-loader" style="height: 80px; width: 100%; margin-bottom: 15px;"></div>
-                    <div class="skeleton-loader" style="height: 80px; width: 100%;"></div>
-                </div>
-            `;
-        }
-        if (sitesContainer) {
-            sitesContainer.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 20px;">
-                    <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
-                    <div class="skeleton-loader" style="height: 60px; width: 100%; margin-bottom: 10px;"></div>
-                    <div class="skeleton-loader" style="height: 60px; width: 100%;"></div>
-                </div>
-            `;
+        // Only show skeleton loaders if explicitly requested (e.g., initial load)
+        // Don't show loaders on background refreshes to prevent flickering
+        if (showLoaders) {
+            if (domainsContainer) {
+                domainsContainer.innerHTML = `
+                    <div style="background: white; border-radius: 12px; padding: 20px;">
+                        <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
+                        <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                        <div class="skeleton-loader" style="height: 50px; width: 100%; margin-bottom: 10px;"></div>
+                        <div class="skeleton-loader" style="height: 50px; width: 100%;"></div>
+                    </div>
+                `;
+            }
+            if (subscriptionsContainer) {
+                subscriptionsContainer.innerHTML = `
+                    <div style="background: white; border-radius: 12px; padding: 20px;">
+                        <div class="skeleton-loader" style="height: 20px; width: 250px; margin-bottom: 20px;"></div>
+                        <div class="skeleton-loader" style="height: 80px; width: 100%; margin-bottom: 15px;"></div>
+                        <div class="skeleton-loader" style="height: 80px; width: 100%;"></div>
+                    </div>
+                `;
+            }
+            if (sitesContainer) {
+                sitesContainer.innerHTML = `
+                    <div style="background: white; border-radius: 12px; padding: 20px;">
+                        <div class="skeleton-loader" style="height: 20px; width: 200px; margin-bottom: 20px;"></div>
+                        <div class="skeleton-loader" style="height: 60px; width: 100%; margin-bottom: 10px;"></div>
+                        <div class="skeleton-loader" style="height: 60px; width: 100%;"></div>
+                    </div>
+                `;
+            }
         }
         
         
@@ -1111,13 +1112,44 @@
             const data = await response.json();
             
             // Store dashboard data globally for use in other functions
-            // Merge backend pending sites with local ones (local takes precedence if exists)
+            // Smart merge: Preserve local pending sites if they exist and are newer/modified
             const existingLocalPending = window.dashboardData?.pendingSites || [];
+            const backendPendingSites = data.pendingSites || [];
+            
+            // Check localStorage for persisted pending sites (survives page refresh)
+            let persistedPendingSites = [];
+            try {
+                const stored = localStorage.getItem('pendingSitesLocal');
+                if (stored) {
+                    persistedPendingSites = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.warn('[Dashboard] Could not load persisted pending sites:', e);
+            }
+            
+            // Priority: existingLocalPending > persistedPendingSites > backendPendingSites
+            let finalPendingSites = existingLocalPending;
+            if (finalPendingSites.length === 0 && persistedPendingSites.length > 0) {
+                finalPendingSites = persistedPendingSites;
+            } else if (finalPendingSites.length === 0) {
+                finalPendingSites = backendPendingSites;
+            }
+            
+            // Update localStorage with current pending sites
+            try {
+                if (finalPendingSites.length > 0) {
+                    localStorage.setItem('pendingSitesLocal', JSON.stringify(finalPendingSites));
+                } else {
+                    localStorage.removeItem('pendingSitesLocal');
+                }
+            } catch (e) {
+                console.warn('[Dashboard] Could not save pending sites to localStorage:', e);
+            }
+            
             window.dashboardData = {
                 sites: data.sites || {},
                 subscriptions: data.subscriptions || {},
-                // Use local pending sites if they exist, otherwise use backend
-                pendingSites: existingLocalPending.length > 0 ? existingLocalPending : (data.pendingSites || [])
+                pendingSites: finalPendingSites
             };
             
             // Check if sites exist but are empty
@@ -1299,6 +1331,10 @@
             // Display subscribed items (including pending sites) - await async function
             await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || []);
             
+            // Update payment plan selection state based on pending sites
+            const pendingSitesCount = window.dashboardData?.pendingSites?.length || 0;
+            togglePaymentPlanSelection(pendingSitesCount === 0);
+            
             // Note: Loading overlay is hidden in initializeDashboard after Promise.all completes
             // This ensures both loadDashboard and loadLicenses finish before hiding
             
@@ -1445,7 +1481,35 @@
             `;
         }
         
-        // Display license keys
+        // Categorize licenses by status
+        const categorizedLicenses = {
+            available: [],
+            activated: [],
+            cancelling: [],
+            cancelled: []
+        };
+        
+        licenses.forEach(license => {
+            const siteForDisplay = license.site_domain || license.used_site_domain;
+            const isUsed = siteForDisplay ? true : false;
+            const isSubscriptionCancelled = license.subscription_cancelled || false;
+            const isLicenseInactive = license.status === 'inactive';
+            const isCancelled = isSubscriptionCancelled || isLicenseInactive;
+            
+            if (isCancelled) {
+                if (license.subscription_cancel_at_period_end) {
+                    categorizedLicenses.cancelling.push(license);
+                } else {
+                    categorizedLicenses.cancelled.push(license);
+                }
+            } else if (isUsed) {
+                categorizedLicenses.activated.push(license);
+            } else {
+                categorizedLicenses.available.push(license);
+            }
+        });
+        
+        // Display license keys with tabs
         if (licenses.length === 0) {
             html += `
                 <div style="text-align: center; padding: 60px 20px; color: #999;">
@@ -1458,21 +1522,83 @@
             return;
         }
         
-        container.innerHTML = `
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Subscription ID</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Activated For Site</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Purchase Type</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
-                        <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${licenses.map(license => {
+        // Create tabs HTML
+        html += `
+            <div style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="license-tab-button" data-tab="available" style="
+                        padding: 12px 20px;
+                        background: #2196f3;
+                        color: white;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Available (${categorizedLicenses.available.length})</button>
+                    <button class="license-tab-button" data-tab="activated" style="
+                        padding: 12px 20px;
+                        background: #e0e0e0;
+                        color: #666;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Activated (${categorizedLicenses.activated.length})</button>
+                    <button class="license-tab-button" data-tab="cancelling" style="
+                        padding: 12px 20px;
+                        background: #e0e0e0;
+                        color: #666;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Cancelling (${categorizedLicenses.cancelling.length})</button>
+                    <button class="license-tab-button" data-tab="cancelled" style="
+                        padding: 12px 20px;
+                        background: #e0e0e0;
+                        color: #666;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Cancelled (${categorizedLicenses.cancelled.length})</button>
+                </div>
+            </div>
+        `;
+        
+        // Create table for each tab
+        ['available', 'activated', 'cancelling', 'cancelled'].forEach(tabName => {
+            const tabLicenses = categorizedLicenses[tabName];
+            const isActive = tabName === 'available';
+            
+            html += `
+                <div class="license-tab-content" data-tab="${tabName}" style="display: ${isActive ? 'block' : 'none'};">
+                    ${tabLicenses.length === 0 ? `
+                        <div style="text-align: center; padding: 40px 20px; color: #999;">
+                            <p style="font-size: 16px; color: #666;">No ${tabName} license keys</p>
+                        </div>
+                    ` : `
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Activated For Site</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
+                                    <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tabLicenses.map(license => {
                         // For site-based purchases, use site_domain if used_site_domain is null
                         // For quantity-based purchases, use used_site_domain (which is set when activated)
                         const siteForDisplay = license.site_domain? license.site_domain : license.used_site_domain;
@@ -1512,10 +1638,42 @@
                           statusBg = '#e3f2fd';
                         }
                         
+                        // Get expiration date from subscription
+                        let expirationDate = 'N/A';
+                        if (license.subscription_current_period_end) {
+                            try {
+                                const timestamp = typeof license.subscription_current_period_end === 'number' 
+                                    ? license.subscription_current_period_end 
+                                    : parseInt(license.subscription_current_period_end);
+                                const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                expirationDate = new Date(dateInMs).toLocaleDateString();
+                            } catch (e) {
+                                console.warn('[Dashboard] Error parsing expiration date:', e);
+                            }
+                        } else if (license.subscription_id && subscriptions[license.subscription_id]) {
+                            const sub = subscriptions[license.subscription_id];
+                            if (sub.current_period_end) {
+                                try {
+                                    const timestamp = typeof sub.current_period_end === 'number' 
+                                        ? sub.current_period_end 
+                                        : parseInt(sub.current_period_end);
+                                    const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                    expirationDate = new Date(dateInMs).toLocaleDateString();
+                                } catch (e) {
+                                    console.warn('[Dashboard] Error parsing expiration date:', e);
+                                }
+                            }
+                        }
+                        
+                        // Hide actions menu for cancelled licenses
+                        const showActions = !isCancelled;
+                        
                         return `
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
                                 onmouseover="this.style.background='#f8f9fa'" 
-                                onmouseout="this.style.background='white'">
+                                onmouseout="this.style.background='white'"
+                                data-purchase-type="${license.purchase_type || ''}"
+                                data-subscription-id="${license.subscription_id || ''}">
                                 <td style="padding: 15px; font-family: monospace; font-weight: 600; color: #333;">${license.license_key}</td>
                                 <td style="padding: 15px;">
                                     <span style="
@@ -1529,80 +1687,190 @@
                                         display: inline-block;
                                     ">${statusText}</span>
                                 </td>
-                                <td style="padding: 15px; font-family: monospace; font-size: 12px; color: #666;">
-                                    ${license.subscription_id ? `
-                                        <div style="font-weight: 500; color: #333;">${license.subscription_id}</div>
-                                        ${license.subscription_status ? `
-                                            <div style="font-size: 10px; color: #999; margin-top: 4px;">
-                                                ${license.subscription_status === 'active' ? '✓ Active' : license.subscription_status}
-                                            </div>
-                                        ` : ''}
-                                    ` : '<span style="font-style: italic; color: #999;">N/A</span>'}
-                                </td>
                                 <td style="padding: 15px; color: ${isUsed ? '#4caf50' : '#999'};">
-                                    <div>
-                                        ${siteForDisplay || '<span style="font-style: italic;">Not assigned</span>'}
-                                        ${isCancelled && siteForDisplay ? `
-                                            <div style="font-size: 10px; color: #856404; margin-top: 4px;">
-                                                ${license.subscription_cancel_at_period_end && license.subscription_current_period_end ? 
-                                                  `Cancels: ${new Date(license.subscription_current_period_end * 1000).toLocaleDateString()}` : 
-                                                  'Subscription Cancelled'}
-                                            </div>
-                                        ` : ''}
-                                    </div>
+                                    ${siteForDisplay || '<span style="font-style: italic;">Not assigned</span>'}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
-                                    ${license.purchase_type === 'quantity' ? 'Quantity Purchase' : 'Site Purchase'}
+                                    ${expirationDate}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                     ${license.created_at ? new Date(license.created_at * 1000).toLocaleDateString() : 'N/A'}
                                 </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <button class="copy-license-button" data-key="${license.license_key}" style="
-                                        padding: 8px 16px;
-                                        background: #2196f3;
-                                        color: white;
-                                        border: none;
-                                        border-radius: 6px;
-                                        cursor: pointer;
-                                        font-size: 13px;
-                                        font-weight: 600;
-                                        margin-right: 8px;
-                                    ">Copy</button>
-                                    ${isQuantity ? `
-                                        <button class="activate-license-button" data-key="${license.license_key}" data-current-site="${siteForDisplay || ''}" style="
-                                            padding: 8px 16px;
-                                            background: ${isUsed ? '#ff9800' : '#4caf50'};
-                                            color: white;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                        ">${isUsed ? 'Update Site' : 'Activate'}</button>
-                                    ` : ''}
-                                    ${isQuantity && license.status === 'active' && !isUsed ? `
-                                        <button class="deactivate-license-button" data-key="${license.license_key}" style="
-                                            padding: 8px 16px;
-                                            margin-left: 8px;
-                                            background: #f44336;
-                                            color: white;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                        ">Remove from Subscription</button>
-                                    ` : ''}
+                                <td style="padding: 15px; text-align: center; position: relative;">
+                                    ${showActions ? `
+                                    <div style="position: relative; display: inline-block;">
+                                        <button class="license-actions-menu-button" 
+                                                data-key="${license.license_key}" 
+                                                data-subscription-id="${license.subscription_id || ''}"
+                                                data-purchase-type="${license.purchase_type || ''}"
+                                                data-current-site="${siteForDisplay || ''}"
+                                                data-is-quantity="${isQuantity}"
+                                                data-is-used="${isUsed}"
+                                                data-is-cancelled="${isCancelled}"
+                                                data-license-status="${license.status}"
+                                                style="
+                                                    padding: 8px 12px;
+                                                    background: #f5f5f5;
+                                                    color: #666;
+                                                    border: 1px solid #e0e0e0;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-size: 18px;
+                                                    font-weight: 600;
+                                                    line-height: 1;
+                                                    transition: all 0.2s;
+                                                " 
+                                                onmouseover="this.style.background='#e0e0e0'; this.style.borderColor='#ccc';"
+                                                onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#e0e0e0';"
+                                                title="Actions">⋯</button>
+                                        <div class="license-actions-menu" 
+                                             id="menu-${license.license_key.replace(/[^a-zA-Z0-9]/g, '-')}"
+                                             style="
+                                                display: none;
+                                                position: absolute;
+                                                right: 0;
+                                                top: 100%;
+                                                margin-top: 4px;
+                                                background: white;
+                                                border: 1px solid #e0e0e0;
+                                                border-radius: 8px;
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                                z-index: 1000;
+                                                min-width: 180px;
+                                                padding: 4px 0;
+                                             ">
+                                            <button class="menu-copy-license-button" 
+                                                    data-key="${license.license_key}"
+                                                    style="
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        background: white;
+                                                        color: #333;
+                                                        border: none;
+                                                        text-align: left;
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 10px;
+                                                        transition: background 0.2s;
+                                                    "
+                                                    onmouseover="this.style.background='#f5f5f5';"
+                                                    onmouseout="this.style.background='white';">
+                                                <span style="font-size: 16px;">📋</span>
+                                                <span>Copy License Key</span>
+                                            </button>
+                                            ${(isQuantity && !isUsed) || (!isQuantity && isUsed && !isCancelled) ? `
+                                            <button class="menu-activate-license-button" 
+                                                    data-key="${license.license_key}"
+                                                    data-current-site="${siteForDisplay || ''}"
+                                                    style="
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        background: white;
+                                                        color: #333;
+                                                        border: none;
+                                                        text-align: left;
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 10px;
+                                                        transition: background 0.2s;
+                                                    "
+                                                    onmouseover="this.style.background='#f5f5f5';"
+                                                    onmouseout="this.style.background='white';">
+                                                <span style="font-size: 16px;">${isUsed ? '🔄' : '✅'}</span>
+                                                <span>${isUsed ? 'Update Site' : 'Activate'}</span>
+                                            </button>
+                                            ` : ''}
+                                            ${license.subscription_id && license.status === 'active' && !isCancelled ? `
+                                            <button class="menu-cancel-license-subscription-button" 
+                                                    data-key="${license.license_key}"
+                                                    data-subscription-id="${license.subscription_id}"
+                                                    data-purchase-type="${license.purchase_type || ''}"
+                                                    style="
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        background: white;
+                                                        color: #f44336;
+                                                        border: none;
+                                                        text-align: left;
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 10px;
+                                                        transition: background 0.2s;
+                                                    "
+                                                    onmouseover="this.style.background='#ffebee';"
+                                                    onmouseout="this.style.background='white';">
+                                                <span style="font-size: 16px;">🚫</span>
+                                                <span>Cancel Subscription</span>
+                                            </button>
+                                            ` : ''}
+                                            ${isQuantity && license.status === 'active' && !isUsed && !isCancelled ? `
+                                            <button class="menu-deactivate-license-button" 
+                                                    data-key="${license.license_key}"
+                                                    data-purchase-type="${license.purchase_type || ''}"
+                                                    style="
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        background: white;
+                                                        color: #f44336;
+                                                        border: none;
+                                                        text-align: left;
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 10px;
+                                                        transition: background 0.2s;
+                                                    "
+                                                    onmouseover="this.style.background='#ffebee';"
+                                                    onmouseout="this.style.background='white';">
+                                                <span style="font-size: 16px;">➖</span>
+                                                <span>Remove from Subscription</span>
+                                            </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    ` : '<span style="color: #999; font-size: 12px;">No actions available</span>'}
                                 </td>
                             </tr>
                         `;
                     }).join('')}
-                </tbody>
-            </table>
-        `;
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            `;
+        });
         
-        // Add copy button handlers
+        container.innerHTML = html;
+        
+        // Add tab switching functionality
+        container.querySelectorAll('.license-tab-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const selectedTab = this.getAttribute('data-tab');
+                
+                // Update button styles
+                container.querySelectorAll('.license-tab-button').forEach(b => {
+                    b.style.background = '#e0e0e0';
+                    b.style.color = '#666';
+                });
+                this.style.background = '#2196f3';
+                this.style.color = 'white';
+                
+                // Show/hide tab content
+                container.querySelectorAll('.license-tab-content').forEach(content => {
+                    content.style.display = content.getAttribute('data-tab') === selectedTab ? 'block' : 'none';
+                });
+            });
+        });
+        
+        // Add copy button handlers (old handlers removed - now using menu)
+        // Keep this for backward compatibility if needed
         container.querySelectorAll('.copy-license-button').forEach(btn => {
             btn.addEventListener('click', function() {
                 const key = this.getAttribute('data-key');
@@ -1636,9 +1904,10 @@
                 }
                 
                 const button = this;
-                const originalText = button.textContent;
+                const textSpan = button.querySelector('span:last-child');
+                const originalText = textSpan ? textSpan.textContent : (isUpdating ? 'Update Site' : 'Activate');
                 button.disabled = true;
-                button.textContent = isUpdating ? 'Updating...' : 'Activating...';
+                if (textSpan) textSpan.textContent = isUpdating ? 'Updating...' : 'Activating...';
                 
                 try {
                     const response = await fetch(`${API_BASE}/activate-license`, {
@@ -1679,6 +1948,10 @@
                         ? `License site updated successfully to ${siteDomain.trim()}`
                         : `License activated successfully for ${siteDomain.trim()}`));
                     
+                    // Close menu
+                    const menu = button.closest('.license-actions-menu');
+                    if (menu) menu.style.display = 'none';
+                    
                     // Reload licenses to reflect changes
                     if (currentUserEmail) {
                         await loadLicenseKeys(currentUserEmail);
@@ -1687,26 +1960,107 @@
                     console.error('[Dashboard] Error activating/updating license:', error);
                     showError('Failed to ' + (isUpdating ? 'update' : 'activate') + ' license: ' + error.message);
                     button.disabled = false;
-                    button.textContent = originalText;
+                    const textSpan = button.querySelector('span:last-child');
+                    if (textSpan) textSpan.textContent = originalText;
+                }
+            });
+        });
+        
+        // Add cancel subscription handlers for licenses with subscriptions
+        container.querySelectorAll('.menu-cancel-license-subscription-button').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                const key = this.getAttribute('data-key');
+                const subscriptionId = this.getAttribute('data-subscription-id') || 
+                                      this.closest('tr')?.getAttribute('data-subscription-id') || '';
+                
+                // Validate subscription ID is present
+                if (!subscriptionId) {
+                    showError('Subscription ID is missing. Cannot cancel subscription.');
+                    console.error('[Dashboard] Missing subscription ID for license:', key);
+                    return;
+                }
+                
+                // Get purchase type from button data attribute
+                const purchaseType = this.closest('tr')?.getAttribute('data-purchase-type') || 
+                                    this.getAttribute('data-purchase-type') || '';
+                const isIndividualSubscription = purchaseType === 'quantity';
+                
+                let confirmText;
+                if (isIndividualSubscription) {
+                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
+                        + 'This license has its own individual subscription. Canceling it will cancel the entire subscription for this license. The subscription will remain active until the end of the current billing period.';
+                } else {
+                    confirmText = 'Are you sure you want to cancel this license subscription?\n\n'
+                        + 'The subscription will be canceled and will remain active until the end of the current billing period.';
+                }
+                
+                if (!confirm(confirmText)) {
+                    return;
+                }
+
+                const button = this;
+                const textSpan = button.querySelector('span:last-child');
+                const originalText = textSpan ? textSpan.textContent : 'Cancel Subscription';
+                button.disabled = true;
+                if (textSpan) textSpan.textContent = 'Canceling...';
+
+                try {
+                    const response = await fetch(`${API_BASE}/deactivate-license`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            license_key: key,
+                            subscription_id: subscriptionId,
+                            email: currentUserEmail
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'Failed to cancel subscription');
+                    }
+
+                    showSuccess(data.message || 'License subscription canceled successfully. The subscription will remain active until the end of the current billing period.');
+
+                    // Reload licenses and dashboard to reflect changes
+                    if (currentUserEmail) {
+                        await Promise.all([
+                            loadLicenseKeys(currentUserEmail),
+                            loadDashboard(currentUserEmail)
+                        ]);
+                    }
+                } catch (error) {
+                    console.error('[Dashboard] Error canceling license subscription:', error);
+                    showError('Failed to cancel subscription: ' + error.message);
+                    button.disabled = false;
+                    const textSpan = button.querySelector('span:last-child');
+                    if (textSpan) textSpan.textContent = originalText;
                 }
             });
         });
         
         // Add deactivate (remove from subscription) handlers for quantity licenses
-        container.querySelectorAll('.deactivate-license-button').forEach(btn => {
-            btn.addEventListener('click', async function() {
+        container.querySelectorAll('.menu-deactivate-license-button').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
                 const key = this.getAttribute('data-key');
                 
-                // Check if this is an individual subscription (Use Case 3) by checking the license data
-                // For Use Case 3, each license has its own subscription, so no proration
-                const licenseData = licenses.find(l => l.license_key === key);
+                // Get purchase type from button data attribute
+                const purchaseType = this.closest('tr')?.getAttribute('data-purchase-type') || 
+                                    this.getAttribute('data-purchase-type') || '';
+                const subscriptionId = this.closest('tr')?.getAttribute('data-subscription-id') || 
+                                     this.getAttribute('data-subscription-id') || '';
                 
+                // For Use Case 3, each license has its own subscription, so no proration
                 // Heuristic: For quantity purchases, if the subscription_id appears only once in all licenses,
                 // it's likely an individual subscription (Use Case 3 creates one subscription per license)
                 let isIndividualSubscription = false;
-                if (licenseData?.purchase_type === 'quantity' && licenseData?.subscription_id) {
+                if (purchaseType === 'quantity' && subscriptionId) {
                     const licensesWithSameSubscription = licenses.filter(l => 
-                        l.subscription_id === licenseData.subscription_id
+                        l.subscription_id === subscriptionId
                     );
                     // If only one license has this subscription_id, it's an individual subscription
                     isIndividualSubscription = licensesWithSameSubscription.length === 1;
@@ -1726,9 +2080,10 @@
                 }
 
                 const button = this;
-                const originalText = button.textContent;
+                const textSpan = button.querySelector('span:last-child');
+                const originalText = textSpan ? textSpan.textContent : 'Remove from Subscription';
                 button.disabled = true;
-                button.textContent = 'Removing...';
+                if (textSpan) textSpan.textContent = 'Removing...';
 
                 try {
                     const response = await fetch(`${API_BASE}/deactivate-license`, {
@@ -1756,6 +2111,10 @@
                         showSuccess(data.message || 'License removed from subscription successfully. Stripe will handle proration for this change.');
                     }
 
+                    // Close menu
+                    const menu = button.closest('.license-actions-menu');
+                    if (menu) menu.style.display = 'none';
+
                     // Reload licenses and dashboard to reflect new quantity and billing
                     if (currentUserEmail) {
                         await Promise.all([
@@ -1767,7 +2126,8 @@
                     console.error('[Dashboard] Error deactivating license:', error);
                     showError('Failed to deactivate license: ' + error.message);
                     button.disabled = false;
-                    button.textContent = originalText;
+                    const textSpan = button.querySelector('span:last-child');
+                    if (textSpan) textSpan.textContent = 'Remove from Subscription';
                 }
             });
         });
@@ -1803,27 +2163,90 @@
         });
     }
     
+    // Enable/disable license payment plan selection based on purchase status
+    function toggleLicensePaymentPlanSelection(enabled) {
+        const monthlyPlanLicense = document.getElementById('payment-plan-monthly-license');
+        const yearlyPlanLicense = document.getElementById('payment-plan-yearly-license');
+        const monthlyLabelLicense = document.getElementById('monthly-plan-label-license');
+        const yearlyLabelLicense = document.getElementById('yearly-plan-label-license');
+        
+        // Find or create helper message element
+        let helperMessage = document.getElementById('payment-plan-lock-message-license');
+        if (!helperMessage) {
+            // Find the payment plan container to insert message (for license purchases)
+            const planLabel = document.querySelector('#quantity-purchase-container label[style*="Select Payment Plan"]');
+            if (planLabel && planLabel.parentElement) {
+                helperMessage = document.createElement('p');
+                helperMessage.id = 'payment-plan-lock-message-license';
+                helperMessage.style.cssText = 'margin: 8px 0 0 0; font-size: 12px; color: #ff9800; font-style: italic;';
+                planLabel.parentElement.appendChild(helperMessage);
+            }
+        }
+        
+        if (monthlyPlanLicense) {
+            monthlyPlanLicense.disabled = !enabled;
+            monthlyPlanLicense.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+        if (yearlyPlanLicense) {
+            yearlyPlanLicense.disabled = !enabled;
+            yearlyPlanLicense.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+        
+        // Update label styles to show disabled state
+        if (monthlyLabelLicense) {
+            monthlyLabelLicense.style.opacity = enabled ? '1' : '0.6';
+            monthlyLabelLicense.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            if (!enabled) {
+                monthlyLabelLicense.style.background = '#f5f5f5';
+            } else {
+                monthlyLabelLicense.style.background = '';
+            }
+        }
+        if (yearlyLabelLicense) {
+            yearlyLabelLicense.style.opacity = enabled ? '1' : '0.6';
+            yearlyLabelLicense.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            if (!enabled) {
+                yearlyLabelLicense.style.background = '#f5f5f5';
+            } else {
+                yearlyLabelLicense.style.background = '';
+            }
+        }
+        
+        // Show/hide helper message
+        if (helperMessage) {
+            if (!enabled) {
+                helperMessage.textContent = '⚠️ Payment plan is locked. Complete or cancel the current purchase to change.';
+                helperMessage.style.display = 'block';
+            } else {
+                helperMessage.style.display = 'none';
+            }
+        }
+    }
+    
     // Handle quantity purchase
     // Option 2: Creating separate subscriptions (one per license) - no existing subscription needed
     async function handleQuantityPurchase(userEmail, quantity, subscriptionId = null) {
         const button = document.getElementById('purchase-quantity-button');
         const originalText = button.textContent;
         
-        // Price IDs are always available (set as defaults in dashboard)
-        // Get selected payment plan price ID
+        // Validate payment plan is selected
         if (!selectedPaymentPlan || (selectedPaymentPlan !== 'monthly' && selectedPaymentPlan !== 'yearly')) {
             showError('Please select a payment plan (Monthly or Yearly) first');
             return;
         }
         
-        const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : yearlyPriceId;
-        
         // No subscription selection required - we're creating NEW subscriptions
         // subscriptionId is optional and not used for Option 2
         
         try {
+            // Lock payment plan selection before starting purchase
+            toggleLicensePaymentPlanSelection(false);
+            
             button.disabled = true;
             button.textContent = 'Processing...';
+            
+            // Send both price_id (from product IDs) and billing_period for backward compatibility
+            const selectedPriceId = selectedPaymentPlan === 'monthly' ? monthlyPriceId : yearlyPriceId;
             
             const response = await fetch(`${API_BASE}/purchase-quantity`, {
                 method: 'POST',
@@ -1832,7 +2255,8 @@
                 body: JSON.stringify({
                     email: userEmail,
                     quantity: parseInt(quantity),
-                    price_id: selectedPriceId
+                    price_id: selectedPriceId, // Send product ID (backend will convert it)
+                    billing_period: selectedPaymentPlan // Also send billing_period as fallback
                     // subscription_id is optional - not needed for Option 2 (separate subscriptions)
                 })
             });
@@ -1842,6 +2266,10 @@
             if (!response.ok) {
                 throw new Error(data.error || data.message || 'Purchase failed');
             }
+            
+            // Store purchase info in sessionStorage for after payment
+            sessionStorage.setItem('licensePurchaseQuantity', quantity);
+            sessionStorage.setItem('licensePurchaseBillingPeriod', selectedPaymentPlan);
             
             // Redirect to Stripe checkout
             if (data.checkout_url) {
@@ -1854,6 +2282,8 @@
             showError(`Failed to process purchase: ${error.message}`);
             button.disabled = false;
             button.textContent = originalText;
+            // Unlock payment plan selection on error
+            toggleLicensePaymentPlanSelection(true);
         }
     }
     
@@ -1881,30 +2311,144 @@
             return;
         }
         
-        // Create table
-        container.innerHTML = `
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Source</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
-                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
-                        <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${Object.keys(sites).map(site => {
-                        const siteData = sites[site];
-                        const isActive = siteData.status === 'active';
-                        const statusColor = isActive ? '#4caf50' : '#f44336';
-                        const statusBg = isActive ? '#e8f5e9' : '#ffebee';
+        // Categorize sites by status
+        const categorizedSites = {
+            active: [],
+            cancelling: [],
+            cancelled: []
+        };
+        
+        Object.keys(sites).forEach(site => {
+            const siteData = sites[site];
+            const isActive = siteData.status === 'active' || siteData.status === 'trialing';
+            const isCancelling = siteData.cancel_at_period_end || siteData.status === 'cancelling';
+            const isCancelled = siteData.canceled_at || siteData.status === 'canceled' || 
+                               (!isActive && !isCancelling);
+            
+            if (isCancelled) {
+                categorizedSites.cancelled.push({ site, siteData });
+            } else if (isCancelling) {
+                categorizedSites.cancelling.push({ site, siteData });
+            } else {
+                categorizedSites.active.push({ site, siteData });
+            }
+        });
+        
+        // Create tabs HTML
+        let html = `
+            <div style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="site-tab-button" data-tab="active" style="
+                        padding: 12px 20px;
+                        background: #4caf50;
+                        color: white;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Active/Activated (${categorizedSites.active.length})</button>
+                    <button class="site-tab-button" data-tab="cancelling" style="
+                        padding: 12px 20px;
+                        background: #e0e0e0;
+                        color: #666;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Cancelling (${categorizedSites.cancelling.length})</button>
+                    <button class="site-tab-button" data-tab="cancelled" style="
+                        padding: 12px 20px;
+                        background: #e0e0e0;
+                        color: #666;
+                        border: none;
+                        border-radius: 8px 8px 0 0;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.2s;
+                    ">Cancelled (${categorizedSites.cancelled.length})</button>
+                </div>
+            </div>
+        `;
+        
+        // Create table for each tab
+        ['active', 'cancelling', 'cancelled'].forEach(tabName => {
+            const tabSites = categorizedSites[tabName];
+            const isActive = tabName === 'active';
+            
+            html += `
+                <div class="site-tab-content" data-tab="${tabName}" style="display: ${isActive ? 'block' : 'none'};">
+                    ${tabSites.length === 0 ? `
+                        <div style="text-align: center; padding: 40px 20px; color: #999;">
+                            <p style="font-size: 16px; color: #666;">No ${tabName} sites</p>
+                        </div>
+                    ` : `
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Source</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
+                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Created</th>
+                                    <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tabSites.map(({ site, siteData }) => {
+                        const isActive = siteData.status === 'active' || siteData.status === 'trialing';
+                        const isCancelling = siteData.cancel_at_period_end || siteData.status === 'cancelling';
+                        const isCancelled = siteData.canceled_at || siteData.status === 'canceled' || 
+                                           (!isActive && !isCancelling);
+                        
+                        // Determine status display
+                        let statusText, statusColor, statusBg;
+                        if (isCancelled) {
+                            statusText = 'CANCELLED';
+                            statusColor = '#721c24';
+                            statusBg = '#f8d7da';
+                        } else if (isCancelling) {
+                            statusText = 'CANCELLING';
+                            statusColor = '#856404';
+                            statusBg = '#fff3cd';
+                        } else {
+                            statusText = 'ACTIVE';
+                            statusColor = '#4caf50';
+                            statusBg = '#e8f5e9';
+                        }
                         
                         // Get expiration date (renewal_date or current_period_end)
-                        const renewalDate = siteData.renewal_date || siteData.current_period_end;
-                        const renewalDateStr = renewalDate ? new Date(renewalDate * 1000).toLocaleDateString() : 'N/A';
+                        // Try multiple sources: siteData.renewal_date, siteData.current_period_end, or check subscription
+                        let renewalDate = siteData.renewal_date || siteData.current_period_end;
+                        
+                        // If still null/undefined, try to get from the subscription data if available
+                        if ((!renewalDate || renewalDate === null || renewalDate === undefined) && window.dashboardData?.subscriptions) {
+                            const subscription = window.dashboardData.subscriptions[siteData.subscription_id];
+                            if (subscription && subscription.current_period_end) {
+                                renewalDate = subscription.current_period_end;
+                            }
+                        }
+                        
+                        // Convert to date string (handle both Unix timestamp in seconds and milliseconds)
+                        let renewalDateStr = 'N/A';
+                        if (renewalDate) {
+                            try {
+                                // If it's a number, assume it's a Unix timestamp
+                                const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
+                                // If timestamp is less than 1e12, it's in seconds, otherwise milliseconds
+                                const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                renewalDateStr = new Date(dateInMs).toLocaleDateString();
+                            } catch (e) {
+                                console.warn('[Dashboard] Error parsing renewal date:', renewalDate, e);
+                                renewalDateStr = 'N/A';
+                            }
+                        }
+                        
                         const isExpired = renewalDate && renewalDate < Math.floor(Date.now() / 1000);
                         const isInactiveButNotExpired = !isActive && renewalDate && !isExpired;
                         
@@ -1930,10 +2474,15 @@
                         // Get license key
                         const licenseKey = siteData.license?.license_key || siteData.license_key || 'N/A';
                         
+                        // Hide actions menu for cancelled sites
+                        const showActions = !isCancelled;
+                        
                         return `
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;" 
                                 onmouseover="this.style.background='#f8f9fa'" 
-                                onmouseout="this.style.background='white'">
+                                onmouseout="this.style.background='white'"
+                                data-subscription-id="${siteData.subscription_id || ''}"
+                                data-purchase-type="${siteData.purchase_type || ''}">
                                 <td style="padding: 15px; font-weight: 500; color: #333;">${site}</td>
                                 <td style="padding: 15px;">
                                     <span style="
@@ -1955,12 +2504,11 @@
                                         background: ${statusBg};
                                         color: ${statusColor};
                                         display: inline-block;
-                                    ">${siteData.status || 'active'}</span>
+                                    ">${statusText}</span>
                                 </td>
-                                <td style="padding: 15px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
+                                <td style="padding: 15px; font-size: 12px; color: ${isExpired ? '#f44336' : '#666'};">
                                     ${renewalDateStr}
                                     ${isExpired ? ' <span style="color: #f44336; font-size: 11px;">(Expired)</span>' : ''}
-                                    ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                 </td>
                                 <td style="padding: 15px; color: #666; font-size: 12px; font-family: monospace;">
                                     ${licenseKey !== 'N/A' ? licenseKey.substring(0, 20) + '...' : 'N/A'}
@@ -1968,36 +2516,155 @@
                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                     ${siteData.created_at ? new Date(siteData.created_at * 1000).toLocaleDateString() : 'N/A'}
                                 </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    ${isActive ? `
-                                        <button class="remove-site-button" data-site="${site}" data-subscription-id="${siteData.subscription_id || ''}" style="
-                                            padding: 8px 16px;
-                                            background: #f44336;
-                                            color: white;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                            transition: all 0.3s;
-                                        " onmouseover="this.style.background='#d32f2f'; this.style.transform='scale(1.05)'" 
-                                           onmouseout="this.style.background='#f44336'; this.style.transform='scale(1)'">
-                                            Cancel Subscription
-                                        </button>
-                                    ` : '<span style="color: #999; font-size: 12px;">Unsubscribed</span>'}
+                                <td style="padding: 15px; text-align: center; position: relative;">
+                                    ${showActions ? `
+                                    <div style="position: relative; display: inline-block;">
+                                        <button class="site-actions-menu-button" 
+                                                data-site="${site}" 
+                                                data-subscription-id="${siteData.subscription_id || ''}"
+                                                data-purchase-type="${siteData.purchase_type || ''}"
+                                                style="
+                                                    padding: 8px 12px;
+                                                    background: #f5f5f5;
+                                                    color: #666;
+                                                    border: 1px solid #e0e0e0;
+                                                    border-radius: 6px;
+                                                    cursor: pointer;
+                                                    font-size: 18px;
+                                                    font-weight: 600;
+                                                    line-height: 1;
+                                                    transition: all 0.2s;
+                                                " 
+                                                onmouseover="this.style.background='#e0e0e0'; this.style.borderColor='#ccc';"
+                                                onmouseout="this.style.background='#f5f5f5'; this.style.borderColor='#e0e0e0';"
+                                                title="Actions">⋯</button>
+                                        <div class="site-actions-menu" 
+                                             id="menu-site-${site.replace(/[^a-zA-Z0-9]/g, '-')}"
+                                             style="
+                                                display: none;
+                                                position: absolute;
+                                                right: 0;
+                                                top: 100%;
+                                                margin-top: 4px;
+                                                background: white;
+                                                border: 1px solid #e0e0e0;
+                                                border-radius: 8px;
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                                z-index: 1000;
+                                                min-width: 180px;
+                                                padding: 4px 0;
+                                             ">
+                                            <button class="menu-cancel-site-subscription-button" 
+                                                    data-site="${site}"
+                                                    data-subscription-id="${siteData.subscription_id || ''}"
+                                                    data-purchase-type="${siteData.purchase_type || ''}"
+                                                    style="
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        background: white;
+                                                        color: #f44336;
+                                                        border: none;
+                                                        text-align: left;
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 10px;
+                                                        transition: background 0.2s;
+                                                    "
+                                                    onmouseover="this.style.background='#ffebee';"
+                                                    onmouseout="this.style.background='white';">
+                                                <span style="font-size: 16px;">🚫</span>
+                                                <span>Cancel Subscription</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    ` : '<span style="color: #999; font-size: 12px;">No actions available</span>'}
                                 </td>
                             </tr>
                         `;
                     }).join('')}
-                </tbody>
-            </table>
-        `;
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            `;
+        });
         
-        // Attach event listeners to remove buttons
-        container.querySelectorAll('.remove-site-button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const site = btn.getAttribute('data-site');
-                const subscriptionId = btn.getAttribute('data-subscription-id');
+        container.innerHTML = html;
+        
+        // Add tab switching functionality
+        container.querySelectorAll('.site-tab-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const selectedTab = this.getAttribute('data-tab');
+                
+                // Update button styles
+                container.querySelectorAll('.site-tab-button').forEach(b => {
+                    b.style.background = '#e0e0e0';
+                    b.style.color = '#666';
+                });
+                const activeColor = selectedTab === 'active' ? '#4caf50' : selectedTab === 'cancelling' ? '#856404' : '#721c24';
+                this.style.background = activeColor;
+                this.style.color = 'white';
+                
+                // Show/hide tab content
+                container.querySelectorAll('.site-tab-content').forEach(content => {
+                    content.style.display = content.getAttribute('data-tab') === selectedTab ? 'block' : 'none';
+                });
+            });
+        });
+        
+        // Add three-dot menu toggle handlers
+        container.querySelectorAll('.site-actions-menu-button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const site = this.getAttribute('data-site');
+                const menuId = `menu-site-${site.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                const menu = document.getElementById(menuId);
+                
+                // Close all other menus
+                container.querySelectorAll('.site-actions-menu').forEach(m => {
+                    if (m.id !== menuId) {
+                        m.style.display = 'none';
+                    }
+                });
+                
+                // Toggle current menu
+                if (menu) {
+                    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+        });
+        
+        // Close menus when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.site-actions-menu-button') && !e.target.closest('.site-actions-menu')) {
+                container.querySelectorAll('.site-actions-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+        
+        // Add cancel subscription handlers
+        container.querySelectorAll('.menu-cancel-site-subscription-button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const site = this.getAttribute('data-site');
+                const subscriptionId = this.getAttribute('data-subscription-id') || 
+                                      this.closest('tr')?.getAttribute('data-subscription-id') || '';
+                
+                // Validate subscription ID is present
+                if (!subscriptionId) {
+                    showError('Subscription ID is missing. Cannot cancel subscription.');
+                    console.error('[Dashboard] Missing subscription ID for site:', site);
+                    return;
+                }
+                
+                // Close menu
+                const menu = this.closest('.site-actions-menu');
+                if (menu) menu.style.display = 'none';
+                
+                // Call removeSite function
                 removeSite(site, subscriptionId);
             });
         });
@@ -2077,12 +2744,30 @@
                     siteName = 'Unknown Site';
                 }
                 
+                // Get billing period and expiration date
+                const billingPeriod = sub.billingPeriod || 'monthly';
+                const billingPeriodDisplay = billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
+                const currentPeriodEnd = sub.current_period_end;
+                let expirationDate = 'N/A';
+                if (currentPeriodEnd) {
+                    try {
+                        const timestamp = typeof currentPeriodEnd === 'number' ? currentPeriodEnd : parseInt(currentPeriodEnd);
+                        const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                        expirationDate = new Date(dateInMs).toLocaleDateString();
+                    } catch (e) {
+                        console.warn('[Dashboard] Error parsing expiration date:', e);
+                    }
+                }
+                
                 subscribedItems.push({
                     type: 'site',
                     name: siteName,
                     licenseKey: license?.license_key || 'N/A',
                     status: sub.status || 'active',
-                    subscriptionId: subId
+                    subscriptionId: subId,
+                    billingPeriod: billingPeriod,
+                    billingPeriodDisplay: billingPeriodDisplay,
+                    expirationDate: expirationDate
                 });
             } else if (purchaseType === 'quantity') {
                 // Use Case 3: License key subscriptions
@@ -2131,9 +2816,24 @@
                         ">
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${item.type === 'site' ? '🌐 ' + item.name : '🔑 ' + item.name}</div>
-                                <div style="font-size: 12px; color: #666;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: ${item.type === 'site' ? '4px' : '0'};">
                                     ${item.type === 'site' ? `License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">${item.licenseKey}</code>` : `Activated Site: <span style="color: ${item.usedSite !== 'Not assigned' ? '#4caf50' : '#999'}">${item.usedSite}</span>`}
                                 </div>
+                                ${item.type === 'site' && item.billingPeriodDisplay ? `
+                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+                                    <span style="
+                                        padding: 3px 8px;
+                                        border-radius: 12px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        background: ${item.billingPeriod === 'yearly' ? '#f3e5f5' : '#e3f2fd'};
+                                        color: ${item.billingPeriod === 'yearly' ? '#9c27b0' : '#2196f3'};
+                                    ">${item.billingPeriodDisplay}</span>
+                                    <span style="font-size: 11px; color: #666;">
+                                        Expires: ${item.expirationDate || 'N/A'}
+                                    </span>
+                                </div>
+                                ` : ''}
                             </div>
                             <span style="
                                 padding: 4px 12px;
@@ -2150,6 +2850,89 @@
         }
     }
     
+    // Enable/disable payment plan selection based on pending sites
+    function togglePaymentPlanSelection(enabled) {
+        const monthlyPlan = document.getElementById('payment-plan-monthly');
+        const yearlyPlan = document.getElementById('payment-plan-yearly');
+        const monthlyLabel = document.getElementById('monthly-plan-label');
+        const yearlyLabel = document.getElementById('yearly-plan-label');
+        
+        if (monthlyPlan) {
+            monthlyPlan.disabled = !enabled;
+            monthlyPlan.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+        if (yearlyPlan) {
+            yearlyPlan.disabled = !enabled;
+            yearlyPlan.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+        
+        // Find or create helper message element
+        let helperMessage = document.getElementById('payment-plan-lock-message');
+        if (!helperMessage) {
+            // Find the payment plan container to insert message
+            const planLabel = document.querySelector('label[style*="Select Payment Plan"]');
+            if (planLabel && planLabel.parentElement) {
+                helperMessage = document.createElement('p');
+                helperMessage.id = 'payment-plan-lock-message';
+                helperMessage.style.cssText = 'margin: 8px 0 0 0; font-size: 12px; color: #ff9800; font-style: italic;';
+                planLabel.parentElement.appendChild(helperMessage);
+            }
+        }
+        
+        // Update label styles to show disabled state
+        if (monthlyLabel) {
+            monthlyLabel.style.opacity = enabled ? '1' : '0.6';
+            monthlyLabel.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            if (!enabled) {
+                monthlyLabel.style.background = '#f5f5f5';
+            } else {
+                monthlyLabel.style.background = '';
+            }
+        }
+        if (yearlyLabel) {
+            yearlyLabel.style.opacity = enabled ? '1' : '0.6';
+            yearlyLabel.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            if (!enabled) {
+                yearlyLabel.style.background = '#f5f5f5';
+            } else {
+                yearlyLabel.style.background = '';
+            }
+        }
+        
+        // Show/hide helper message
+        if (helperMessage) {
+            if (!enabled) {
+                helperMessage.textContent = '⚠️ Payment plan is locked. Remove all pending sites or complete payment to change.';
+                helperMessage.style.display = 'block';
+            } else {
+                helperMessage.style.display = 'none';
+            }
+        }
+        
+        // Show/hide helper message
+        let helperMsg = document.getElementById('payment-plan-helper-msg');
+        if (!enabled) {
+            if (!helperMsg) {
+                // Create helper message
+                const planContainer = document.querySelector('#subscriptions-section .payment-plan-container') || 
+                                     document.querySelector('#subscriptions-section');
+                if (planContainer) {
+                    helperMsg = document.createElement('p');
+                    helperMsg.id = 'payment-plan-helper-msg';
+                    helperMsg.style.cssText = 'color: #ff9800; font-size: 12px; margin-top: 8px; font-style: italic;';
+                    helperMsg.textContent = '⚠️ Cannot change payment plan while sites are pending. Remove all pending sites or complete payment first.';
+                    planContainer.appendChild(helperMsg);
+                }
+            } else {
+                helperMsg.style.display = 'block';
+            }
+        } else {
+            if (helperMsg) {
+                helperMsg.style.display = 'none';
+            }
+        }
+    }
+    
     // Update pending sites display for Use Case 2
     function updatePendingSitesDisplayUseCase2(pendingSites) {
         const container = document.getElementById('pending-sites-usecase2-list');
@@ -2159,6 +2942,9 @@
         
         // Filter pending sites (all pending sites for Use Case 2)
         const allPendingSites = pendingSites || [];
+        
+        // Enable/disable payment plan selection based on pending sites
+        togglePaymentPlanSelection(allPendingSites.length === 0);
         
         if (allPendingSites.length === 0) {
             container.innerHTML = '<p style="color: #999; margin: 0; font-size: 14px;">No pending sites. Add sites above to get started.</p>';
@@ -2296,34 +3082,126 @@
         
         // Setup handlers for site subscriptions
         if (monthlyPlan) {
-            monthlyPlan.addEventListener('change', () => {
+            monthlyPlan.addEventListener('change', (e) => {
+                // Check if payment plan selection is disabled (pending sites exist)
+                if (monthlyPlan.disabled) {
+                    e.preventDefault();
+                    monthlyPlan.checked = false;
+                    // Re-check the previously selected plan
+                    if (selectedPaymentPlan === 'monthly') {
+                        monthlyPlan.checked = true;
+                    } else if (selectedPaymentPlan === 'yearly' && yearlyPlan) {
+                        yearlyPlan.checked = true;
+                    }
+                    showError('Cannot change payment plan while sites are pending. Remove all pending sites or complete payment first.');
+                    return false;
+                }
                 if (monthlyPlan.checked) {
                     handlePaymentPlanChange('monthly', false);
+                }
+            });
+            
+            // Also prevent click when disabled
+            monthlyPlan.addEventListener('click', (e) => {
+                if (monthlyPlan.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showError('Cannot change payment plan while sites are pending. Remove all pending sites or complete payment first.');
+                    return false;
                 }
             });
         }
         
         if (yearlyPlan) {
-            yearlyPlan.addEventListener('change', () => {
+            yearlyPlan.addEventListener('change', (e) => {
+                // Check if payment plan selection is disabled (pending sites exist)
+                if (yearlyPlan.disabled) {
+                    e.preventDefault();
+                    yearlyPlan.checked = false;
+                    // Re-check the previously selected plan
+                    if (selectedPaymentPlan === 'yearly') {
+                        yearlyPlan.checked = true;
+                    } else if (selectedPaymentPlan === 'monthly' && monthlyPlan) {
+                        monthlyPlan.checked = true;
+                    }
+                    showError('Cannot change payment plan while sites are pending. Remove all pending sites or complete payment first.');
+                    return false;
+                }
                 if (yearlyPlan.checked) {
                     handlePaymentPlanChange('yearly', false);
+                }
+            });
+            
+            // Also prevent click when disabled
+            yearlyPlan.addEventListener('click', (e) => {
+                if (yearlyPlan.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showError('Cannot change payment plan while sites are pending. Remove all pending sites or complete payment first.');
+                    return false;
                 }
             });
         }
         
         // Setup handlers for license keys
         if (monthlyPlanLicense) {
-            monthlyPlanLicense.addEventListener('change', () => {
+            monthlyPlanLicense.addEventListener('change', (e) => {
+                // Check if payment plan selection is disabled (purchase in progress)
+                if (monthlyPlanLicense.disabled) {
+                    e.preventDefault();
+                    monthlyPlanLicense.checked = false;
+                    // Re-check the previously selected plan
+                    if (selectedPaymentPlan === 'monthly') {
+                        monthlyPlanLicense.checked = true;
+                    } else if (selectedPaymentPlan === 'yearly' && yearlyPlanLicense) {
+                        yearlyPlanLicense.checked = true;
+                    }
+                    showError('Cannot change payment plan while purchase is in progress. Complete or cancel the current purchase first.');
+                    return false;
+                }
                 if (monthlyPlanLicense.checked) {
                     handlePaymentPlanChange('monthly', true);
+                }
+            });
+            
+            // Also prevent click when disabled
+            monthlyPlanLicense.addEventListener('click', (e) => {
+                if (monthlyPlanLicense.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showError('Cannot change payment plan while purchase is in progress. Complete or cancel the current purchase first.');
+                    return false;
                 }
             });
         }
         
         if (yearlyPlanLicense) {
-            yearlyPlanLicense.addEventListener('change', () => {
+            yearlyPlanLicense.addEventListener('change', (e) => {
+                // Check if payment plan selection is disabled (purchase in progress)
+                if (yearlyPlanLicense.disabled) {
+                    e.preventDefault();
+                    yearlyPlanLicense.checked = false;
+                    // Re-check the previously selected plan
+                    if (selectedPaymentPlan === 'yearly') {
+                        yearlyPlanLicense.checked = true;
+                    } else if (selectedPaymentPlan === 'monthly' && monthlyPlanLicense) {
+                        monthlyPlanLicense.checked = true;
+                    }
+                    showError('Cannot change payment plan while purchase is in progress. Complete or cancel the current purchase first.');
+                    return false;
+                }
                 if (yearlyPlanLicense.checked) {
                     handlePaymentPlanChange('yearly', true);
+                }
+            });
+            
+            // Also prevent click when disabled
+            yearlyPlanLicense.addEventListener('click', (e) => {
+                if (yearlyPlanLicense.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showError('Cannot change payment plan while purchase is in progress. Complete or cancel the current purchase first.');
+                    return false;
                 }
             });
         }
@@ -2415,10 +3293,33 @@
                     return;
                 }
                 
-                // Add to local pending list (no backend call)
+                // Add to local pending list
                 window.dashboardData.pendingSites.push({
                     site: site,
                     billing_period: selectedPaymentPlan
+                });
+                
+                // Persist to localStorage (survives page refresh)
+                try {
+                    localStorage.setItem('pendingSitesLocal', JSON.stringify(window.dashboardData.pendingSites));
+                } catch (e) {
+                    console.warn('[Dashboard] Could not save to localStorage:', e);
+                }
+                
+                // Save to backend in background (non-blocking, silent)
+                // This ensures pending sites persist even if localStorage fails
+                fetch(`${API_BASE}/add-sites-batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        sites: [{ site: site }],
+                        email: userEmail,
+                        billing_period: selectedPaymentPlan
+                    })
+                }).catch(err => {
+                    // Silently fail - local storage is backup
+                    console.warn('[Dashboard] Background save failed (non-critical):', err);
                 });
                 
                 // Update display immediately
@@ -2449,7 +3350,32 @@
                     // Remove from local list
                     pendingSites.splice(index, 1);
                     
-                    // Update display immediately
+                    // Update localStorage
+                    try {
+                        if (pendingSites.length > 0) {
+                            localStorage.setItem('pendingSitesLocal', JSON.stringify(pendingSites));
+                        } else {
+                            localStorage.removeItem('pendingSitesLocal');
+                        }
+                    } catch (e) {
+                        console.warn('[Dashboard] Could not update localStorage:', e);
+                    }
+                    
+                    // Remove from backend in background (non-blocking, silent)
+                    fetch(`${API_BASE}/remove-pending-site`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            site: site,
+                            email: userEmail
+                        })
+                    }).catch(err => {
+                        // Silently fail - local storage is backup
+                        console.warn('[Dashboard] Background remove failed (non-critical):', err);
+                    });
+                    
+                    // Update display immediately (this will also toggle payment plan selection)
                     updatePendingSitesDisplayUseCase2(pendingSites);
                     
                     showSuccess(`Site "${site}" removed from pending list`);
@@ -2502,6 +3428,13 @@
                     // Store pending sites in sessionStorage for immediate display after payment
                     sessionStorage.setItem('pendingSitesForPayment', JSON.stringify(pendingSites));
                     sessionStorage.setItem('selectedPaymentPlan', selectedPaymentPlan);
+                    
+                    // Clear localStorage since we're processing payment
+                    try {
+                        localStorage.removeItem('pendingSitesLocal');
+                    } catch (e) {
+                        console.warn('[Dashboard] Could not clear localStorage:', e);
+                    }
                     
                     // Create checkout - backend will determine price ID from billing_period
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
@@ -2631,6 +3564,16 @@
         const sessionId = urlParams.get('session_id');
         
         if (paymentSuccess || sessionId) {
+            // Check if this was a license purchase return and unlock license payment plan
+            const licensePurchaseQuantity = sessionStorage.getItem('licensePurchaseQuantity');
+            if (licensePurchaseQuantity) {
+                // Clear license purchase session data
+                sessionStorage.removeItem('licensePurchaseQuantity');
+                sessionStorage.removeItem('licensePurchaseBillingPeriod');
+                // Unlock license payment plan selection
+                toggleLicensePaymentPlanSelection(true);
+            }
+            
             // Get pending sites from sessionStorage
             const storedPendingSites = sessionStorage.getItem('pendingSitesForPayment');
             const selectedPlan = sessionStorage.getItem('selectedPaymentPlan');
@@ -2658,9 +3601,30 @@
                             itemsContainer = container.querySelector('div');
                         }
                         
+                        // Get billing period from sessionStorage
+                        const storedBillingPeriod = sessionStorage.getItem('selectedPaymentPlan') || 'monthly';
+                        
+                        // Calculate expiration date based on billing period
+                        const calculateExpirationDate = (billingPeriod) => {
+                            const now = new Date();
+                            const expirationDate = new Date(now);
+                            if (billingPeriod === 'yearly') {
+                                expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+                            } else {
+                                expirationDate.setMonth(expirationDate.getMonth() + 1);
+                            }
+                            return expirationDate.toLocaleDateString();
+                        };
+                        
                         // Add new items immediately
                         const newItemsHTML = pendingSites.map(ps => {
                             const siteName = ps.site || ps.site_domain || ps;
+                            const billingPeriod = ps.billing_period || storedBillingPeriod;
+                            const expirationDate = calculateExpirationDate(billingPeriod);
+                            const billingPeriodDisplay = billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
+                            const billingPeriodColor = billingPeriod === 'yearly' ? '#9c27b0' : '#2196f3';
+                            const billingPeriodBg = billingPeriod === 'yearly' ? '#f3e5f5' : '#e3f2fd';
+                            
                             return `
                                 <div style="
                                     display: flex;
@@ -2675,8 +3639,21 @@
                                 ">
                                     <div style="flex: 1;">
                                         <div style="font-weight: 600; color: #333; margin-bottom: 4px;">🌐 ${siteName}</div>
-                                        <div style="font-size: 12px; color: #666;">
+                                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
                                             License Key: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">Processing...</code>
+                                        </div>
+                                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                            <span style="
+                                                padding: 3px 8px;
+                                                border-radius: 12px;
+                                                font-size: 11px;
+                                                font-weight: 600;
+                                                background: ${billingPeriodBg};
+                                                color: ${billingPeriodColor};
+                                            ">${billingPeriodDisplay}</span>
+                                            <span style="font-size: 11px; color: #666;">
+                                                Expires: ${expirationDate}
+                                            </span>
                                         </div>
                                     </div>
                                     <span style="
@@ -2702,6 +3679,29 @@
                     sessionStorage.removeItem('pendingSitesForPayment');
                     sessionStorage.removeItem('selectedPaymentPlan');
                     
+                    // Clear localStorage after successful payment
+                    try {
+                        localStorage.removeItem('pendingSitesLocal');
+                    } catch (e) {
+                        console.warn('[Dashboard] Could not clear localStorage:', e);
+                    }
+                    
+                    // Re-enable payment plan selection after payment
+                    if (window.dashboardData?.pendingSites) {
+                        window.dashboardData.pendingSites = [];
+                    }
+                    togglePaymentPlanSelection(true);
+                    
+                    // Check if this was a license purchase return and unlock license payment plan
+                    const licensePurchaseQuantity = sessionStorage.getItem('licensePurchaseQuantity');
+                    if (licensePurchaseQuantity) {
+                        // Clear license purchase session data
+                        sessionStorage.removeItem('licensePurchaseQuantity');
+                        sessionStorage.removeItem('licensePurchaseBillingPeriod');
+                        // Unlock license payment plan selection
+                        toggleLicensePaymentPlanSelection(true);
+                    }
+                    
                     // Remove payment params from URL
                     const newUrl = window.location.pathname;
                     window.history.replaceState({}, '', newUrl);
@@ -2711,13 +3711,25 @@
                 }
             }
             
-            // Reload dashboard data in background to sync with backend
+            // Clear localStorage after successful payment
+            try {
+                localStorage.removeItem('pendingSitesLocal');
+            } catch (e) {
+                console.warn('[Dashboard] Could not clear localStorage:', e);
+            }
+            
+            // Reload dashboard data in background to sync with backend (only if needed)
+            // Use a debounce to prevent multiple rapid reloads
             const userEmail = await getLoggedInEmail();
-            if (userEmail) {
-                // Reload in background without blocking UI
-                loadDashboard(userEmail).catch(err => {
-                    console.error('[Dashboard] Error reloading dashboard:', err);
-                });
+            if (userEmail && !window.dashboardReloadPending) {
+                window.dashboardReloadPending = true;
+                // Delay reload slightly to batch multiple updates
+                setTimeout(() => {
+                    window.dashboardReloadPending = false;
+                    loadDashboard(userEmail, false).catch(err => {
+                        console.error('[Dashboard] Error reloading dashboard:', err);
+                    });
+                }, 500);
             }
         }
     }
@@ -3320,8 +4332,38 @@
                             const result = await response.json();
                             showSuccess(`Site "${removedSiteName}" removed from pending list`);
                             
-                            // Refresh dashboard data to ensure sync
-                            await loadDashboard(userEmail);
+                            // Update local data immediately (no full reload needed)
+                            if (window.dashboardData?.pendingSites) {
+                                window.dashboardData.pendingSites = window.dashboardData.pendingSites.filter(ps => {
+                                    const psSite = (ps.site || ps.site_domain || ps).toLowerCase().trim();
+                                    return psSite !== removedSiteName.toLowerCase().trim();
+                                });
+                                
+                                // Update localStorage
+                                try {
+                                    if (window.dashboardData.pendingSites.length > 0) {
+                                        localStorage.setItem('pendingSitesLocal', JSON.stringify(window.dashboardData.pendingSites));
+                                    } else {
+                                        localStorage.removeItem('pendingSitesLocal');
+                                    }
+                                } catch (e) {
+                                    console.warn('[Dashboard] Could not update localStorage:', e);
+                                }
+                                
+                                // Update display
+                                updatePendingSitesDisplayUseCase2(window.dashboardData.pendingSites);
+                            }
+                            
+                            // Only reload if absolutely necessary (debounced)
+                            if (!window.dashboardReloadPending) {
+                                window.dashboardReloadPending = true;
+                                setTimeout(() => {
+                                    window.dashboardReloadPending = false;
+                                    loadDashboard(userEmail, false).catch(err => {
+                                        console.error('[Dashboard] Error reloading dashboard:', err);
+                                    });
+                                }, 1000);
+                            }
                         } else {
                             const error = await response.text();
                             console.error('[Dashboard] ❌ Failed to remove pending site:', error);
@@ -3948,10 +4990,10 @@
         // This ensures the overlay appears right away while data loads
         checkPaymentReturn();
         
-        // Load dashboard data
+        // Load dashboard data (show loaders on initial load)
         try {
             await Promise.all([
-                loadDashboard(userEmail),
+                loadDashboard(userEmail, true), // Show loaders on initial load
                 loadLicenses(userEmail)
             ]);
         } catch (error) {
