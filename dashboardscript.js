@@ -1642,10 +1642,9 @@
             const params = new URLSearchParams({ email: userEmail });
             if (type) params.append('type', type);
             if (status) params.append('status', status);
-            if (offset > 0) {
-                params.append('limit', ITEMS_PER_PAGE);
-                params.append('offset', offset);
-            }
+            // Always send limit and offset for pagination (even on initial load)
+            params.append('limit', ITEMS_PER_PAGE);
+            params.append('offset', offset);
             
             // Don't use cache for paginated requests (need fresh data)
             const useCache = offset === 0 && !type && !status;
@@ -1985,10 +1984,9 @@
             // Build query parameters for server-side pagination
             const params = new URLSearchParams({ email: userEmail });
             if (status) params.append('status', status);
-            if (offset > 0) {
-                params.append('limit', ITEMS_PER_PAGE);
-                params.append('offset', offset);
-            }
+            // Always send limit and offset for pagination (even on initial load)
+            params.append('limit', ITEMS_PER_PAGE);
+            params.append('offset', offset);
             
             // Don't use cache for paginated requests (need fresh data)
             const useCache = offset === 0 && !status;
