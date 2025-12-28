@@ -416,7 +416,7 @@
     /**
      * Pagination configuration
      */
-    const ITEMS_PER_PAGE = 15;
+    const ITEMS_PER_PAGE = 10;
     
     /**
      * Pagination state storage
@@ -481,55 +481,103 @@
     /**
      * Handle load more button click
      */
+    /**
+     * Load more items (shared function for both click and scroll)
+     */
+    async function loadMoreItems(button) {
+        const section = button.getAttribute('data-section');
+        const tab = button.getAttribute('data-tab');
+        const total = parseInt(button.getAttribute('data-total'));
+        const displayed = parseInt(button.getAttribute('data-displayed'));
+        
+        // Check if already loading or no more items
+        if (button.disabled || button.classList.contains('loading')) {
+            return;
+        }
+        
+        // Calculate offset: use the number of items already displayed
+        const offset = displayed;
+        
+        // Disable button and show loading state
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.classList.add('loading');
+        button.textContent = 'Loading...';
+        
+        try {
+            const userEmail = currentUserEmail;
+            if (!userEmail) {
+                throw new Error('User email not available');
+            }
+            
+            // Reload the appropriate section with offset
+            if (section === 'licenses') {
+                // Load more license keys with offset
+                await loadLicenseKeys(userEmail, tab, offset);
+            } else if (section === 'sites') {
+                // Load more sites with offset
+                await loadDashboard(userEmail, false, 'sites', tab, offset);
+            } else if (section === 'subscriptions') {
+                // Load more subscriptions with offset
+                await loadDashboard(userEmail, false, 'subscriptions', tab, offset);
+            }
+        } catch (error) {
+            console.error(`[Load More] Error loading more ${section}:`, error);
+            showError(`Failed to load more items: ${error.message}`);
+            // Re-enable button on error
+            button.disabled = false;
+            button.classList.remove('loading');
+            button.textContent = originalText;
+        }
+    }
+    
     function setupLoadMoreHandlers() {
-        // Remove existing handlers to prevent duplicates
+        // Remove existing handlers and observers to prevent duplicates
         document.querySelectorAll('.load-more-button').forEach(btn => {
-            btn.replaceWith(btn.cloneNode(true));
+            // Remove old click listeners
+            const newBtn = btn.cloneNode(true);
+            btn.replaceWith(newBtn);
         });
         
-        // Add new handlers
+        // Clean up old observers
+        if (window.loadMoreObservers) {
+            window.loadMoreObservers.forEach(observer => observer.disconnect());
+        }
+        window.loadMoreObservers = [];
+        
+        // Add click handlers (fallback for manual loading)
         document.querySelectorAll('.load-more-button').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const section = this.getAttribute('data-section');
-                const tab = this.getAttribute('data-tab');
-                const total = parseInt(this.getAttribute('data-total'));
-                const displayed = parseInt(this.getAttribute('data-displayed'));
-                
-                // Calculate offset: use the number of items already displayed
-                const offset = displayed;
-                
-                // Disable button and show loading state
-                const button = this;
-                const originalText = button.textContent;
-                button.disabled = true;
-                button.textContent = 'Loading...';
-                
-                try {
-                    const userEmail = currentUserEmail;
-                    if (!userEmail) {
-                        throw new Error('User email not available');
-                    }
-                    
-                    // Reload the appropriate section with offset
-                    if (section === 'licenses') {
-                        // Load more license keys with offset
-                        await loadLicenseKeys(userEmail, tab, offset);
-                    } else if (section === 'sites') {
-                        // Load more sites with offset
-                        await loadDashboard(userEmail, false, 'sites', tab, offset);
-                    } else if (section === 'subscriptions') {
-                        // Load more subscriptions with offset
-                        await loadDashboard(userEmail, false, 'subscriptions', tab, offset);
-                    }
-                } catch (error) {
-                    console.error(`[Load More] Error loading more ${section}:`, error);
-                    showError(`Failed to load more items: ${error.message}`);
-                    // Re-enable button on error
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                await loadMoreItems(this);
             });
         });
+        
+        // Set up Intersection Observer for scroll-based loading
+        const observerOptions = {
+            root: null, // Use viewport as root
+            rootMargin: '200px', // Start loading 200px before button is visible
+            threshold: 0.1 // Trigger when 10% of button is visible
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const button = entry.target;
+                    // Only auto-load if button is not disabled and not already loading
+                    if (!button.disabled && !button.classList.contains('loading')) {
+                        loadMoreItems(button);
+                    }
+                }
+            });
+        }, observerOptions);
+        
+        // Observe all load more buttons
+        document.querySelectorAll('.load-more-button').forEach(btn => {
+            observer.observe(btn);
+        });
+        
+        window.loadMoreObservers.push(observer);
     }
     // ==================== END PAGINATION HELPER ====================
     
