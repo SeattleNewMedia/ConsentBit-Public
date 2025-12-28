@@ -1645,11 +1645,16 @@
             }
             
             // Priority: existingLocalPending > persistedPendingSites > backendPendingSites
+            // BUT: If persistedPendingSites exists and is different from backend, trust localStorage (user's local changes)
             let finalPendingSites = existingLocalPending;
-            if (finalPendingSites.length === 0 && persistedPendingSites.length > 0) {
-                finalPendingSites = persistedPendingSites;
-            } else if (finalPendingSites.length === 0) {
-                finalPendingSites = backendPendingSites;
+            if (finalPendingSites.length === 0) {
+                if (persistedPendingSites.length > 0) {
+                    // Use localStorage if it exists (user's local changes take precedence)
+                    finalPendingSites = persistedPendingSites;
+                } else {
+                    // Fallback to backend only if localStorage is empty
+                    finalPendingSites = backendPendingSites;
+                }
             }
             
             // Update localStorage with current pending sites
@@ -2219,23 +2224,35 @@
                           statusBg = '#e3f2fd';
                         }
                         
-                        // Get billing period from subscription
+                        // Get billing period - prioritize license.billing_period from database
                         let billingPeriod = 'N/A';
                         let billingPeriodDisplay = 'N/A';
-                        if (license.subscription_id && subscriptions[license.subscription_id]) {
+                        if (license.billing_period) {
+                            // First check: billing_period from license record (most reliable)
+                            billingPeriod = license.billing_period;
+                            billingPeriodDisplay = billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1);
+                        } else if (license.subscription_id && subscriptions[license.subscription_id]) {
+                            // Fallback: get from subscription data
                             const sub = subscriptions[license.subscription_id];
-                            billingPeriod = sub.billingPeriod || sub.billing_period || license.billing_period || 'N/A';
+                            billingPeriod = sub.billingPeriod || sub.billing_period || 'N/A';
                             if (billingPeriod && billingPeriod !== 'N/A') {
                                 billingPeriodDisplay = billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1);
                             }
-                        } else if (license.billing_period) {
-                            billingPeriod = license.billing_period;
-                            billingPeriodDisplay = billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1);
                         }
                         
-                        // Get expiration date from subscription
+                        // Get expiration date - check renewal_date first, then subscription data
                         let expirationDate = 'N/A';
-                        if (license.subscription_current_period_end) {
+                        if (license.renewal_date) {
+                            try {
+                                const timestamp = typeof license.renewal_date === 'number' 
+                                    ? license.renewal_date 
+                                    : parseInt(license.renewal_date);
+                                const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                expirationDate = new Date(dateInMs).toLocaleDateString();
+                            } catch (e) {
+                                console.warn('[Dashboard] Error parsing renewal_date:', e);
+                            }
+                        } else if (license.subscription_current_period_end) {
                             try {
                                 const timestamp = typeof license.subscription_current_period_end === 'number' 
                                     ? license.subscription_current_period_end 
@@ -2354,18 +2371,21 @@
                                                     title="Copy License Key"
                                                     style="
                                                         width: 100%;
-                                                        padding: 10px 16px;
+                                                        padding: 12px;
                                                         background: white;
                                                         color: #333;
                                                         border: none;
-                                                        text-align: left;
+                                                        text-align: center;
                                                         cursor: pointer;
-                                                        font-size: 14px;
+                                                        font-size: 20px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#f5f5f5';"
                                                     onmouseout="this.style.background='white';">
-                                                Copy License Key
+                                                📋
                                             </button>
                                             ${(isQuantity && !isUsed) || (!isQuantity && isUsed && !isCancelled) ? `
                                             <button class="menu-activate-license-button" 
@@ -2374,18 +2394,21 @@
                                                     title="${isUsed ? 'Update Site' : 'Activate License'}"
                                                     style="
                                                         width: 100%;
-                                                        padding: 10px 16px;
+                                                        padding: 12px;
                                                         background: white;
                                                         color: #333;
                                                         border: none;
-                                                        text-align: left;
+                                                        text-align: center;
                                                         cursor: pointer;
-                                                        font-size: 14px;
+                                                        font-size: 20px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#f5f5f5';"
                                                     onmouseout="this.style.background='white';">
-                                                ${isUsed ? 'Update Site' : 'Activate'}
+                                                ${isUsed ? '🔄' : '✅'}
                                             </button>
                                             ` : ''}
                                             ${license.subscription_id && license.status === 'active' && !isCancelled ? `
@@ -2396,18 +2419,21 @@
                                                     title="Cancel Subscription"
                                                     style="
                                                         width: 100%;
-                                                        padding: 10px 16px;
+                                                        padding: 12px;
                                                         background: white;
                                                         color: #f44336;
                                                         border: none;
-                                                        text-align: left;
+                                                        text-align: center;
                                                         cursor: pointer;
-                                                        font-size: 14px;
+                                                        font-size: 20px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#ffebee';"
                                                     onmouseout="this.style.background='white';">
-                                                Cancel Subscription
+                                                🚫
                                             </button>
                                             ` : ''}
                                         </div>
@@ -3184,18 +3210,21 @@
                                                     title="Cancel Subscription"
                                                     style="
                                                         width: 100%;
-                                                        padding: 10px 16px;
+                                                        padding: 12px;
                                                         background: white;
                                                         color: #f44336;
                                                         border: none;
-                                                        text-align: left;
+                                                        text-align: center;
                                                         cursor: pointer;
-                                                        font-size: 14px;
+                                                        font-size: 20px;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
                                                         transition: background 0.2s;
                                                     "
                                                     onmouseover="this.style.background='#ffebee';"
                                                     onmouseout="this.style.background='white';">
-                                                Cancel Subscription
+                                                🚫
                                             </button>
                                         </div>
                                     </div>
@@ -3611,18 +3640,21 @@
                                                                     title="Copy License Key"
                                                                     style="
                                                                         width: 100%;
-                                                                        padding: 10px 16px;
+                                                                        padding: 12px;
                                                                         background: white;
                                                                         color: #333;
                                                                         border: none;
-                                                                        text-align: left;
+                                                                        text-align: center;
                                                                         cursor: pointer;
-                                                                        font-size: 14px;
+                                                                        font-size: 20px;
+                                                                        display: flex;
+                                                                        align-items: center;
+                                                                        justify-content: center;
                                                                         transition: background 0.2s;
                                                                     "
                                                                     onmouseover="this.style.background='#f5f5f5';"
                                                                     onmouseout="this.style.background='white';">
-                                                                Copy License Key
+                                                                📋
                                                             </button>
                                                             ` : ''}
                                                         </div>
@@ -4239,7 +4271,7 @@
         }
         
         // Remove pending site buttons (local only - no backend call until Pay Now)
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             if (e.target.classList.contains('remove-pending-site-usecase2')) {
                 const index = parseInt(e.target.getAttribute('data-site-index'));
                 // Get pending sites from dashboard data
@@ -4268,19 +4300,28 @@
                         console.warn('[Dashboard] Could not update localStorage:', e);
                     }
                     
-                    // Remove from backend in background (non-blocking, silent)
-                    fetch(`${API_BASE}/remove-pending-site`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ 
-                            site: site,
-                            email: userEmail
-                        })
-                    }).catch(err => {
-                        // Silently fail - local storage is backup
-                        console.warn('[Dashboard] Background remove failed (non-critical):', err);
-                    });
+                    // Remove from backend (await to ensure it completes)
+                    try {
+                        const response = await fetch(`${API_BASE}/remove-pending-site`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ 
+                                site: site,
+                                email: userEmail
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('[Dashboard] Site removed from backend:', result);
+                        } else {
+                            console.warn('[Dashboard] Backend removal failed, but local removal succeeded');
+                        }
+                    } catch (err) {
+                        // Log error but don't block - local storage is backup
+                        console.warn('[Dashboard] Error removing site from backend (non-critical):', err);
+                    }
                     
                     // Update display immediately (this will also toggle payment plan selection)
                     updatePendingSitesDisplayUseCase2(pendingSites);
