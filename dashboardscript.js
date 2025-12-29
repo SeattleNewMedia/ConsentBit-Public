@@ -1705,28 +1705,44 @@
                 console.warn('[Dashboard] Could not load persisted pending sites:', e);
             }
             
-            // Priority: existingLocalPending > persistedPendingSites > backendPendingSites
-            // BUT: If persistedPendingSites exists and is different from backend, trust localStorage (user's local changes)
-            let finalPendingSites = existingLocalPending;
-            if (finalPendingSites.length === 0) {
-                if (persistedPendingSites.length > 0) {
-                    // Use localStorage if it exists (user's local changes take precedence)
-                    finalPendingSites = persistedPendingSites;
-                } else {
-                    // Fallback to backend only if localStorage is empty
-                    finalPendingSites = backendPendingSites;
-                }
-            }
-            
-            // Update localStorage with current pending sites
-            try {
-                if (finalPendingSites.length > 0) {
-                    localStorage.setItem('pendingSitesLocal', JSON.stringify(finalPendingSites));
-                } else {
+            // CRITICAL: If backend has no pending sites (after payment), clear localStorage
+            // This ensures pending sites are removed after successful payment
+            let finalPendingSites;
+            if (backendPendingSites.length === 0) {
+                // Backend has no pending sites - clear all local storage
+                try {
                     localStorage.removeItem('pendingSitesLocal');
+                    console.log('[Dashboard] ✅ Cleared pending sites from localStorage (backend has none)');
+                } catch (e) {
+                    console.warn('[Dashboard] Could not clear pending sites from localStorage:', e);
                 }
-            } catch (e) {
-                console.warn('[Dashboard] Could not save pending sites to localStorage:', e);
+                // Use empty array from backend
+                finalPendingSites = [];
+            } else {
+                // Backend has pending sites - use smart merge
+                // Priority: existingLocalPending > persistedPendingSites > backendPendingSites
+                // BUT: If persistedPendingSites exists and is different from backend, trust localStorage (user's local changes)
+                finalPendingSites = existingLocalPending;
+                if (finalPendingSites.length === 0) {
+                    if (persistedPendingSites.length > 0) {
+                        // Use localStorage if it exists (user's local changes take precedence)
+                        finalPendingSites = persistedPendingSites;
+                    } else {
+                        // Fallback to backend only if localStorage is empty
+                        finalPendingSites = backendPendingSites;
+                    }
+                }
+                
+                // Update localStorage with current pending sites
+                try {
+                    if (finalPendingSites.length > 0) {
+                        localStorage.setItem('pendingSitesLocal', JSON.stringify(finalPendingSites));
+                    } else {
+                        localStorage.removeItem('pendingSitesLocal');
+                    }
+                } catch (e) {
+                    console.warn('[Dashboard] Could not save pending sites to localStorage:', e);
+                }
             }
             
             window.dashboardData = {
@@ -1986,6 +2002,110 @@
             
             // Setup event handlers for Use Case 2
             setupUseCase2Handlers(userEmail);
+            
+            // Global event delegation for Pay Now button (handles dynamically created buttons)
+            // This ensures the button works even if it's recreated after setupUseCase2Handlers runs
+            if (!window.payNowHandlerAttached) {
+                document.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    const payNowButton = target.id === 'pay-now-button-usecase2' 
+                        ? target 
+                        : target.closest('#pay-now-button-usecase2');
+                    
+                    if (payNowButton) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[Dashboard] 🚀 Pay Now button clicked (global delegated handler)');
+                        
+                        const pendingSites = window.dashboardData?.pendingSites || [];
+                        if (pendingSites.length === 0) {
+                            showError('No sites to add. Please add at least one site.');
+                            return;
+                        }
+                        
+                        // Get payment plan from variable or radio button state
+                        let paymentPlan = selectedPaymentPlan;
+                        if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                            // Try to get from radio button state
+                            const monthlyPlan = document.getElementById('payment-plan-monthly');
+                            const yearlyPlan = document.getElementById('payment-plan-yearly');
+                            if (monthlyPlan && monthlyPlan.checked) {
+                                paymentPlan = 'monthly';
+                                selectedPaymentPlan = 'monthly';
+                            } else if (yearlyPlan && yearlyPlan.checked) {
+                                paymentPlan = 'yearly';
+                                selectedPaymentPlan = 'yearly';
+                            }
+                        }
+                        
+                        if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                            showError('Please select a payment plan (Monthly or Yearly) first');
+                            return;
+                        }
+                        
+                        if (!userEmail) {
+                            showError('User email not found. Please refresh the page and try again.');
+                            return;
+                        }
+                        
+                        showProcessingOverlay();
+                        
+                        try {
+                            const sitesToSend = pendingSites.map(ps => ({
+                                site: ps.site || ps.site_domain || ps
+                            }));
+                            
+                            const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ 
+                                    sites: sitesToSend,
+                                    email: userEmail,
+                                    billing_period: paymentPlan
+                                })
+                            });
+                            
+                            if (!saveResponse.ok) {
+                                const errorData = await saveResponse.json().catch(() => ({}));
+                                throw new Error(errorData.message || 'Failed to save pending sites');
+                            }
+                            
+                            sessionStorage.setItem('pendingSitesForPayment', JSON.stringify(pendingSites));
+                            sessionStorage.setItem('selectedPaymentPlan', paymentPlan);
+                            
+                            try {
+                                localStorage.removeItem('pendingSitesLocal');
+                            } catch (e) {
+                                console.warn('[Dashboard] Could not clear localStorage:', e);
+                            }
+                            
+                            const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ 
+                                    email: userEmail,
+                                    billing_period: paymentPlan
+                                })
+                            });
+                            
+                            const checkoutData = await checkoutResponse.json();
+                            
+                            if (checkoutResponse.ok && checkoutData.url) {
+                                window.location.href = checkoutData.url;
+                            } else {
+                                hideProcessingOverlay();
+                                showError(checkoutData.message || checkoutData.error || 'Failed to create checkout session');
+                            }
+                        } catch (error) {
+                            hideProcessingOverlay();
+                            showError('Failed to process payment: ' + (error.message || error));
+                        }
+                    }
+                });
+                window.payNowHandlerAttached = true;
+            }
             
             // Load license keys (debounced to prevent excessive calls)
             debounce('loadLicenseKeys', () => {
@@ -3463,17 +3583,42 @@
             const sub = subscriptions[subId];
             const items = sub.items || [];
             const licensesForSub = subscriptionLicenses[subId] || [];
-            const purchaseType = licensesForSub[0]?.purchase_type || sub.purchase_type;
+            
+            // Determine purchase type from multiple sources
+            let purchaseType = sub.purchase_type;
+            if (!purchaseType && licensesForSub.length > 0) {
+                // Get purchase type from licenses (most reliable)
+                purchaseType = licensesForSub[0]?.purchase_type;
+            }
+            if (!purchaseType && items.length > 0) {
+                // Get purchase type from items
+                purchaseType = items[0]?.purchase_type;
+            }
             
             // Check if this is a site-based subscription (Use Case 1: direct payment link, or Use Case 2: site purchase)
-            const isSiteSubscription = purchaseType === 'site' || purchaseType === 'direct' || 
-                                      (items.length > 0 && items.some(item => {
-                                          const itemSite = item.site || item.site_domain;
-                                          return itemSite && itemSite !== '' && 
-                                                 !itemSite.startsWith('license_') && 
-                                                 !itemSite.startsWith('quantity_') &&
-                                                 itemSite !== 'N/A';
-                                      }));
+            // Also check if licenses have used_site_domain (activated license keys - Use Case 3)
+            const hasSiteItems = items.length > 0 && items.some(item => {
+                const itemSite = item.site || item.site_domain;
+                return itemSite && itemSite !== '' && 
+                       !itemSite.startsWith('license_') && 
+                       !itemSite.startsWith('quantity_') &&
+                       itemSite !== 'N/A';
+            });
+            
+            const hasActivatedLicenses = licensesForSub.some(lic => {
+                const usedSite = lic.used_site_domain || lic.site_domain;
+                return usedSite && 
+                       !usedSite.startsWith('license_') && 
+                       !usedSite.startsWith('quantity_') &&
+                       usedSite !== 'N/A' &&
+                       !usedSite.startsWith('KEY-') &&
+                       lic.purchase_type === 'quantity'; // Only show activated quantity licenses
+            });
+            
+            const isSiteSubscription = purchaseType === 'site' || 
+                                      purchaseType === 'direct' || 
+                                      hasSiteItems ||
+                                      hasActivatedLicenses;
             
             if (isSiteSubscription) {
                 // Use Case 1 (direct payment link) or Use Case 2 (site purchase): Site subscriptions
@@ -3558,6 +3703,7 @@
                 });
                 
                 // Also process licenses that might not have corresponding items (edge case)
+                // This includes activated license keys (Use Case 3 - quantity purchases that were activated)
                 licensesForSub.forEach(license => {
                     const siteName = license.used_site_domain || license.site_domain;
                     if (siteName && 
@@ -3594,14 +3740,27 @@
                         }
                     }
                 });
-            } else if (purchaseType === 'quantity') {
+            }
+            
+            // Handle unassigned license keys (Use Case 3 - quantity purchases not yet activated)
+            if (purchaseType === 'quantity') {
                 // Use Case 3: License key subscriptions
-                // IMPORTANT: Create ONE item per license key (subscription can have multiple license keys)
+                // IMPORTANT: Only show UNASSIGNED license keys here (not activated ones - those are shown above as sites)
                 licensesForSub.forEach(license => {
                     const licenseKey = license.license_key || 'N/A';
                     if (licenseKey === 'N/A') return; // Skip invalid licenses
                     
-                    const usedSite = license.used_site_domain || license.site_domain || 'Not assigned';
+                    const usedSite = license.used_site_domain || license.site_domain;
+                    
+                    // Skip if license is activated (has a valid site domain) - these are shown as sites above
+                    if (usedSite && 
+                        usedSite !== 'Not assigned' && 
+                        !usedSite.startsWith('license_') && 
+                        !usedSite.startsWith('quantity_') &&
+                        usedSite !== 'N/A' &&
+                        !usedSite.startsWith('KEY-')) {
+                        return; // Skip activated licenses - they're shown as sites
+                    }
                     
                     // Get billing period and expiration date
                     const billingPeriod = license.billing_period || sub.billingPeriod || 'monthly';
@@ -3622,7 +3781,7 @@
                         type: 'license',
                         name: `License Key: ${licenseKey}`,
                         licenseKey: licenseKey,
-                        usedSite: usedSite,
+                        usedSite: 'Not assigned',
                         status: sub.status || 'active',
                         subscriptionId: subId,
                         billingPeriod: billingPeriod,
@@ -4385,10 +4544,30 @@
                     return;
                 }
                 
-                // Add to local pending list
+                // Get payment plan from variable or radio button state
+                let paymentPlan = selectedPaymentPlan;
+                if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                    // Try to get from radio button state
+                    const monthlyPlan = document.getElementById('payment-plan-monthly');
+                    const yearlyPlan = document.getElementById('payment-plan-yearly');
+                    if (monthlyPlan && monthlyPlan.checked) {
+                        paymentPlan = 'monthly';
+                        selectedPaymentPlan = 'monthly'; // Update variable
+                    } else if (yearlyPlan && yearlyPlan.checked) {
+                        paymentPlan = 'yearly';
+                        selectedPaymentPlan = 'yearly'; // Update variable
+                    }
+                }
+                
+                if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                    showError('Please select a payment plan (Monthly or Yearly) first');
+                    return;
+                }
+                
+                // Add to local pending list with payment plan
                 window.dashboardData.pendingSites.push({
                     site: site,
-                    billing_period: selectedPaymentPlan
+                    billing_period: paymentPlan
                 });
                 
                 // Persist to localStorage (survives page refresh)
@@ -4407,7 +4586,7 @@
                     body: JSON.stringify({ 
                         sites: [{ site: site }],
                         email: userEmail,
-                        billing_period: selectedPaymentPlan
+                        billing_period: paymentPlan
                     })
                 }).catch(err => {
                     // Silently fail - local storage is backup
@@ -4484,22 +4663,76 @@
             }
         });
         
-        // Pay Now button
+        // Pay Now button - use event delegation to handle dynamically created buttons
+        // Also attach directly if button exists
         const payNowButton = document.getElementById('pay-now-button-usecase2');
         if (payNowButton) {
-            payNowButton.addEventListener('click', async () => {
+            console.log('[Dashboard] ✅ Pay Now button found, attaching click handler');
+            // Remove any existing handlers to prevent duplicates
+            const newButton = payNowButton.cloneNode(true);
+            payNowButton.parentNode.replaceChild(newButton, payNowButton);
+            
+            newButton.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[Dashboard] 🚀 Pay Now button clicked (direct handler)');
+                console.log('[Dashboard] 🚀 Pay Now button clicked');
+                
                 const pendingSites = window.dashboardData?.pendingSites || [];
+                console.log('[Dashboard] 📋 Pending sites:', pendingSites);
+                
                 if (pendingSites.length === 0) {
+                    console.error('[Dashboard] ❌ No pending sites');
                     showError('No sites to add. Please add at least one site.');
                     return;
                 }
                 
                 // Validate payment plan is selected
-                if (!selectedPaymentPlan || (selectedPaymentPlan !== 'monthly' && selectedPaymentPlan !== 'yearly')) {
+                // Priority: 1. Variable, 2. Radio button state, 3. From pending sites
+                let paymentPlan = selectedPaymentPlan;
+                
+                if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                    // Try to get from radio button state
+                    const monthlyPlan = document.getElementById('payment-plan-monthly');
+                    const yearlyPlan = document.getElementById('payment-plan-yearly');
+                    if (monthlyPlan && monthlyPlan.checked) {
+                        paymentPlan = 'monthly';
+                        selectedPaymentPlan = 'monthly'; // Update variable
+                    } else if (yearlyPlan && yearlyPlan.checked) {
+                        paymentPlan = 'yearly';
+                        selectedPaymentPlan = 'yearly'; // Update variable
+                    }
+                }
+                
+                // If still not found, try to get from pending sites (they store billing_period)
+                if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                    if (pendingSites.length > 0 && pendingSites[0].billing_period) {
+                        paymentPlan = pendingSites[0].billing_period;
+                        selectedPaymentPlan = paymentPlan; // Update variable
+                        console.log('[Dashboard] 💳 Got payment plan from pending sites:', paymentPlan);
+                    }
+                }
+                
+                console.log('[Dashboard] 💳 Selected payment plan (variable):', selectedPaymentPlan);
+                console.log('[Dashboard] 💳 Payment plan (determined):', paymentPlan);
+                
+                if (!paymentPlan || (paymentPlan !== 'monthly' && paymentPlan !== 'yearly')) {
+                    console.error('[Dashboard] ❌ No payment plan selected');
                     showError('Please select a payment plan (Monthly or Yearly) first');
                     return;
                 }
                 
+                // Use the determined payment plan
+                const finalPaymentPlan = paymentPlan;
+                
+                // Validate user email
+                if (!userEmail) {
+                    console.error('[Dashboard] ❌ No user email');
+                    showError('User email not found. Please refresh the page and try again.');
+                    return;
+                }
+                
+                console.log('[Dashboard] 🔄 Starting payment process...');
                 // Show processing overlay
                 showProcessingOverlay();
                 
@@ -4508,6 +4741,7 @@
                     const sitesToSend = pendingSites.map(ps => ({
                         site: ps.site || ps.site_domain || ps
                     }));
+                    console.log('[Dashboard] 📤 Sending sites to backend:', sitesToSend);
                     
                     // Save pending sites to backend (first time connecting to backend)
                     const saveResponse = await fetch(`${API_BASE}/add-sites-batch`, {
@@ -4521,14 +4755,18 @@
                         })
                     });
                     
+                    console.log('[Dashboard] 💾 Save response status:', saveResponse.status);
                     if (!saveResponse.ok) {
                         const errorData = await saveResponse.json().catch(() => ({}));
+                        console.error('[Dashboard] ❌ Failed to save pending sites:', errorData);
                         throw new Error(errorData.message || 'Failed to save pending sites');
                     }
                     
+                    console.log('[Dashboard] ✅ Pending sites saved to backend');
+                    
                     // Store pending sites in sessionStorage for immediate display after payment
                     sessionStorage.setItem('pendingSitesForPayment', JSON.stringify(pendingSites));
-                    sessionStorage.setItem('selectedPaymentPlan', selectedPaymentPlan);
+                    sessionStorage.setItem('selectedPaymentPlan', finalPaymentPlan);
                     
                     // Clear localStorage since we're processing payment
                     try {
@@ -4537,6 +4775,7 @@
                         console.warn('[Dashboard] Could not clear localStorage:', e);
                     }
                     
+                    console.log('[Dashboard] 🛒 Creating checkout session...');
                     // Create checkout - backend will determine price ID from billing_period
                     const checkoutResponse = await fetch(`${API_BASE}/create-checkout-from-pending`, {
                         method: 'POST',
@@ -4544,24 +4783,31 @@
                         credentials: 'include',
                         body: JSON.stringify({ 
                             email: userEmail,
-                            billing_period: selectedPaymentPlan
+                            billing_period: finalPaymentPlan
                         })
                     });
                     
+                    console.log('[Dashboard] 🛒 Checkout response status:', checkoutResponse.status);
                     const checkoutData = await checkoutResponse.json();
+                    console.log('[Dashboard] 🛒 Checkout response data:', checkoutData);
                     
                     if (checkoutResponse.ok && checkoutData.url) {
+                        console.log('[Dashboard] ✅ Checkout URL received, redirecting...', checkoutData.url);
                         // Keep overlay visible and redirect
                         window.location.href = checkoutData.url;
                     } else {
+                        console.error('[Dashboard] ❌ Failed to create checkout:', checkoutData);
                         hideProcessingOverlay();
-                        showError(checkoutData.message || 'Failed to create checkout session');
+                        showError(checkoutData.message || checkoutData.error || 'Failed to create checkout session');
                     }
                 } catch (error) {
+                    console.error('[Dashboard] ❌ Error processing payment:', error);
                     hideProcessingOverlay();
-                    showError('Failed to process payment: ' + error.message);
+                    showError('Failed to process payment: ' + (error.message || error));
                 }
             });
+        } else {
+            console.error('[Dashboard] ❌ Pay Now button not found! Button ID: pay-now-button-usecase2');
         }
     }
     
