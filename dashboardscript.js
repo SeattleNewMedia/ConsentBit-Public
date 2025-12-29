@@ -361,9 +361,11 @@
                 }
             });
             
-            // Add sites from Use Case 3 (license-activated sites)
+            // Add sites from Use Case 3 (license-activated sites) - ONLY for site-based purchases
+            // FILTERED OUT: Exclude quantity purchases (license key activations)
             licensesData.forEach(license => {
-                if (license.used_site_domain) {
+                // Only include site-based purchases, exclude quantity purchases
+                if (license.used_site_domain && license.purchase_type === 'site') {
                     const siteDomain = license.used_site_domain;
                     const subscription = newData.subscriptions?.[license.subscription_id];
                     
@@ -394,7 +396,7 @@
                                 status: license.status,
                                 created_at: license.created_at
                             },
-                            purchase_type: license.purchase_type || 'quantity',
+                            purchase_type: 'site', // Mark as site purchase (not quantity)
                             cancel_at_period_end: cancelAtPeriodEnd,
                             canceled_at: canceledAt
                         };
@@ -402,10 +404,22 @@
                 }
             });
             
+            // Filter out any sites that have purchase_type = 'quantity' (from license key activations)
+            // Only show domains purchased directly through domain purchase
+            const filteredSitesForUpdate = {};
+            Object.keys(allSitesCombined).forEach(siteDomain => {
+                const siteData = allSitesCombined[siteDomain];
+                // Only include sites with purchase_type = 'site' or 'direct' (domain purchases)
+                // Exclude purchase_type = 'quantity' (license key activations)
+                if (siteData.purchase_type === 'site' || siteData.purchase_type === 'direct') {
+                    filteredSitesForUpdate[siteDomain] = siteData;
+                }
+            });
+            
             // Smoothly update displays without flickering
             // Use requestAnimationFrame for smooth transitions
             requestAnimationFrame(() => {
-                displaySites(allSitesCombined);
+                displaySites(filteredSitesForUpdate);
                 displaySubscribedItems(newData.subscriptions || {}, newData.sites || {}, newData.pendingSites || []);
             });
         }
@@ -1866,10 +1880,12 @@
             });
             
             // STEP 2: Add sites from Use Case 3 (license key subscriptions) - licenses that have used_site_domain
+            // FILTERED OUT: Only show sites purchased directly through domain purchase, not license key activations
+            // Sites activated via license keys (purchase_type = 'quantity') are excluded from the Domains section
             licensesData.forEach(license => {
-                // Include all activated licenses (both quantity and site purchases)
+                // Only include site-based purchases (purchase_type = 'site'), exclude quantity purchases
                 // Check for used_site_domain which indicates the license has been activated
-                if (license.used_site_domain) {
+                if (license.used_site_domain && license.purchase_type === 'site') {
                     const siteDomain = license.used_site_domain;
                     // Get subscription data for this license
                     const subscription = data.subscriptions?.[license.subscription_id];
@@ -1905,11 +1921,23 @@
                                 status: license.status,
                                 created_at: license.created_at
                             },
-                            purchase_type: license.purchase_type || 'quantity', // Mark as from license key
+                            purchase_type: 'site', // Mark as from site purchase (not quantity)
                             cancel_at_period_end: cancelAtPeriodEnd,
                             canceled_at: canceledAt
                         };
                     }
+                }
+            });
+            
+            // Filter out any sites that have purchase_type = 'quantity' (from license key activations)
+            // Only show domains purchased directly through domain purchase
+            const filteredSites = {};
+            Object.keys(allSitesCombined).forEach(siteDomain => {
+                const siteData = allSitesCombined[siteDomain];
+                // Only include sites with purchase_type = 'site' or 'direct' (domain purchases)
+                // Exclude purchase_type = 'quantity' (license key activations)
+                if (siteData.purchase_type === 'site' || siteData.purchase_type === 'direct') {
+                    filteredSites[siteDomain] = siteData;
                 }
             });
             
@@ -1918,9 +1946,17 @@
                 // Append new sites to existing ones
                 const newSites = data.sites || {};
                 Object.assign(window.currentSites, newSites);
-                // Rebuild allSitesCombined with updated data
+                // Rebuild allSitesCombined with updated data and filter out license key activations
                 const updatedAllSites = { ...window.currentSites };
-                displaySites(updatedAllSites, data.pagination?.sites);
+                // Filter to only show domain purchases (exclude license key activations)
+                const filteredUpdatedSites = {};
+                Object.keys(updatedAllSites).forEach(siteDomain => {
+                    const siteData = updatedAllSites[siteDomain];
+                    if (siteData.purchase_type === 'site' || siteData.purchase_type === 'direct') {
+                        filteredUpdatedSites[siteDomain] = siteData;
+                    }
+                });
+                displaySites(filteredUpdatedSites, data.pagination?.sites);
             } else if (offset > 0 && type === 'subscriptions' && status && window.currentSubscriptions) {
                 // Append new subscriptions to existing ones
                 const newSubs = data.subscriptions || {};
@@ -1931,8 +1967,8 @@
                 window.currentSites = data.sites || {};
                 window.currentSubscriptions = data.subscriptions || {};
                 
-                // Display all sites (from both Use Case 2 and Use Case 3)
-                displaySites(allSitesCombined, data.pagination?.sites);
+                // Display only sites purchased directly through domain purchase (exclude license key activations)
+                displaySites(filteredSites, data.pagination?.sites);
                 
                 // Display subscribed items (including pending sites) - await async function
                 await displaySubscribedItems(data.subscriptions || {}, data.sites || {}, data.pendingSites || [], data.pagination?.subscriptions);
@@ -2213,7 +2249,6 @@
                             <thead>
                                 <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
-                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Billing Period</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Activated For Site</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
@@ -2337,18 +2372,6 @@
                                 data-purchase-type="${license.purchase_type || ''}"
                                 data-subscription-id="${license.subscription_id || ''}">
                                 <td style="padding: 15px; font-family: monospace; font-weight: 600; color: #333;">${license.license_key}</td>
-                                <td style="padding: 15px;">
-                                    <span style="
-                                        padding: 6px 12px;
-                                        border-radius: 20px;
-                                        font-size: 12px;
-                                        font-weight: 600;
-                                        text-transform: uppercase;
-                                        background: ${statusBg};
-                                        color: ${statusColor};
-                                        display: inline-block;
-                                    ">${statusText}</span>
-                                </td>
                                 <td style="padding: 15px;">
                                     <span style="
                                         padding: 4px 10px;
@@ -3048,7 +3071,6 @@
                                 <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Source</th>
-                                    <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Billing Period</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
                                     <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
@@ -3177,18 +3199,6 @@
                                         background: ${sourceBg};
                                         color: ${sourceColor};
                                     ">${source}</span>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <span style="
-                                        padding: 6px 12px;
-                                        border-radius: 20px;
-                                        font-size: 12px;
-                                        font-weight: 600;
-                                        text-transform: uppercase;
-                                        background: ${statusBg};
-                                        color: ${statusColor};
-                                        display: inline-block;
-                                    ">${statusText}</span>
                                 </td>
                                 <td style="padding: 15px;">
                                     <span style="
@@ -3452,14 +3462,24 @@
         Object.keys(subscriptions).forEach(subId => {
             const sub = subscriptions[subId];
             const items = sub.items || [];
-            const purchaseType = subscriptionLicenses[subId]?.[0]?.purchase_type;
+            const purchaseType = subscriptionLicenses[subId]?.[0]?.purchase_type || sub.purchase_type;
             
-            if (purchaseType === 'site') {
-                // Use Case 2: Site subscriptions
-                // Get site name from license data (most reliable source for Use Case 2)
+            // Check if this is a site-based subscription (Use Case 1: direct payment link, or Use Case 2: site purchase)
+            const isSiteSubscription = purchaseType === 'site' || purchaseType === 'direct' || 
+                                      (items.length > 0 && items.some(item => {
+                                          const itemSite = item.site || item.site_domain;
+                                          return itemSite && itemSite !== '' && 
+                                                 !itemSite.startsWith('license_') && 
+                                                 !itemSite.startsWith('quantity_') &&
+                                                 itemSite !== 'N/A';
+                                      }));
+            
+            if (isSiteSubscription) {
+                // Use Case 1 (direct payment link) or Use Case 2 (site purchase): Site subscriptions
+                // Get site name from license data first (most reliable source)
                 const license = subscriptionLicenses[subId]?.[0];
                 
-                // Try to get site name from license data first (used_site_domain is set when license is created for Use Case 2)
+                // Try to get site name from license data first
                 let siteName = license?.used_site_domain || license?.site_domain;
                 
                 // If not in license data or it's a placeholder, try subscription item
@@ -3485,9 +3505,9 @@
                 }
                 
                 // Get billing period and expiration date
-                const billingPeriod = sub.billingPeriod || 'monthly';
+                const billingPeriod = sub.billingPeriod || license?.billing_period || 'monthly';
                 const billingPeriodDisplay = billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
-                const currentPeriodEnd = sub.current_period_end;
+                const currentPeriodEnd = sub.current_period_end || license?.renewal_date;
                 let expirationDate = 'N/A';
                 if (currentPeriodEnd) {
                     try {
@@ -3598,7 +3618,6 @@
                                 <thead>
                                     <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Domain/Site</th>
-                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Status</th>
                                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">License Key</th>
                                         <th style="padding: 15px; text-align: left; font-weight: 600; color: #333;">Expiration Date</th>
                                         <th style="padding: 15px; text-align: center; font-weight: 600; color: #333;">Actions</th>
@@ -3625,18 +3644,6 @@
                                                 data-license-key="${item.licenseKey || ''}">
                                                 <td style="padding: 15px; font-weight: 500; color: #333;">
                                                     ${item.type === 'site' ? '🌐 ' + item.name : '🔑 ' + (item.usedSite !== 'Not assigned' ? item.usedSite : 'Not assigned')}
-                                                </td>
-                                                <td style="padding: 15px;">
-                                                    <span style="
-                                                        padding: 6px 12px;
-                                                        border-radius: 20px;
-                                                        font-size: 12px;
-                                                        font-weight: 600;
-                                                        text-transform: uppercase;
-                                                        background: ${statusBg};
-                                                        color: ${statusColor};
-                                                        display: inline-block;
-                                                    ">${item.status}</span>
                                                 </td>
                                                 <td style="padding: 15px; color: #666; font-size: 12px; font-family: monospace;">
                                                     ${item.licenseKey !== 'N/A' ? item.licenseKey.substring(0, 20) + '...' : 'N/A'}
@@ -4815,7 +4822,6 @@
                                                     <thead>
                                                         <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License Key</th>
-                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Item ID</th>
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Created</th>
                                                         </tr>
@@ -4830,16 +4836,6 @@
                                                                 <tr style="border-bottom: 1px solid #f0f0f0;">
                                                                     <td style="padding: 10px; font-size: 13px; font-family: monospace; font-weight: 600; color: #333;">
                                                                         ${item.license_key || 'N/A'}
-                                                                    </td>
-                                                                    <td style="padding: 10px;">
-                                                                        <span style="
-                                                                            padding: 4px 8px;
-                                                                            border-radius: 12px;
-                                                                            font-size: 11px;
-                                                                            font-weight: 600;
-                                                                            background: ${statusBg};
-                                                                            color: ${statusColor};
-                                                                        ">${item.status || 'active'}</span>
                                                                     </td>
                                                                     <td style="padding: 10px; font-size: 12px; font-family: monospace; color: #666;">
                                                                         ${item.item_id ? item.item_id.substring(0, 20) + '...' : 'N/A'}
@@ -4865,7 +4861,6 @@
                                                     <thead>
                                                         <tr style="background: #f8f9fa; border-bottom: 1px solid #e0e0e0;">
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Site</th>
-                                                            <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Status</th>
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Renewal Date</th>
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">Amount Paid</th>
                                                             <th style="padding: 10px; text-align: left; font-size: 12px; color: #666;">License</th>
@@ -4894,25 +4889,15 @@
                                                             return `
                                                                 <tr style="border-bottom: 1px solid #f0f0f0;">
                                                                     <td style="padding: 10px; font-size: 13px; font-weight: 500;">${site}</td>
-                                                                    <td style="padding: 10px;">
-                                                                        <span style="
-                                                                            padding: 4px 8px;
-                                                                            border-radius: 12px;
-                                                                            font-size: 11px;
-                                                                            font-weight: 600;
-                                                                            background: ${statusBg};
-                                                                            color: ${statusColor};
-                                                                        ">${statusDisplay}</span>
+                                                                    <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
+                                                                        ${renewalDateStr}
+                                                                        ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
+                                                                        ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                                                         ${siteData.cancel_at_period_end && !isExpired ? `
                                                                             <div style="font-size: 10px; color: #856404; margin-top: 4px;">
                                                                                 Cancels: ${renewalDateStr}
                                                                             </div>
                                                                         ` : ''}
-                                                                    </td>
-                                                                    <td style="padding: 10px; font-size: 12px; color: ${isExpired ? '#f44336' : isInactiveButNotExpired ? '#f44336' : '#666'};">
-                                                                        ${renewalDateStr}
-                                                                        ${isExpired ? ' <span style="color: #f44336;">(Expired)</span>' : ''}
-                                                                        ${isInactiveButNotExpired ? ' <span style="color: #f44336; font-size: 11px;">(Unsubscribed)</span>' : ''}
                                                                     </td>
                                                                     <td style="padding: 10px; font-size: 12px; color: #666;">
                                                                         ${siteData.amount_paid ? `$${(siteData.amount_paid / 100).toFixed(2)}` : 'N/A'}
