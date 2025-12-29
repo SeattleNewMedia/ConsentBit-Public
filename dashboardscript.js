@@ -3462,7 +3462,8 @@
         Object.keys(subscriptions).forEach(subId => {
             const sub = subscriptions[subId];
             const items = sub.items || [];
-            const purchaseType = subscriptionLicenses[subId]?.[0]?.purchase_type || sub.purchase_type;
+            const licensesForSub = subscriptionLicenses[subId] || [];
+            const purchaseType = licensesForSub[0]?.purchase_type || sub.purchase_type;
             
             // Check if this is a site-based subscription (Use Case 1: direct payment link, or Use Case 2: site purchase)
             const isSiteSubscription = purchaseType === 'site' || purchaseType === 'direct' || 
@@ -3476,72 +3477,158 @@
             
             if (isSiteSubscription) {
                 // Use Case 1 (direct payment link) or Use Case 2 (site purchase): Site subscriptions
-                // Get site name from license data first (most reliable source)
-                const license = subscriptionLicenses[subId]?.[0];
+                // IMPORTANT: Create ONE item per site (subscription can have multiple sites)
                 
-                // Try to get site name from license data first
-                let siteName = license?.used_site_domain || license?.site_domain;
-                
-                // If not in license data or it's a placeholder, try subscription item
-                if (!siteName || siteName.startsWith('license_') || siteName.startsWith('quantity_') || siteName === 'N/A') {
-                    const siteItem = items.find(item => {
-                        const itemSite = item.site || item.site_domain;
-                        return itemSite && itemSite !== '' && 
-                               !itemSite.startsWith('license_') && 
-                               !itemSite.startsWith('quantity_') &&
-                               itemSite !== 'N/A';
-                    });
-                    siteName = siteItem?.site || siteItem?.site_domain || siteName;
-                }
-                
-                // Final fallback - ensure we never show a license key as the site name
-                if (!siteName || 
-                    siteName.startsWith('license_') || 
-                    siteName.startsWith('quantity_') || 
-                    siteName.startsWith('KEY-') ||
-                    siteName === 'N/A' ||
-                    siteName === license?.license_key) {
-                    siteName = 'Unknown Site';
-                }
-                
-                // Get billing period and expiration date
-                const billingPeriod = sub.billingPeriod || license?.billing_period || 'monthly';
+                // Get billing period and expiration date (same for all sites in subscription)
+                const billingPeriod = sub.billingPeriod || licensesForSub[0]?.billing_period || 'monthly';
                 const billingPeriodDisplay = billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
-                const currentPeriodEnd = sub.current_period_end || license?.renewal_date;
-                let expirationDate = 'N/A';
-                if (currentPeriodEnd) {
-                    try {
-                        const timestamp = typeof currentPeriodEnd === 'number' ? currentPeriodEnd : parseInt(currentPeriodEnd);
-                        const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
-                        expirationDate = new Date(dateInMs).toLocaleDateString();
-                    } catch (e) {
-                        console.warn('[Dashboard] Error parsing expiration date:', e);
-                    }
-                }
+                const currentPeriodEnd = sub.current_period_end;
                 
-                subscribedItems.push({
-                    type: 'site',
-                    name: siteName,
-                    licenseKey: license?.license_key || 'N/A',
-                    status: sub.status || 'active',
-                    subscriptionId: subId,
-                    billingPeriod: billingPeriod,
-                    billingPeriodDisplay: billingPeriodDisplay,
-                    expirationDate: expirationDate
+                // Create a map of site -> license for quick lookup
+                const siteToLicenseMap = {};
+                licensesForSub.forEach(license => {
+                    const site = license.used_site_domain || license.site_domain;
+                    if (site && !site.startsWith('license_') && !site.startsWith('quantity_') && site !== 'N/A') {
+                        siteToLicenseMap[site.toLowerCase().trim()] = license;
+                    }
+                });
+                
+                // Process each subscription item to create one entry per site
+                const processedSites = new Set(); // Track sites we've already processed
+                
+                items.forEach(item => {
+                    // Get site name from item
+                    let siteName = item.site || item.site_domain;
+                    
+                    // If not in item, try to find from licenses
+                    if (!siteName || siteName.startsWith('license_') || siteName.startsWith('quantity_') || siteName === 'N/A') {
+                        // Try to find site from licenses
+                        const licenseWithSite = licensesForSub.find(lic => {
+                            const licSite = lic.used_site_domain || lic.site_domain;
+                            return licSite && !licSite.startsWith('license_') && !licSite.startsWith('quantity_') && licSite !== 'N/A';
+                        });
+                        siteName = licenseWithSite?.used_site_domain || licenseWithSite?.site_domain;
+                    }
+                    
+                    // Final fallback - ensure we never show a license key as the site name
+                    if (!siteName || 
+                        siteName.startsWith('license_') || 
+                        siteName.startsWith('quantity_') || 
+                        siteName.startsWith('KEY-') ||
+                        siteName === 'N/A') {
+                        return; // Skip invalid sites
+                    }
+                    
+                    // Skip if we've already processed this site
+                    const siteKey = siteName.toLowerCase().trim();
+                    if (processedSites.has(siteKey)) {
+                        return;
+                    }
+                    processedSites.add(siteKey);
+                    
+                    // Find license for this site
+                    const license = siteToLicenseMap[siteKey] || licensesForSub.find(lic => {
+                        const licSite = (lic.used_site_domain || lic.site_domain || '').toLowerCase().trim();
+                        return licSite === siteKey;
+                    });
+                    
+                    // Get expiration date
+                    let expirationDate = 'N/A';
+                    const renewalDate = license?.renewal_date || currentPeriodEnd;
+                    if (renewalDate) {
+                        try {
+                            const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
+                            const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                            expirationDate = new Date(dateInMs).toLocaleDateString();
+                        } catch (e) {
+                            console.warn('[Dashboard] Error parsing expiration date:', e);
+                        }
+                    }
+                    
+                    subscribedItems.push({
+                        type: 'site',
+                        name: siteName,
+                        licenseKey: license?.license_key || 'N/A',
+                        status: sub.status || 'active',
+                        subscriptionId: subId,
+                        billingPeriod: billingPeriod,
+                        billingPeriodDisplay: billingPeriodDisplay,
+                        expirationDate: expirationDate
+                    });
+                });
+                
+                // Also process licenses that might not have corresponding items (edge case)
+                licensesForSub.forEach(license => {
+                    const siteName = license.used_site_domain || license.site_domain;
+                    if (siteName && 
+                        !siteName.startsWith('license_') && 
+                        !siteName.startsWith('quantity_') && 
+                        siteName !== 'N/A' &&
+                        !siteName.startsWith('KEY-')) {
+                        const siteKey = siteName.toLowerCase().trim();
+                        if (!processedSites.has(siteKey)) {
+                            processedSites.add(siteKey);
+                            
+                            let expirationDate = 'N/A';
+                            const renewalDate = license.renewal_date || currentPeriodEnd;
+                            if (renewalDate) {
+                                try {
+                                    const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
+                                    const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                    expirationDate = new Date(dateInMs).toLocaleDateString();
+                                } catch (e) {
+                                    console.warn('[Dashboard] Error parsing expiration date:', e);
+                                }
+                            }
+                            
+                            subscribedItems.push({
+                                type: 'site',
+                                name: siteName,
+                                licenseKey: license.license_key || 'N/A',
+                                status: sub.status || 'active',
+                                subscriptionId: subId,
+                                billingPeriod: billingPeriod,
+                                billingPeriodDisplay: billingPeriodDisplay,
+                                expirationDate: expirationDate
+                            });
+                        }
+                    }
                 });
             } else if (purchaseType === 'quantity') {
                 // Use Case 3: License key subscriptions
-                const license = subscriptionLicenses[subId]?.[0];
-                const licenseKey = license?.license_key || 'N/A';
-                const usedSite = license?.used_site_domain || license?.site_domain || 'Not assigned';
-                
-                subscribedItems.push({
-                    type: 'license',
-                    name: `License Key: ${licenseKey}`,
-                    licenseKey: licenseKey,
-                    usedSite: usedSite,
-                    status: sub.status || 'active',
-                    subscriptionId: subId
+                // IMPORTANT: Create ONE item per license key (subscription can have multiple license keys)
+                licensesForSub.forEach(license => {
+                    const licenseKey = license.license_key || 'N/A';
+                    if (licenseKey === 'N/A') return; // Skip invalid licenses
+                    
+                    const usedSite = license.used_site_domain || license.site_domain || 'Not assigned';
+                    
+                    // Get billing period and expiration date
+                    const billingPeriod = license.billing_period || sub.billingPeriod || 'monthly';
+                    const billingPeriodDisplay = billingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
+                    let expirationDate = 'N/A';
+                    const renewalDate = license.renewal_date || sub.current_period_end;
+                    if (renewalDate) {
+                        try {
+                            const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
+                            const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                            expirationDate = new Date(dateInMs).toLocaleDateString();
+                        } catch (e) {
+                            console.warn('[Dashboard] Error parsing expiration date:', e);
+                        }
+                    }
+                    
+                    subscribedItems.push({
+                        type: 'license',
+                        name: `License Key: ${licenseKey}`,
+                        licenseKey: licenseKey,
+                        usedSite: usedSite,
+                        status: sub.status || 'active',
+                        subscriptionId: subId,
+                        billingPeriod: billingPeriod,
+                        billingPeriodDisplay: billingPeriodDisplay,
+                        expirationDate: expirationDate
+                    });
                 });
             }
         });
@@ -3643,7 +3730,11 @@
                                                 data-subscription-id="${item.subscriptionId || ''}"
                                                 data-license-key="${item.licenseKey || ''}">
                                                 <td style="padding: 15px; font-weight: 500; color: #333;">
-                                                    ${item.type === 'site' ? '🌐 ' + item.name : '🔑 ' + (item.usedSite !== 'Not assigned' ? item.usedSite : 'Not assigned')}
+                                                    ${item.type === 'site' 
+                                                        ? '🌐 ' + item.name 
+                                                        : item.usedSite && item.usedSite !== 'Not assigned' 
+                                                            ? '🔑 ' + item.usedSite 
+                                                            : '🔑 Unassigned License Key'}
                                                 </td>
                                                 <td style="padding: 15px; color: #666; font-size: 12px; font-family: monospace;">
                                                     ${item.licenseKey !== 'N/A' ? item.licenseKey.substring(0, 20) + '...' : 'N/A'}
@@ -3929,6 +4020,7 @@
     function updatePendingSitesDisplayUseCase2(pendingSites) {
         const container = document.getElementById('pending-sites-usecase2-list');
         const payNowContainer = document.getElementById('pay-now-container-usecase2');
+        const pendingContainer = document.getElementById('pending-sites-usecase2-container');
         
         if (!container) return;
         
@@ -3938,10 +4030,18 @@
         // Enable/disable payment plan selection based on pending sites
         togglePaymentPlanSelection(allPendingSites.length === 0);
         
+        // Hide entire pending sites section when empty (after payment)
         if (allPendingSites.length === 0) {
+            if (pendingContainer) {
+                pendingContainer.style.display = 'none';
+            }
             container.innerHTML = '<p style="color: #999; margin: 0; font-size: 14px;">No pending sites. Add sites above to get started.</p>';
             if (payNowContainer) payNowContainer.style.display = 'none';
         } else {
+            // Show pending sites section when there are pending sites
+            if (pendingContainer) {
+                pendingContainer.style.display = 'block';
+            }
             container.innerHTML = allPendingSites.map((ps, idx) => {
                 const siteName = ps.site || ps.site_domain || ps;
                 return `
@@ -4665,6 +4765,8 @@
                     if (window.dashboardData?.pendingSites) {
                         window.dashboardData.pendingSites = [];
                     }
+                    // Update pending sites display to hide the section
+                    updatePendingSitesDisplayUseCase2([]);
                     togglePaymentPlanSelection(true);
                     
                     // Check if this was a license purchase return and unlock license payment plan
@@ -4808,12 +4910,22 @@
                         <div style="padding: 20px;">
                             ${(() => {
                                 // Check if this subscription has quantity purchases (license keys instead of sites)
+                                // IMPORTANT: Only show license keys section if ALL items are quantity purchases
+                                // Domain purchases (Use Case 1 & 2) have license keys too, but should show sites, not license keys
                                 const subscriptionItems = sub.items || [];
-                                const hasQuantityPurchases = subscriptionItems.some(item => item.purchase_type === 'quantity' || item.license_key);
+                                
+                                // Get purchase type from subscription or license data
+                                const licensesForSub = subscriptionLicenses[subId] || [];
+                                const purchaseType = licensesForSub[0]?.purchase_type || sub.purchase_type;
+                                
+                                // Only show license keys if this is a quantity purchase (Use Case 3)
+                                // Domain purchases (purchase_type === 'site' or 'direct') should show sites, not license keys
+                                const isQuantityPurchase = purchaseType === 'quantity';
+                                const hasQuantityPurchases = isQuantityPurchase && subscriptionItems.some(item => item.purchase_type === 'quantity');
                                 
                                 if (hasQuantityPurchases) {
-                                    // Display license keys for quantity purchases
-                                    const quantityItems = subscriptionItems.filter(item => item.purchase_type === 'quantity' || item.license_key);
+                                    // Display license keys for quantity purchases ONLY
+                                    const quantityItems = subscriptionItems.filter(item => item.purchase_type === 'quantity');
                                     return `
                                         <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">License Keys in this subscription:</h4>
                                         <div id="subscription-licenses-${subId}" style="margin-bottom: 20px;">
