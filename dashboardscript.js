@@ -1723,10 +1723,25 @@
             // CRITICAL: If backend has no pending sites (after payment), clear localStorage
             // This ensures pending sites are removed after successful payment
             let finalPendingSites;
+            
+            // Check if localStorage was recently modified (within last 5 seconds)
+            // If so, trust localStorage over backend (user just made changes)
+            let localStorageRecentlyModified = false;
+            try {
+                const lastModified = localStorage.getItem('pendingSitesLastModified');
+                if (lastModified) {
+                    const timeSinceModification = Date.now() - parseInt(lastModified);
+                    localStorageRecentlyModified = timeSinceModification < 5000; // 5 seconds
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+            
             if (backendPendingSites.length === 0) {
                 // Backend has no pending sites - clear all local storage
                 try {
                     localStorage.removeItem('pendingSitesLocal');
+                    localStorage.removeItem('pendingSitesLastModified');
                     console.log('[Dashboard] ✅ Cleared pending sites from localStorage (backend has none)');
                 } catch (e) {
                     console.warn('[Dashboard] Could not clear pending sites from localStorage:', e);
@@ -1735,13 +1750,38 @@
                 finalPendingSites = [];
             } else {
                 // Backend has pending sites - use smart merge
-                // Priority: existingLocalPending > persistedPendingSites > backendPendingSites
-                // BUT: If persistedPendingSites exists and is different from backend, trust localStorage (user's local changes)
+                // Priority: existingLocalPending > persistedPendingSites (if recently modified) > backendPendingSites
                 finalPendingSites = existingLocalPending;
                 if (finalPendingSites.length === 0) {
-                    if (persistedPendingSites.length > 0) {
-                        // Use localStorage if it exists (user's local changes take precedence)
+                    if (persistedPendingSites.length > 0 && localStorageRecentlyModified) {
+                        // Use localStorage if it exists and was recently modified (user's local changes take precedence)
+                        console.log('[Dashboard] ✅ Using localStorage pending sites (recently modified)');
                         finalPendingSites = persistedPendingSites;
+                    } else if (persistedPendingSites.length > 0) {
+                        // Check if localStorage has fewer sites than backend (indicating removals)
+                        // If localStorage is a subset of backend, trust localStorage
+                        const localStorageSites = persistedPendingSites.map(ps => {
+                            const site = ps.site || ps.site_domain || ps;
+                            return site.toLowerCase().trim();
+                        });
+                        const backendSites = backendPendingSites.map(ps => {
+                            const site = (ps.site || ps.site_domain || ps);
+                            return (typeof site === 'string' ? site : '').toLowerCase().trim();
+                        });
+                        
+                        // If localStorage has fewer or different sites, it means user removed some
+                        // Trust localStorage in this case
+                        const localStorageIsSubset = localStorageSites.every(localSite => 
+                            backendSites.some(backendSite => backendSite === localSite)
+                        );
+                        
+                        if (localStorageIsSubset && localStorageSites.length <= backendSites.length) {
+                            console.log('[Dashboard] ✅ Using localStorage pending sites (subset of backend - removals detected)');
+                            finalPendingSites = persistedPendingSites;
+                        } else {
+                            // Use backend if localStorage seems stale
+                            finalPendingSites = backendPendingSites;
+                        }
                     } else {
                         // Fallback to backend only if localStorage is empty
                         finalPendingSites = backendPendingSites;
@@ -4876,13 +4916,18 @@
                         // Remove from local list
                         pendingSites.splice(index, 1);
                         
-                        // Update localStorage
+                        // CRITICAL: Update window.dashboardData.pendingSites to reflect the removal
+                        window.dashboardData.pendingSites = pendingSites;
+                        
+                        // Update localStorage immediately
                         try {
                             if (pendingSites.length > 0) {
                                 localStorage.setItem('pendingSitesLocal', JSON.stringify(pendingSites));
                             } else {
                                 localStorage.removeItem('pendingSitesLocal');
                             }
+                            // Add timestamp to track when this was last modified locally
+                            localStorage.setItem('pendingSitesLastModified', Date.now().toString());
                         } catch (e) {
                             console.warn('[Dashboard] Could not update localStorage:', e);
                         }
@@ -4903,15 +4948,22 @@
                                 const result = await response.json();
                                 console.log('[Dashboard] Site removed from backend:', result);
                             } else {
-                                console.warn('[Dashboard] Backend removal failed, but local removal succeeded');
+                                const errorText = await response.text();
+                                console.warn('[Dashboard] Backend removal failed, but local removal succeeded:', errorText);
                             }
                         } catch (err) {
                             // Log error but don't block - local storage is backup
                             console.warn('[Dashboard] Error removing site from backend (non-critical):', err);
                         }
                         
+                        // Clear any cached dashboard data to prevent stale data from reappearing
+                        if (window.dashboardCache) {
+                            delete window.dashboardCache;
+                        }
+                        
                         // Update display immediately (this will also toggle payment plan selection)
-                        updatePendingSitesDisplayUseCase2(pendingSites);
+                        // Use the updated window.dashboardData.pendingSites to ensure consistency
+                        updatePendingSitesDisplayUseCase2(window.dashboardData.pendingSites);
                         
                         showSuccess(`Site "${site}" removed from pending list`);
                     }
