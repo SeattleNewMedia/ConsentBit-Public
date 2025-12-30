@@ -1410,9 +1410,6 @@
         mainContent.appendChild(subscriptionsSection);
         mainContent.appendChild(paymentSection);
         mainContent.appendChild(licensesSection);
-        mainContent.appendChild(sitesContainer);
-        mainContent.appendChild(licensesContainer);
-        
         mainContent.appendChild(loginPrompt);
         
         // Assemble container
