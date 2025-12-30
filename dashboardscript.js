@@ -3642,13 +3642,15 @@
                 purchaseType = items[0]?.purchase_type;
             }
             
-            // Check if this is a site-based subscription (Use Case 1: direct payment link, or Use Case 2: site purchase)
-            // INCLUDING activated license keys (Use Case 3 - quantity purchases that were activated)
-            const hasSiteItems = items.length > 0 && items.some(item => {
+            // Domain-Subscriptions section should ONLY show sites purchased through site purchase (Use Case 2)
+            // Exclude: Direct payment sites (Use Case 1) and Activated license sites (Use Case 3)
+            
+            // Check if subscription has site purchase items (purchase_type === 'site')
+            const hasSitePurchaseItems = items.length > 0 && items.some(item => {
                 const itemSite = item.site || item.site_domain;
-                // Exclude items with purchase_type === 'quantity' (unactivated license purchases)
-                if (item.purchase_type === 'quantity') {
-                    return false;
+                // ONLY include items with purchase_type === 'site' (site purchases)
+                if (item.purchase_type !== 'site') {
+                    return false; // Exclude direct payments and activated licenses
                 }
                 return itemSite && itemSite !== '' && 
                        !itemSite.startsWith('license_') && 
@@ -3656,24 +3658,11 @@
                        itemSite !== 'N/A';
             });
             
-            // Check for activated licenses (Use Case 3 - quantity purchases that were activated with a site)
-            const hasActivatedLicenses = licensesForSub.some(lic => {
-                const usedSite = lic.used_site_domain || lic.site_domain;
-                return usedSite && 
-                       !usedSite.startsWith('license_') && 
-                       !usedSite.startsWith('quantity_') &&
-                       usedSite !== 'N/A' &&
-                       !usedSite.startsWith('KEY-') &&
-                       lic.purchase_type === 'quantity' && // Only activated quantity licenses
-                       lic.used_site_domain; // Must have used_site_domain (activated)
-            });
-            
-            const isSiteSubscription = (purchaseType === 'site' || purchaseType === 'direct') && 
-                                      hasSiteItems ||
-                                      hasActivatedLicenses; // Include activated license sites
+            // ONLY include subscriptions with purchase_type === 'site' (site purchases)
+            const isSiteSubscription = purchaseType === 'site' && hasSitePurchaseItems;
             
             if (isSiteSubscription) {
-                // Use Case 1 (direct payment link) or Use Case 2 (site purchase): Site subscriptions
+                // Use Case 2 (site purchase): Site subscriptions ONLY
                 // IMPORTANT: Create ONE item per site (subscription can have multiple sites)
                 
                 // Get billing period and expiration date (same for all sites in subscription)
@@ -3694,26 +3683,28 @@
                 const processedSites = new Set(); // Track sites we've already processed
                 
                 items.forEach(item => {
-                    // Skip license-purchased items (Use Case 3 - quantity purchases)
-                    if (item.purchase_type === 'quantity') {
-                        return;
+                    // ONLY show site purchase items (purchase_type === 'site')
+                    // Exclude direct payments (purchase_type === 'direct') and activated licenses (purchase_type === 'quantity')
+                    if (item.purchase_type !== 'site') {
+                        return; // Skip direct payments and activated license sites
                     }
                     
-                    // Get site name from item
+                    // Get site name from item (backend already provides correct site domain)
                     let siteName = item.site || item.site_domain;
                     
-                    // If not in item, try to find from licenses (but only for site purchases, not quantity purchases)
-                    if (!siteName || siteName.startsWith('license_') || siteName.startsWith('quantity_') || siteName === 'N/A') {
-                        // Try to find site from licenses (excluding quantity purchases)
-                        const licenseWithSite = licensesForSub.find(lic => {
-                            // Exclude quantity purchase licenses
-                            if (lic.purchase_type === 'quantity') {
-                                return false;
-                            }
-                            const licSite = lic.used_site_domain || lic.site_domain;
-                            return licSite && !licSite.startsWith('license_') && !licSite.startsWith('quantity_') && licSite !== 'N/A';
-                        });
-                        siteName = licenseWithSite?.used_site_domain || licenseWithSite?.site_domain;
+                    // For activated licenses, backend should already set the correct site domain
+                    // But if it's still a placeholder, try to get from license
+                    if ((!siteName || siteName.startsWith('license_') || siteName.startsWith('quantity_') || siteName === 'N/A') && item.isActivated) {
+                        // For activated licenses, try to find the actual site from license
+                        const activatedLicense = licensesForSub.find(lic => 
+                            lic.license_key === item.license_key &&
+                            lic.used_site_domain &&
+                            !lic.used_site_domain.startsWith('license_') &&
+                            !lic.used_site_domain.startsWith('quantity_')
+                        );
+                        if (activatedLicense && activatedLicense.used_site_domain) {
+                            siteName = activatedLicense.used_site_domain;
+                        }
                     }
                     
                     // Final fallback - ensure we never show a license key as the site name
@@ -3751,6 +3742,14 @@
                         }
                     }
                     
+                    // Determine purchase type for this site
+                    let sitePurchaseType = purchaseType || 'site';
+                    if (license && license.purchase_type) {
+                        sitePurchaseType = license.purchase_type;
+                    } else if (item.purchase_type) {
+                        sitePurchaseType = item.purchase_type;
+                    }
+                    
                     subscribedItems.push({
                         type: 'site',
                         name: siteName,
@@ -3759,66 +3758,14 @@
                         subscriptionId: subId,
                         billingPeriod: billingPeriod,
                         billingPeriodDisplay: billingPeriodDisplay,
-                        expirationDate: expirationDate
+                        expirationDate: expirationDate,
+                        purchaseType: sitePurchaseType // Track purchase type: 'direct', 'site', or 'quantity'
                     });
                 });
                 
-                // Process activated license keys (Use Case 3 - quantity purchases that were activated)
-                // These SHOULD appear in Domain-Subscriptions when they have an activated site
-                licensesForSub.forEach(license => {
-                    // Check if this is an activated license (has used_site_domain)
-                    const siteName = license.used_site_domain;
-                    if (!siteName || 
-                        siteName.startsWith('license_') || 
-                        siteName.startsWith('quantity_') || 
-                        siteName === 'N/A' ||
-                        siteName.startsWith('KEY-')) {
-                        return; // Skip invalid or unactivated licenses
-                    }
-                    
-                    // Only process if this is an activated quantity purchase license
-                    if (license.purchase_type !== 'quantity' || !license.used_site_domain) {
-                        return; // Only show activated quantity licenses
-                    }
-                    
-                    const siteKey = siteName.toLowerCase().trim();
-                    // Only process if not already added from items above
-                    if (!processedSites.has(siteKey)) {
-                        processedSites.add(siteKey);
-                        
-                        // Get billing period from license or subscription
-                        const licenseBillingPeriod = license.billing_period || billingPeriod;
-                        const licenseBillingPeriodDisplay = licenseBillingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
-                        
-                        let expirationDate = 'N/A';
-                        const renewalDate = license.renewal_date || sub.current_period_end || currentPeriodEnd;
-                        if (renewalDate) {
-                            try {
-                                const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
-                                const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
-                                expirationDate = new Date(dateInMs).toLocaleDateString();
-                            } catch (e) {
-                                console.warn('[Dashboard] Error parsing expiration date:', e);
-                            }
-                        }
-                        
-                        // Add activated site from license key
-                        subscribedItems.push({
-                            type: 'site',
-                            name: siteName,
-                            licenseKey: license.license_key || 'N/A',
-                            status: sub.status || license.status || 'active',
-                            subscriptionId: subId,
-                            billingPeriod: licenseBillingPeriod,
-                            billingPeriodDisplay: licenseBillingPeriodDisplay,
-                            expirationDate: expirationDate,
-                            purchaseType: 'quantity', // Mark as from license key activation
-                            isActivated: true // Mark as activated license
-                        });
-                        
-                        console.log(`[Dashboard] ✅ Added activated site from license key: ${siteName} (subscription: ${subId})`);
-                    }
-                });
+                // REMOVED: Processing activated license keys (Use Case 3)
+                // Domain-Subscriptions section should ONLY show site purchases (Use Case 2)
+                // Activated license sites should NOT appear in Domain-Subscriptions
                 
                 // CRITICAL: Also process sites from allSites parameter that belong to this subscription
                 // This ensures all active/activated sites are displayed, even if they're not in subscription items
@@ -3837,19 +3784,10 @@
                             return;
                         }
                         
-                        // Include activated license-purchased sites (Use Case 3 - quantity purchases that were activated)
-                        // Only skip if it's a quantity purchase that hasn't been activated (no used_site_domain)
-                        if (siteData.purchase_type === 'quantity') {
-                            // Check if this site is from an activated license
-                            const siteLicense = siteToLicenseMap[siteKey] || licensesForSub.find(lic => {
-                                const licSite = (lic.used_site_domain || lic.site_domain || '').toLowerCase().trim();
-                                return licSite === siteKey && lic.purchase_type === 'quantity' && lic.used_site_domain;
-                            });
-                            // Only skip if it's not an activated license site
-                            if (!siteLicense || !siteLicense.used_site_domain) {
-                                return;
-                            }
-                            // Otherwise, continue to process this activated site
+                        // ONLY show site purchases (purchase_type === 'site')
+                        // Exclude direct payments and activated license sites
+                        if (siteData.purchase_type !== 'site') {
+                            return; // Skip direct payments and activated license sites
                         }
                         
                         // Skip placeholder sites
@@ -3872,12 +3810,14 @@
                                 return licSite === siteKey;
                             });
                             
-                            // Include activated license sites (quantity purchases that were activated)
-                            // Only skip if it's a quantity purchase that hasn't been activated
-                            if (siteLicense && siteLicense.purchase_type === 'quantity' && !siteLicense.used_site_domain) {
-                                return; // Skip unactivated quantity licenses
+                            // ONLY show site purchases (purchase_type === 'site')
+                            // Exclude activated license sites
+                            if (siteLicense && siteLicense.purchase_type === 'quantity') {
+                                return; // Skip activated license sites
                             }
-                            // Otherwise, continue to process (including activated quantity licenses)
+                            if (siteData.purchase_type !== 'site') {
+                                return; // Skip if not a site purchase
+                            }
                             
                             // Get billing period from site data, license, or subscription
                             const siteBillingPeriod = siteData.billing_period || siteLicense?.billing_period || billingPeriod || 'monthly';
@@ -3896,6 +3836,12 @@
                                 }
                             }
                             
+                            // Determine purchase type for this site
+                            let sitePurchaseType = purchaseType || siteData.purchase_type || 'site';
+                            if (siteLicense && siteLicense.purchase_type) {
+                                sitePurchaseType = siteLicense.purchase_type;
+                            }
+                            
                             // Add site from allSites
                             subscribedItems.push({
                                 type: 'site',
@@ -3905,7 +3851,8 @@
                                 subscriptionId: subId,
                                 billingPeriod: siteBillingPeriod,
                                 billingPeriodDisplay: siteBillingPeriodDisplay,
-                                expirationDate: expirationDate
+                                expirationDate: expirationDate,
+                                purchaseType: sitePurchaseType // Track purchase type: 'direct', 'site', or 'quantity'
                             });
                             
                             console.log(`[Dashboard] ✅ Added site from allSites: ${siteDomain} (subscription: ${subId})`);
@@ -3990,19 +3937,7 @@
                     return;
                 }
                 
-                // Include activated license-purchased sites (Use Case 3 - quantity purchases that were activated)
-                // Only skip if it's a quantity purchase that hasn't been activated
-                if (siteData.purchase_type === 'quantity') {
-                    // Check if this site is from an activated license
-                    if (siteLicense && siteLicense.purchase_type === 'quantity' && siteLicense.used_site_domain) {
-                        // This is an activated license site - include it
-                    } else {
-                        // Not an activated license site - skip it
-                        return;
-                    }
-                }
-                
-                // Skip placeholder sites
+                // Skip placeholder sites first
                 if (siteDomain.startsWith('site_') || 
                     siteDomain.startsWith('license_') || 
                     siteDomain.startsWith('quantity_') ||
@@ -4029,6 +3964,12 @@
                     });
                 }
                 
+                // ONLY show site purchases (purchase_type === 'site')
+                // Exclude direct payments and activated license sites
+                if (siteData.purchase_type !== 'site') {
+                    return; // Skip direct payments and activated license sites
+                }
+                
                 // Get billing period from site data, license, or subscription
                 const siteBillingPeriod = siteData.billing_period || 
                                          siteLicense?.billing_period || 
@@ -4051,6 +3992,14 @@
                     }
                 }
                 
+                // Determine purchase type for this site
+                let sitePurchaseType = siteData.purchase_type || 'site';
+                if (siteLicense && siteLicense.purchase_type) {
+                    sitePurchaseType = siteLicense.purchase_type;
+                } else if (subscription && subscription.purchase_type) {
+                    sitePurchaseType = subscription.purchase_type;
+                }
+                
                 // Add site from allSites (even if no subscription found)
                 subscribedItems.push({
                     type: 'site',
@@ -4060,7 +4009,8 @@
                     subscriptionId: siteSubscriptionId || 'unknown',
                     billingPeriod: siteBillingPeriod,
                     billingPeriodDisplay: siteBillingPeriodDisplay,
-                    expirationDate: expirationDate
+                    expirationDate: expirationDate,
+                    purchaseType: sitePurchaseType // Track purchase type: 'direct', 'site', or 'quantity'
                 });
                 
                 console.log(`[Dashboard] ✅ Added orphaned site from allSites: ${siteDomain} (subscription: ${siteSubscriptionId || 'none'})`);
