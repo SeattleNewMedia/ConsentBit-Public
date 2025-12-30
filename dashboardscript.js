@@ -5450,6 +5450,15 @@
     // REMOVED: Legacy addSite() function (was ~720 lines) - Not used for Use Case 2
     // Use Case 2 uses setupUseCase2Handlers() instead
     
+    // Display subscriptions in accordion format
+    function displaySubscriptionsAccordion(subscriptions, allSites, pendingSites = [], subscriptionLicenses = {}) {
+        const container = document.getElementById('subscriptions-accordion-container') || document.getElementById('subscribed-items-list');
+        if (!container) {
+            console.warn('[Dashboard] Subscriptions container not found');
+            return;
+        }
+        
+        const html = Object.keys(subscriptions).map((subId, index) => {
             const sub = subscriptions[subId];
             const isExpanded = index === 0; // First subscription expanded by default
             
@@ -5713,6 +5722,9 @@
                 </div>
             `;
         }).join('');
+        
+        // Set the HTML content
+        container.innerHTML = html;
         
         // Add accordion toggle functionality
         container.querySelectorAll('.subscription-header').forEach(header => {
@@ -6149,6 +6161,9 @@
                     this.textContent = `💳 Pay Now (${pendingSites.length} site${pendingSites.length === 1 ? '' : 's'})`;
                 }
             });
+        });
+    }
+    
     // REMOVED: Legacy addSite() function - Not used for Use Case 2
     // Use Case 2 uses setupUseCase2Handlers() and /add-sites-batch endpoint instead
     
