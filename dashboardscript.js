@@ -3999,6 +3999,12 @@
             yearly: []
         };
         
+        // Ensure subscribedItems is an array
+        if (!Array.isArray(subscribedItems)) {
+            console.error('[Dashboard] subscribedItems is not an array:', subscribedItems);
+            subscribedItems = [];
+        }
+        
         subscribedItems.forEach(item => {
             const billingPeriod = item.billingPeriod || 'monthly';
             if (billingPeriod === 'yearly') {
@@ -4041,6 +4047,35 @@
                         purchaseType: 'site',
                         isProcessing: true // Flag to identify processing items
                     });
+                    
+                    // Re-categorize: Add processing item to the appropriate category
+                    if (billingPeriod === 'yearly') {
+                        categorizedItems.yearly.push({
+                            type: 'site',
+                            name: procItem.name,
+                            licenseKey: 'Processing...',
+                            status: 'processing',
+                            subscriptionId: 'processing',
+                            billingPeriod: billingPeriod,
+                            billingPeriodDisplay: billingPeriodText,
+                            expirationDate: expirationText || 'N/A',
+                            purchaseType: 'site',
+                            isProcessing: true
+                        });
+                    } else {
+                        categorizedItems.monthly.push({
+                            type: 'site',
+                            name: procItem.name,
+                            licenseKey: 'Processing...',
+                            status: 'processing',
+                            subscriptionId: 'processing',
+                            billingPeriod: billingPeriod,
+                            billingPeriodDisplay: billingPeriodText,
+                            expirationDate: expirationText || 'N/A',
+                            purchaseType: 'site',
+                            isProcessing: true
+                        });
+                    }
                 }
             });
         }
@@ -4085,7 +4120,12 @@
             
             // Create table for each tab
             ['monthly', 'yearly'].forEach(tabName => {
-                const tabItems = categorizedItems[tabName];
+                // Ensure tabItems is always an array
+                let tabItems = categorizedItems[tabName];
+                if (!Array.isArray(tabItems)) {
+                    console.warn(`[Dashboard] categorizedItems.${tabName} is not an array:`, tabItems);
+                    tabItems = [];
+                }
                 const isActive = tabName === 'monthly';
                 
                 html += `
@@ -4107,12 +4147,22 @@
                                 <tbody>
                                     ${(() => {
                                         // Server-side pagination: Use all items (already paginated from server)
-                                        const displayedItems = tabItems;
+                                        // Ensure displayedItems is always an array
+                                        const displayedItems = Array.isArray(tabItems) ? tabItems : [];
                                         // Check if there are more items from pagination metadata
                                         const hasMore = pagination && pagination.hasMore ? pagination.hasMore : false;
-                                        const total = pagination && pagination.total ? pagination.total : tabItems.length;
+                                        const total = pagination && pagination.total ? pagination.total : displayedItems.length;
                                         
-                                        let rowsHtml = displayedItems.map(item => {
+                                        // Ensure displayedItems is an array before mapping
+                                        if (!Array.isArray(displayedItems)) {
+                                            console.error('[Dashboard] displayedItems is not an array:', displayedItems, 'Type:', typeof displayedItems);
+                                            return '';
+                                        }
+                                        
+                                        // Ensure map returns an array and join works
+                                        let rowsHtml = '';
+                                        try {
+                                            const mappedItems = displayedItems.map(item => {
                                         const isActiveStatus = item.status === 'active' || item.status === 'trialing';
                                         const statusColor = isActiveStatus ? '#4caf50' : '#f44336';
                                         const statusBg = isActiveStatus ? '#e8f5e9' : '#ffebee';
@@ -4213,7 +4263,19 @@
                                                 </td>
                                             </tr>
                                         `;
-                                        }).join('');
+                                            });
+                                            
+                                            // Ensure mappedItems is an array before joining
+                                            if (Array.isArray(mappedItems)) {
+                                                rowsHtml = mappedItems.join('');
+                                            } else {
+                                                console.error('[Dashboard] map() did not return an array:', mappedItems, 'Type:', typeof mappedItems);
+                                                rowsHtml = '';
+                                            }
+                                        } catch (error) {
+                                            console.error('[Dashboard] Error mapping displayedItems:', error, 'displayedItems:', displayedItems);
+                                            rowsHtml = '';
+                                        }
                                         
                                         // Add Load More button if there are more items
                                         if (hasMore) {
