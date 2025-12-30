@@ -953,8 +953,6 @@
         sidebar.innerHTML = `
           
             <nav style="padding: 10px 0;">
-                <!-- Domains button hidden - only showing Domain-Subscriptions -->
-                <!--
                 <button class="sidebar-item" data-section="domains" style="
                     width: 100%;
                     padding: 15px 20px;
@@ -966,11 +964,9 @@
                     font-size: 16px;
                     transition: all 0.3s;
                     border-left: 3px solid transparent;
-                    display: none;
                 ">
-                    🌐 Subscriptions
+                    🌐 Your Domains/Sites
                 </button>
-                -->
                 <button class="sidebar-item active" data-section="subscriptions" style="
                     width: 100%;
                     padding: 15px 20px;
@@ -985,9 +981,6 @@
                 ">
                     💳 Domain-Subscriptions
                 </button>
-                
-                <!-- License Keys/Purchases button hidden - only showing Domain-Subscriptions -->
-                <!--
                 <button class="sidebar-item" data-section="licenses" style="
                     width: 100%;
                     padding: 15px 20px;
@@ -999,11 +992,9 @@
                     font-size: 16px;
                     transition: all 0.3s;
                     border-left: 3px solid transparent;
-                    display: none;
                 ">
                     🔑 License Keys/Purchases
                 </button>
-                -->
             </nav>
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
                 <button id="logout-button" data-ms-action="logout" style="
@@ -1082,7 +1073,7 @@
         const domainsSection = document.createElement('div');
         domainsSection.id = 'domains-section';
         domainsSection.className = 'content-section';
-        domainsSection.style.cssText = 'display: none;'; // Hidden - only showing Domain-Subscriptions
+        domainsSection.style.cssText = 'display: none;'; // Hidden by default, shown when sidebar item is clicked
         domainsSection.innerHTML = `
             <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">🌐 Your Domains/Sites</h2>
@@ -1443,10 +1434,7 @@
             btn.addEventListener('click', function() {
                 const section = this.getAttribute('data-section');
                 
-                // Prevent switching to licenses section - only show Domain-Subscriptions
-                if (section === 'licenses') {
-                    return; // Don't allow switching to licenses
-                }
+                // Allow switching to all sections
                 
                 // Update active state
                 sidebar.querySelectorAll('.sidebar-item').forEach(b => {
@@ -1481,7 +1469,7 @@
             });
         });
         
-        // Initialize subscriptions sidebar item as active (Domain-Subscriptions)
+        // Initialize subscriptions sidebar item as active (Domain-Subscriptions) - default view
         const subscriptionsSidebarItem = sidebar.querySelector('.sidebar-item[data-section="subscriptions"]');
         if (subscriptionsSidebarItem) {
             subscriptionsSidebarItem.classList.add('active');
