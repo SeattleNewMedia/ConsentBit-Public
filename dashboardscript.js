@@ -1895,13 +1895,14 @@
                 }
             });
             
-            // STEP 2: Add sites from Use Case 3 (license key subscriptions) - licenses that have used_site_domain
+            // STEP 2: Add sites from Use Case 2 (site subscriptions) - licenses that have used_site_domain
             // FILTERED OUT: Only show sites purchased directly through domain purchase, not license key activations
             // Sites activated via license keys (purchase_type = 'quantity') are excluded from the Domains section
             licensesData.forEach(license => {
-                // Only include site-based purchases (purchase_type = 'site'), exclude quantity purchases
+                // CRITICAL: Only include site-based purchases (purchase_type = 'site' or null for direct purchases)
+                // EXCLUDE all quantity purchases (purchase_type = 'quantity') - even if activated
                 // Check for used_site_domain which indicates the license has been activated
-                if (license.used_site_domain && license.purchase_type === 'site') {
+                if (license.used_site_domain && license.purchase_type !== 'quantity') {
                     const siteDomain = license.used_site_domain;
                     // Get subscription data for this license
                     const subscription = data.subscriptions?.[license.subscription_id];
@@ -1950,10 +1951,13 @@
             const filteredSites = {};
             Object.keys(allSitesCombined).forEach(siteDomain => {
                 const siteData = allSitesCombined[siteDomain];
-                // Only include sites with purchase_type = 'site' or 'direct' (domain purchases)
-                // Exclude purchase_type = 'quantity' (license key activations)
+                // CRITICAL: Only include sites with purchase_type = 'site' or 'direct' (domain purchases)
+                // EXCLUDE purchase_type = 'quantity' (license key activations) - these should NOT appear in domain purchase section
                 if (siteData.purchase_type === 'site' || siteData.purchase_type === 'direct') {
                     filteredSites[siteDomain] = siteData;
+                } else if (siteData.purchase_type === 'quantity') {
+                    // Explicitly skip quantity purchases - they should only appear in subscriptions tab
+                    console.log(`[Dashboard] 🚫 Filtered out license key activation from domain purchase: ${siteDomain} (purchase_type: quantity)`);
                 }
             });
             
@@ -3704,40 +3708,53 @@
                 
                 // Also process licenses that might not have corresponding items (edge case)
                 // This includes activated license keys (Use Case 3 - quantity purchases that were activated)
+                // CRITICAL: Process ALL activated licenses, regardless of whether they have items
                 licensesForSub.forEach(license => {
-                    const siteName = license.used_site_domain || license.site_domain;
-                    if (siteName && 
-                        !siteName.startsWith('license_') && 
-                        !siteName.startsWith('quantity_') && 
-                        siteName !== 'N/A' &&
-                        !siteName.startsWith('KEY-')) {
-                        const siteKey = siteName.toLowerCase().trim();
-                        if (!processedSites.has(siteKey)) {
-                            processedSites.add(siteKey);
-                            
-                            let expirationDate = 'N/A';
-                            const renewalDate = license.renewal_date || currentPeriodEnd;
-                            if (renewalDate) {
-                                try {
-                                    const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
-                                    const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
-                                    expirationDate = new Date(dateInMs).toLocaleDateString();
-                                } catch (e) {
-                                    console.warn('[Dashboard] Error parsing expiration date:', e);
-                                }
+                    // Check if this is an activated license (has used_site_domain)
+                    const siteName = license.used_site_domain;
+                    if (!siteName || 
+                        siteName.startsWith('license_') || 
+                        siteName.startsWith('quantity_') || 
+                        siteName === 'N/A' ||
+                        siteName.startsWith('KEY-')) {
+                        return; // Skip invalid or unactivated licenses
+                    }
+                    
+                    const siteKey = siteName.toLowerCase().trim();
+                    // Only process if not already added from items above
+                    if (!processedSites.has(siteKey)) {
+                        processedSites.add(siteKey);
+                        
+                        // Get billing period from license or subscription
+                        const licenseBillingPeriod = license.billing_period || billingPeriod;
+                        const licenseBillingPeriodDisplay = licenseBillingPeriod === 'yearly' ? 'Yearly' : 'Monthly';
+                        
+                        let expirationDate = 'N/A';
+                        const renewalDate = license.renewal_date || sub.current_period_end || currentPeriodEnd;
+                        if (renewalDate) {
+                            try {
+                                const timestamp = typeof renewalDate === 'number' ? renewalDate : parseInt(renewalDate);
+                                const dateInMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+                                expirationDate = new Date(dateInMs).toLocaleDateString();
+                            } catch (e) {
+                                console.warn('[Dashboard] Error parsing expiration date:', e);
                             }
-                            
-                            subscribedItems.push({
-                                type: 'site',
-                                name: siteName,
-                                licenseKey: license.license_key || 'N/A',
-                                status: sub.status || 'active',
-                                subscriptionId: subId,
-                                billingPeriod: billingPeriod,
-                                billingPeriodDisplay: billingPeriodDisplay,
-                                expirationDate: expirationDate
-                            });
                         }
+                        
+                        // Add activated site from license key
+                        subscribedItems.push({
+                            type: 'site',
+                            name: siteName,
+                            licenseKey: license.license_key || 'N/A',
+                            status: sub.status || license.status || 'active',
+                            subscriptionId: subId,
+                            billingPeriod: licenseBillingPeriod,
+                            billingPeriodDisplay: licenseBillingPeriodDisplay,
+                            expirationDate: expirationDate,
+                            purchaseType: license.purchase_type || 'quantity' // Mark as from license key activation
+                        });
+                        
+                        console.log(`[Dashboard] ✅ Added activated site from license key: ${siteName} (subscription: ${subId})`);
                     }
                 });
             }
@@ -4603,65 +4620,74 @@
         }
         
         // Remove pending site buttons (local only - no backend call until Pay Now)
-        document.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('remove-pending-site-usecase2')) {
-                const index = parseInt(e.target.getAttribute('data-site-index'));
-                // Get pending sites from dashboard data
-                if (!window.dashboardData) {
-                    window.dashboardData = {};
-                }
-                if (!window.dashboardData.pendingSites) {
-                    window.dashboardData.pendingSites = [];
-                }
-                
-                const pendingSites = window.dashboardData.pendingSites;
-                if (index >= 0 && index < pendingSites.length) {
-                    const site = pendingSites[index].site || pendingSites[index].site_domain || pendingSites[index];
+        // Use event delegation with guard to prevent duplicate listeners
+        if (!window.removePendingSiteHandlerAttached) {
+            window.removePendingSiteHandlerAttached = true;
+            document.addEventListener('click', async (e) => {
+                // Use closest() to find the button even if click is on child element (like text)
+                const removeButton = e.target.closest('.remove-pending-site-usecase2');
+                if (removeButton) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     
-                    // Remove from local list
-                    pendingSites.splice(index, 1);
-                    
-                    // Update localStorage
-                    try {
-                        if (pendingSites.length > 0) {
-                            localStorage.setItem('pendingSitesLocal', JSON.stringify(pendingSites));
-                        } else {
-                            localStorage.removeItem('pendingSitesLocal');
-                        }
-                    } catch (e) {
-                        console.warn('[Dashboard] Could not update localStorage:', e);
+                    const index = parseInt(removeButton.getAttribute('data-site-index'));
+                    // Get pending sites from dashboard data
+                    if (!window.dashboardData) {
+                        window.dashboardData = {};
+                    }
+                    if (!window.dashboardData.pendingSites) {
+                        window.dashboardData.pendingSites = [];
                     }
                     
-                    // Remove from backend (await to ensure it completes)
-                    try {
-                        const response = await fetch(`${API_BASE}/remove-pending-site`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ 
-                                site: site,
-                                email: userEmail
-                            })
-                        });
+                    const pendingSites = window.dashboardData.pendingSites;
+                    if (index >= 0 && index < pendingSites.length) {
+                        const site = pendingSites[index].site || pendingSites[index].site_domain || pendingSites[index];
                         
-                        if (response.ok) {
-                            const result = await response.json();
-                            console.log('[Dashboard] Site removed from backend:', result);
-                        } else {
-                            console.warn('[Dashboard] Backend removal failed, but local removal succeeded');
+                        // Remove from local list
+                        pendingSites.splice(index, 1);
+                        
+                        // Update localStorage
+                        try {
+                            if (pendingSites.length > 0) {
+                                localStorage.setItem('pendingSitesLocal', JSON.stringify(pendingSites));
+                            } else {
+                                localStorage.removeItem('pendingSitesLocal');
+                            }
+                        } catch (e) {
+                            console.warn('[Dashboard] Could not update localStorage:', e);
                         }
-                    } catch (err) {
-                        // Log error but don't block - local storage is backup
-                        console.warn('[Dashboard] Error removing site from backend (non-critical):', err);
+                        
+                        // Remove from backend (await to ensure it completes)
+                        try {
+                            const response = await fetch(`${API_BASE}/remove-pending-site`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ 
+                                    site: site,
+                                    email: userEmail
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                const result = await response.json();
+                                console.log('[Dashboard] Site removed from backend:', result);
+                            } else {
+                                console.warn('[Dashboard] Backend removal failed, but local removal succeeded');
+                            }
+                        } catch (err) {
+                            // Log error but don't block - local storage is backup
+                            console.warn('[Dashboard] Error removing site from backend (non-critical):', err);
+                        }
+                        
+                        // Update display immediately (this will also toggle payment plan selection)
+                        updatePendingSitesDisplayUseCase2(pendingSites);
+                        
+                        showSuccess(`Site "${site}" removed from pending list`);
                     }
-                    
-                    // Update display immediately (this will also toggle payment plan selection)
-                    updatePendingSitesDisplayUseCase2(pendingSites);
-                    
-                    showSuccess(`Site "${site}" removed from pending list`);
                 }
-            }
-        });
+            });
+        }
         
         // Pay Now button - use event delegation to handle dynamically created buttons
         // Also attach directly if button exists
