@@ -1372,14 +1372,7 @@
             </div>
         `;
         
-        // Legacy containers (for backward compatibility)
-        const sitesContainer = document.createElement('div');
-        sitesContainer.id = 'sites-container';
-        sitesContainer.style.display = 'none';
-        
-        const licensesContainer = document.createElement('div');
-        licensesContainer.id = 'licenses-container';
-        licensesContainer.style.display = 'none';
+        // Legacy containers removed - no longer needed
         
         // Login Prompt
         const loginPrompt = document.createElement('div');
@@ -1599,12 +1592,11 @@
             updateUserEmailDisplay(userEmail);
         }
         
-        // Try new container first, fallback to legacy
+        // Get containers
         const domainsContainer = document.getElementById('domains-table-container');
         const subscriptionsContainer = document.getElementById('subscriptions-accordion-container');
-        const sitesContainer = document.getElementById('sites-container');
         
-        const loadingContainer = domainsContainer || sitesContainer;
+        const loadingContainer = domainsContainer;
         if (!loadingContainer) {
             console.error('[Dashboard] Dashboard containers not found');
             return;
@@ -2227,11 +2219,6 @@
             }
             // Get subscriptions from dashboard data if available
             const dashboardData = window.dashboardData || {};
-            
-            // Update subscription selector with active subscriptions
-            if (data.activeSubscriptions) {
-                updateSubscriptionSelector(data.activeSubscriptions);
-            }
             
             // Handle pagination: If offset > 0, append to existing; otherwise replace
             if (offset > 0 && status && window.currentLicenses && window.currentLicenses[status]) {
@@ -2979,35 +2966,7 @@
         // The "Remove from Subscription" button has been removed from the UI
     }
     
-    // Update subscription selector dropdown
-    function updateSubscriptionSelector(activeSubscriptions) {
-        const select = document.getElementById('subscription-select');
-        if (!select) return;
-        
-        // Clear existing options
-        select.innerHTML = '';
-        
-        if (!activeSubscriptions || activeSubscriptions.length === 0) {
-            select.innerHTML = '<option value="">No active subscriptions found</option>';
-            select.disabled = true;
-            return;
-        }
-        
-        select.disabled = false;
-        
-        // Add default option
-        select.innerHTML = '<option value="">Select a subscription...</option>';
-        
-        // Add subscription options
-        activeSubscriptions.forEach(sub => {
-            const billingPeriod = sub.billing_period ? sub.billing_period.charAt(0).toUpperCase() + sub.billing_period.slice(1) : 'N/A';
-            const subIdShort = sub.subscription_id ? sub.subscription_id.substring(0, 20) + '...' : 'Unknown';
-            const option = document.createElement('option');
-            option.value = sub.subscription_id;
-            option.textContent = `${subIdShort} - ${sub.status} (${billingPeriod})`;
-            select.appendChild(option);
-        });
-    }
+    // updateSubscriptionSelector removed - no longer needed for Use Case 2
     
     // Enable/disable license payment plan selection based on purchase status
     function toggleLicensePaymentPlanSelection(enabled) {
@@ -3137,13 +3096,7 @@
     function displaySites(sites, pagination = null) {
         const container = document.getElementById('domains-table-container');
         if (!container) {
-            // Fallback to legacy container
-            const legacyContainer = document.getElementById('sites-container');
-            if (legacyContainer) {
-                container = legacyContainer;
-            } else {
-                return;
-            }
+            return;
         }
         
         if (Object.keys(sites).length === 0) {
@@ -3578,39 +3531,28 @@
         });
     }
     
-    // Display Site Subscriptions (Use Case 2) - separate subscription per site
-    // Display subscribed items in a simple list (combines Use Case 2 and Use Case 3)
+    
     async function displaySubscribedItems(subscriptions, allSites, pendingSites = [], pagination = null) {
         const container = document.getElementById('subscribed-items-list');
         if (!container) return;
         
-        // Get licenses to identify subscriptions
-        let licensesData = [];
-        try {
-            const userEmail = await getLoggedInEmail();
-            if (userEmail) {
-                // Check cache first
-                if (window.licensesCache && (Date.now() - window.licensesCache.timestamp < 5000)) {
-                    console.log('[Dashboard] ✅ Using cached licenses for displaySubscribedItems');
-                    licensesData = window.licensesCache.data.licenses || [];
-                } else {
-                    const licensesResponse = await cachedFetch(`${API_BASE}/licenses?email=${encodeURIComponent(userEmail)}`, {
-                        method: 'GET'
-                    }, true); // Use cache
-                    if (licensesResponse.ok) {
-                        const licensesResult = await licensesResponse.json();
-                        licensesData = licensesResult.licenses || [];
-                        // Update cache
-                        window.licensesCache = {
-                            data: licensesResult,
-                            timestamp: Date.now()
-                        };
-                    }
+       
+        const existingProcessingItems = [];
+        const itemsContainer = container.querySelector('div[style*="background: #f8f9fa"]');
+        if (itemsContainer) {
+            const processingDivs = itemsContainer.querySelectorAll('div[style*="Processing"]');
+            processingDivs.forEach(div => {
+                const siteNameEl = div.querySelector('div[style*="font-weight: 600"]');
+                const siteName = siteNameEl ? siteNameEl.textContent.replace('🌐 ', '').trim() : null;
+                if (siteName) {
+                    existingProcessingItems.push({
+                        name: siteName,
+                        element: div
+                    });
                 }
-            }
-        } catch (licenseError) {
-            console.warn('[Dashboard] Could not load licenses:', licenseError);
+            });
         }
+    
         
         // Create map of subscription_id -> license data
         const subscriptionLicenses = {};
@@ -3729,6 +3671,17 @@
                         return licSite === siteKey;
                     });
                     
+                    // CRITICAL: Exclude sites that were activated via license keys (purchase_type === 'quantity')
+                    // Only show sites that were directly purchased (purchase_type === 'site' or 'direct')
+                    if (license && license.purchase_type === 'quantity') {
+                        return; // Skip activated license sites - they should not appear in purchased sites
+                    }
+                    
+                    // Double-check: If item purchase_type is 'quantity', skip it
+                    if (item.purchase_type === 'quantity') {
+                        return; // Skip activated license sites
+                    }
+                    
                     // Get expiration date
                     let expirationDate = 'N/A';
                     const renewalDate = license?.renewal_date || currentPeriodEnd;
@@ -3748,6 +3701,11 @@
                         sitePurchaseType = license.purchase_type;
                     } else if (item.purchase_type) {
                         sitePurchaseType = item.purchase_type;
+                    }
+                    
+                    // Final check: Only show if purchase_type is 'site' or 'direct' (not 'quantity')
+                    if (sitePurchaseType === 'quantity') {
+                        return; // Skip activated license sites
                     }
                     
                     subscribedItems.push({
@@ -3810,13 +3768,19 @@
                                 return licSite === siteKey;
                             });
                             
-                            // ONLY show site purchases (purchase_type === 'site')
-                            // Exclude activated license sites
+                            // CRITICAL: Exclude sites that were activated via license keys (purchase_type === 'quantity')
+                            // Only show sites that were directly purchased (purchase_type === 'site' or 'direct')
                             if (siteLicense && siteLicense.purchase_type === 'quantity') {
+                                return; // Skip activated license sites - they should not appear in purchased sites
+                            }
+                            
+                            // ONLY show site purchases (purchase_type === 'site' or 'direct')
+                            // Exclude activated license sites (purchase_type === 'quantity')
+                            if (siteData.purchase_type === 'quantity') {
                                 return; // Skip activated license sites
                             }
-                            if (siteData.purchase_type !== 'site') {
-                                return; // Skip if not a site purchase
+                            if (siteData.purchase_type !== 'site' && siteData.purchase_type !== 'direct') {
+                                return; // Skip if not a direct purchase
                             }
                             
                             // Get billing period from site data, license, or subscription
@@ -3964,10 +3928,19 @@
                     });
                 }
                 
-                // ONLY show site purchases (purchase_type === 'site')
-                // Exclude direct payments and activated license sites
-                if (siteData.purchase_type !== 'site') {
-                    return; // Skip direct payments and activated license sites
+                // CRITICAL: Exclude sites that were activated via license keys (purchase_type === 'quantity')
+                // Only show sites that were directly purchased (purchase_type === 'site' or 'direct')
+                if (siteLicense && siteLicense.purchase_type === 'quantity') {
+                    return; // Skip activated license sites - they should not appear in purchased sites
+                }
+                
+                // ONLY show site purchases (purchase_type === 'site' or 'direct')
+                // Exclude activated license sites (purchase_type === 'quantity')
+                if (siteData.purchase_type === 'quantity') {
+                    return; // Skip activated license sites
+                }
+                if (siteData.purchase_type !== 'site' && siteData.purchase_type !== 'direct') {
+                    return; // Skip if not a direct purchase
                 }
                 
                 // Get billing period from site data, license, or subscription
@@ -4034,6 +4007,43 @@
                 categorizedItems.monthly.push(item);
             }
         });
+        
+        // PRESERVE "Processing..." items: Merge with real data
+        // Check if we have processing items that aren't in subscribedItems yet
+        if (existingProcessingItems.length > 0) {
+            existingProcessingItems.forEach(procItem => {
+                const siteName = procItem.name.toLowerCase().trim();
+                // Check if this site is already in subscribedItems
+                const alreadyExists = subscribedItems.some(item => 
+                    item.name && item.name.toLowerCase().trim() === siteName
+                );
+                
+                // If not found in real data, add it as a processing item
+                if (!alreadyExists) {
+                    // Extract billing period and expiration from the processing element
+                    const procElement = procItem.element;
+                    const billingPeriodEl = procElement.querySelector('span[style*="background"]');
+                    const billingPeriodText = billingPeriodEl ? billingPeriodEl.textContent.trim() : 'Yearly';
+                    const billingPeriod = billingPeriodText === 'Yearly' ? 'yearly' : 'monthly';
+                    
+                    const expirationEl = procElement.querySelector('span[style*="Expires"]');
+                    const expirationText = expirationEl ? expirationEl.textContent.replace('Expires: ', '').trim() : null;
+                    
+                    subscribedItems.push({
+                        type: 'site',
+                        name: procItem.name,
+                        licenseKey: 'Processing...',
+                        status: 'processing',
+                        subscriptionId: 'processing',
+                        billingPeriod: billingPeriod,
+                        billingPeriodDisplay: billingPeriodText,
+                        expirationDate: expirationText || 'N/A',
+                        purchaseType: 'site',
+                        isProcessing: true // Flag to identify processing items
+                    });
+                }
+            });
+        }
         
         // Display subscribed items with tabs
         if (subscribedItems.length === 0) {
@@ -4121,13 +4131,26 @@
                                                             : '🔑 Unassigned License Key'}
                                                 </td>
                                                 <td style="padding: 15px; color: #666; font-size: 12px; font-family: monospace;">
-                                                    ${item.licenseKey !== 'N/A' ? item.licenseKey.substring(0, 20) + '...' : 'N/A'}
+                                                    ${item.isProcessing 
+                                                        ? '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">Processing...</code>'
+                                                        : (item.licenseKey !== 'N/A' && item.licenseKey !== 'Processing...' 
+                                                            ? item.licenseKey.substring(0, 20) + '...' 
+                                                            : 'N/A')}
                                                 </td>
                                                 <td style="padding: 15px; color: #666; font-size: 13px;">
                                                     ${item.expirationDate || 'N/A'}
                                                 </td>
                                                 <td style="padding: 15px; text-align: center; position: relative;">
-                                                    <div style="position: relative; display: inline-block;">
+                                                    ${item.isProcessing 
+                                                        ? `<span style="
+                                                            padding: 4px 12px;
+                                                            border-radius: 20px;
+                                                            font-size: 11px;
+                                                            font-weight: 600;
+                                                            background: #fff3cd;
+                                                            color: #856404;
+                                                        ">Processing</span>`
+                                                        : `<div style="position: relative; display: inline-block;">
                                                         <button class="subscription-actions-menu-button" 
                                                                 data-subscription-id="${item.subscriptionId || ''}"
                                                                 data-license-key="${item.licenseKey || ''}"
@@ -4186,7 +4209,7 @@
                                                             </button>
                                                             ` : ''}
                                                         </div>
-                                                    </div>
+                                                    </div>`}
                                                 </td>
                                             </tr>
                                         `;
@@ -5283,45 +5306,88 @@
             // Clear localStorage after successful payment
             try {
                 localStorage.removeItem('pendingSitesLocal');
+                localStorage.removeItem('pendingSitesLastModified');
             } catch (e) {
                 console.warn('[Dashboard] Could not clear localStorage:', e);
             }
             
+            // Immediately clear pending sites from display
+            updatePendingSitesDisplayUseCase2([]);
+            
+            // Clear window.dashboardData pending sites
+            if (window.dashboardData) {
+                window.dashboardData.pendingSites = [];
+            }
+            
             // Silently sync dashboard data in background without visible reload
-            // Use debounce to prevent multiple rapid reloads
+            // Wait a bit for webhook to finish processing, then refresh with fresh data
             const userEmail = await getLoggedInEmail();
             if (userEmail) {
-                debounce('refreshDashboardAfterPayment', () => {
-                    clearCache('dashboard'); // Clear dashboard cache
-                    silentDashboardUpdate(userEmail).catch(err => {
-                        console.error('[Dashboard] Error silently updating dashboard:', err);
-                        // Fallback to regular reload if silent update fails
-                        loadDashboard(userEmail, false).catch(() => {});
-                    });
-                }, 500); // 500ms debounce
+                // Clear ALL caches (dashboard and licenses) to ensure fresh data
+                clearCache('dashboard');
+                clearCache('licenses');
+                
+                // Progressive refresh: Try multiple times to catch webhook completion
+                // First attempt (3 seconds) - webhook should be done by now
+                setTimeout(() => {
+                    debounce('refreshDashboardAfterPayment', async () => {
+                        try {
+                            console.log('[Dashboard] 🔄 First refresh attempt after payment (3s)...');
+                            // Force refresh both dashboard and licenses with fresh data (no cache)
+                            await Promise.all([
+                                loadDashboard(userEmail, false),
+                                loadLicenseKeys(userEmail)
+                            ]);
+                            console.log('[Dashboard] ✅ Dashboard and licenses refreshed after payment');
+                        } catch (err) {
+                            console.error('[Dashboard] Error refreshing after payment:', err);
+                            // Fallback to silent update if full reload fails
+                            silentDashboardUpdate(userEmail).catch(() => {
+                                loadDashboard(userEmail, false).catch(() => {});
+                            });
+                        }
+                    }, 500); // 500ms debounce
+                }, 3000); // 3 second delay for webhook processing
+                
+                // Second attempt (5 seconds) - in case webhook is slow
+                setTimeout(() => {
+                    debounce('refreshDashboardAfterPayment2', async () => {
+                        try {
+                            console.log('[Dashboard] 🔄 Second refresh attempt after payment (5s)...');
+                            await Promise.all([
+                                loadDashboard(userEmail, false),
+                                loadLicenseKeys(userEmail)
+                            ]);
+                            console.log('[Dashboard] ✅ Dashboard refreshed again after payment');
+                        } catch (err) {
+                            console.warn('[Dashboard] Second refresh attempt failed:', err);
+                        }
+                    }, 500);
+                }, 5000); // 5 second delay
+                
+                // Third attempt (8 seconds) - final attempt
+                setTimeout(() => {
+                    debounce('refreshDashboardAfterPayment3', async () => {
+                        try {
+                            console.log('[Dashboard] 🔄 Final refresh attempt after payment (8s)...');
+                            await Promise.all([
+                                loadDashboard(userEmail, false),
+                                loadLicenseKeys(userEmail)
+                            ]);
+                            console.log('[Dashboard] ✅ Dashboard refreshed (final attempt)');
+                        } catch (err) {
+                            console.warn('[Dashboard] Final refresh attempt failed:', err);
+                        }
+                    }, 500);
+                }, 8000); // 8 second delay
             }
         }
     }
     
     // REMOVED: displaySubscriptions_OLD - Deprecated function, no longer used
-    // This entire function (was ~600 lines) has been replaced by displaySubscribedItems and displaySites
+    // REMOVED: Legacy addSite() function (was ~720 lines) - Not used for Use Case 2
+    // Use Case 2 uses setupUseCase2Handlers() instead
     
-    // Add a new site
-    async function addSite(userEmail) {
-        const siteInput = document.getElementById('new-site-input');
-        
-        if (Object.keys(subscriptions).length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px; color: #999;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">💳</div>
-                    <p style="font-size: 18px; margin-bottom: 10px; color: #666;">No subscriptions yet</p>
-                    <p style="font-size: 14px; color: #999;">Create a subscription to get started</p>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = Object.keys(subscriptions).map((subId, index) => {
             const sub = subscriptions[subId];
             const isExpanded = index === 0; // First subscription expanded by default
             
@@ -6021,57 +6087,8 @@
                     this.textContent = `💳 Pay Now (${pendingSites.length} site${pendingSites.length === 1 ? '' : 's'})`;
                 }
             });
-        });
-        
-        // Initialize pending sites display for all subscriptions
-        Object.keys(subscriptions).forEach(subId => {
-            updatePendingSitesDisplay(subId);
-        });
-    }
-    
-    // Add a new site
-    async function addSite(userEmail) {
-        const siteInput = document.getElementById('new-site-input');
-        
-        if (!siteInput) {
-            showError('Form element not found');
-            return;
-        }
-        
-        const site = siteInput.value.trim();
-        
-        if (!site) {
-            showError('Please enter a site domain');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${API_BASE}/add-site`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ 
-                    site,
-                    email: userEmail 
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || data.message || 'Failed to add site');
-            }
-            
-            showSuccess(data.message || 'Site added successfully! Billing will be updated on next invoice.');
-            siteInput.value = '';
-            loadDashboard(userEmail);
-        } catch (error) {
-            console.error('[Dashboard] Error adding site:', error);
-            showError('Failed to add site: ' + error.message);
-        }
-    }
+    // REMOVED: Legacy addSite() function - Not used for Use Case 2
+    // Use Case 2 uses setupUseCase2Handlers() and /add-sites-batch endpoint instead
     
     // Unsubscribe a site (removes from Stripe subscription and updates database)
     async function removeSite(site, subscriptionId) {
@@ -6169,6 +6186,100 @@
             // Show user-friendly error message
             const errorMessage = error.message || 'Failed to unsubscribe site. Please try again or contact support.';
             showError(errorMessage);
+        }
+    }
+    
+    // Check license status for a site
+    async function checkLicenseStatus(siteDomain, userEmail = null) {
+        if (!siteDomain) {
+            console.error('[Dashboard] ❌ Site domain is required for license status check');
+            return { success: false, error: 'Site domain is required' };
+        }
+        
+        try {
+            // Build URL with site parameter
+            const params = new URLSearchParams();
+            params.append('site', siteDomain);
+            if (userEmail) {
+                params.append('email', userEmail);
+            }
+            
+            const response = await fetch(`${API_BASE}/check-license-status?${params.toString()}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('[Dashboard] ❌ Error checking license status:', errorData);
+                return { 
+                    success: false, 
+                    error: errorData.message || errorData.error || 'Failed to check license status',
+                    available: false
+                };
+            }
+            
+            const data = await response.json();
+            console.log('[Dashboard] ✅ License status check result:', data);
+            
+            return data;
+            
+        } catch (error) {
+            console.error('[Dashboard] ❌ Error checking license status:', error);
+            return { 
+                success: false, 
+                error: error.message || 'Failed to check license status',
+                available: false
+            };
+        }
+    }
+    
+    // Alternative: Check license status using POST method
+    async function checkLicenseStatusPOST(siteDomain, userEmail = null) {
+        if (!siteDomain) {
+            console.error('[Dashboard] ❌ Site domain is required for license status check');
+            return { success: false, error: 'Site domain is required' };
+        }
+        
+        try {
+            const requestBody = {
+                site: siteDomain
+            };
+            
+            if (userEmail) {
+                requestBody.email = userEmail;
+            }
+            
+            const response = await fetch(`${API_BASE}/check-license-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('[Dashboard] ❌ Error checking license status:', errorData);
+                return { 
+                    success: false, 
+                    error: errorData.message || errorData.error || 'Failed to check license status',
+                    available: false
+                };
+            }
+            
+            const data = await response.json();
+            console.log('[Dashboard] ✅ License status check result:', data);
+            
+            return data;
+            
+        } catch (error) {
+            console.error('[Dashboard] ❌ Error checking license status:', error);
+            return { 
+                success: false, 
+                error: error.message || 'Failed to check license status',
+                available: false
+            };
         }
     }
     
@@ -6570,11 +6681,7 @@
         }
         
         // Attach event listeners
-        // Legacy add-site button (if exists - for backward compatibility)
-        const addSiteButton = document.getElementById('add-site-button');
-        if (addSiteButton) {
-            addSiteButton.addEventListener('click', () => addSite(userEmail));
-        }
+        // Legacy add-site button removed - Use Case 2 uses setupUseCase2Handlers() instead
         
         // Purchase quantity button
         // Option 2: No subscription selection needed - creates new subscriptions
@@ -6611,15 +6718,7 @@
             logoutButton.addEventListener('click', logout);
         }
         
-        // Allow Enter key in legacy add site form (if exists)
-        const siteInput = document.getElementById('new-site-input');
-        if (siteInput && addSiteButton) {
-            siteInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    addSiteButton.click();
-                }
-            });
-        }
+        // Legacy add site form removed - Use Case 2 uses setupUseCase2Handlers() instead
         
         // Allow Enter key in subscription add-site forms (added dynamically)
         setTimeout(() => {
@@ -6639,15 +6738,7 @@
     }
     
     // Expose functions to global scope (for inline onclick handlers if needed)
-    window.addSite = async function() {
-        const member = await checkMemberstackSession();
-        if (!member) {
-            showError('Not authenticated');
-            return;
-        }
-        const userEmail = member.email || member._email;
-        await addSite(userEmail);
-    };
+    // window.addSite removed - Use Case 2 uses setupUseCase2Handlers() instead
     
     window.removeSite = async function(site, subscriptionId) {
         await removeSite(site, subscriptionId);
