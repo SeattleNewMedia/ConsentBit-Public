@@ -1,40 +1,16 @@
-var scr = document.currentScript;
-var rawConfig, siteId;
-if (scr) {
-  rawConfig = scr.getAttribute('data-config');
-  siteId = scr.getAttribute('data-site-id');
-} else if (window.__CONSENTBIT_CONFIG__ && window.__CONSENTBIT_SITE_ID__) {
-  rawConfig = typeof window.__CONSENTBIT_CONFIG__ === 'string'
-    ? window.__CONSENTBIT_CONFIG__
-    : JSON.stringify(window.__CONSENTBIT_CONFIG__);
-  siteId = window.__CONSENTBIT_SITE_ID__;
-} else {
-  rawConfig = "{}";
-  siteId = "";
-}
-var _parsed = JSON.parse(rawConfig || "{}");
-var checkedCategories = _parsed.checkedCategories || [];
-var compliance = _parsed.compliance || ["gdpr"];
-var customization = _parsed.customization || {};
-var settings = _parsed.settings || {};
+const scr = document.currentScript;
+const rawConfig = scr.getAttribute('data-config');
+const siteId=scr.getAttribute('data-site-id')
+const {
+checkedCategories,
+compliance,
+customization,
+settings,
 
-console.log("rawconfig", rawConfig);
+} = JSON.parse(rawConfig);
 
 
 
-// const scr = document.currentScript;
-// const rawConfig = scr.getAttribute('data-config');
-// const siteId=scr.getAttribute('data-site-id')
-// const {
-// checkedCategories,
-// compliance,
-// customization,
-// settings,
-
-// } = JSON.parse(rawConfig);
-
-
-// console.log("rawconfig",rawConfig);
 
 const moreInfoTranslations = {
   English: "More Info",
@@ -1786,23 +1762,6 @@ ${!(settings?.hideLogo ?? false) ?`<div id="toggle-consent-btn"   scroll-control
 
 <div>
 `;
-function showBannerIfNeeded() {
-  var banner = document.getElementById('consent-banner');
-  if (!banner) return;
-  var storageKey = 'consentbit_consent_' + (siteId || '');
-  var hasConsent = !!localStorage.getItem(storageKey);
-  if (!hasConsent) {
-    banner.classList.remove('hidden');
-    banner.style.setProperty('display', 'flex');
-  }
-}
-
-function injectBanner() {
+document.addEventListener("DOMContentLoaded", () => {
   document.body.insertAdjacentHTML('beforeend', cookiePreviewHTML);
-  showBannerIfNeeded();
-}
-if (document.readyState === 'loading') {
-  document.addEventListener("DOMContentLoaded", injectBanner);
-} else {
-  injectBanner();
-}
+});
