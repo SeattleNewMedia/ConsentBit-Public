@@ -10,7 +10,7 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-
+console.log("rawconfig",rawConfig);
 
 const moreInfoTranslations = {
   English: "More Info",
