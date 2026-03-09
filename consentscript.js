@@ -1786,8 +1786,20 @@ ${!(settings?.hideLogo ?? false) ?`<div id="toggle-consent-btn"   scroll-control
 
 <div>
 `;
+function showBannerIfNeeded() {
+  var banner = document.getElementById('consent-banner');
+  if (!banner) return;
+  var storageKey = 'consentbit_consent_' + (siteId || '');
+  var hasConsent = !!localStorage.getItem(storageKey);
+  if (!hasConsent) {
+    banner.classList.remove('hidden');
+    banner.style.setProperty('display', 'flex');
+  }
+}
+
 function injectBanner() {
   document.body.insertAdjacentHTML('beforeend', cookiePreviewHTML);
+  showBannerIfNeeded();
 }
 if (document.readyState === 'loading') {
   document.addEventListener("DOMContentLoaded", injectBanner);
