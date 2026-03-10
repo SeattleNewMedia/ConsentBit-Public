@@ -46,7 +46,7 @@ const ccpaTranslations = {
     heading: "Préférence de Désinscription",
     description:
       "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences",
-    doNotShare: "Ne Pas Partager Mes Informations Personnelles.",
+    doNotShare: ".Ne Pas Partager Mes Informations Personnelles.",
     savePreference: "Enregistrer Mes Préférences",
     cancel: "Annuler",
   },
@@ -908,13 +908,13 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-   
+    max-height: 80vh;
     padding: 20px 20px 80px;
     font-family: ${custom.font};
     position: relative;
     top: 50%;
     left: 50%;
-    overflow-y: scroll;
+    overflow-y: auto;
     transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
@@ -1171,13 +1171,15 @@ div#banner-code {
     flex-direction: column;
     justify-content: flex-start;
   	align-items: center;
+  	max-width: 435px;
+  	max-height: 80vh;
   	padding: 20px 20px 80px;
     font-family: Montserrat, sans-serif;
     display: none;
     position: fixed;
     top: 50%;
     left: 50%;
-    overflow-y: scroll;
+  	overflow-y: auto;
     transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
@@ -1304,6 +1306,28 @@ div#banner-code {
 
   .div-block {
     display: none;
+  }
+
+  .consentbrandwrapper {
+    align-self: flex-end;
+    width: 40%;
+    height: auto;
+    margin-top: 12px;
+    margin-left: auto;
+    display: block;
+  }
+
+  .consentbrandimage {
+    object-fit: contain;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  img {
+    vertical-align: middle;
+    max-width: 100%;
+    display: inline-block;
   }
 
 
@@ -1663,12 +1687,12 @@ ${
 </a
       >
     </div>
-    <div style="position:absolute; bottom:22px; right:16px;">
-      <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
+    <div class="consentbrandwrapper">
+      <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
         <img
           src="https://api.consentbit.com/BrandImage.svg"
           alt="ConsentBit brand logo"
-          style="max-width: 80%; height: auto;"
+          class="consentbrandimage"
         />
       </a>
     </div>
@@ -1760,12 +1784,12 @@ ${
       > ${ccpaTranslations[settings.language]?.cancel}</a
     >
   </div>
-  <div style="position:absolute; bottom:16px; right:16px;">
-    <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
+  <div class="consentbrandwrapper">
+    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
       <img
-        src="https://api.consentbit.com/BrandImage.webp"
+        src="https://api.consentbit.com/BrandImage.svg"
         alt="ConsentBit brand logo"
-        style="max-width: 90px; height: auto;"
+        class="consentbrandimage"
       />
     </a>
   </div>
