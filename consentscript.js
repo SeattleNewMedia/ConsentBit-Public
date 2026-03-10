@@ -908,8 +908,8 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-    max-height: 80vh;
-    padding: 20px 20px 80px;
+    max-height: 520px;
+    padding: 20px 20px 20px;
     font-family: ${custom.font};
     position: relative;
     top: 50%;
@@ -1174,7 +1174,7 @@ div#banner-code {
   	align-items: center;
   	max-width: 435px;
   	max-height: 500px;
-  	padding: 20px 20px 80px;
+  	padding: 20px 20px 20px;
     font-family: Montserrat, sans-serif;
     display: none;
     position: fixed;
