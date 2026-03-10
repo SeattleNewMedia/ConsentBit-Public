@@ -1764,6 +1764,13 @@ ${!(settings?.hideLogo ?? false) ?`<div id="toggle-consent-btn"   scroll-control
 
 <div>
 `;
-document.addEventListener("DOMContentLoaded", () => {
+function injectBanner() {
   document.body.insertAdjacentHTML('beforeend', cookiePreviewHTML);
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', injectBanner);
+} else {
+  
+  injectBanner();
+}
