@@ -917,6 +917,7 @@ div#banner-code {
     overflow-y: auto;
     transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
+    max-height: 510px;
   }
 
   .consentbit-prefrence_text {
@@ -1172,7 +1173,7 @@ div#banner-code {
     justify-content: flex-start;
   	align-items: center;
   	max-width: 435px;
-  	max-height: 80vh;
+  	max-height: 500px;
   	padding: 20px 20px 80px;
     font-family: Montserrat, sans-serif;
     display: none;
