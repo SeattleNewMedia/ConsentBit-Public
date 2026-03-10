@@ -2082,7 +2082,7 @@ function clearConsentState() {
       
       // Defer CSS loading slightly to avoid blocking initial render
       requestAnimationFrame(function() {
-        if (!document.querySelector('[cb-data-site-id]')) {
+        if (!document.querySelector('[data-site-id]')) {
           loadConsentStyles();
         }
       });
