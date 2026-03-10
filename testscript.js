@@ -4413,6 +4413,15 @@ function clearConsentState() {
         WEBFLOW_ANALYTICS_CONFIG.enabled = true;
       }
     };
+
+    // Debug helpers for banner/token/location flow (optional)
+    if (typeof window !== 'undefined') {
+      window.ConsentbitDebug = {
+        getVisitorToken: getVisitorSessionToken,
+        getLocationData: getLocationData,
+        showBannerFlow: showAppropriateBanner
+      };
+    }
   
     // Set up consent event listener for external CMP integration
     document.addEventListener('consentUpdated', function(event) {
