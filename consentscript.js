@@ -1,6 +1,6 @@
 const scr = document.currentScript;
 const rawConfig = scr.getAttribute('data-config');
-const siteId=scr.getAttribute('data-site-id')
+const siteId=scr.getAttribute('cb-data-site-id')
 const {
 checkedCategories,
 compliance,
