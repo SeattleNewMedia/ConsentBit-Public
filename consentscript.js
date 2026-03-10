@@ -1663,12 +1663,12 @@ ${
 </a
       >
     </div>
-    <div style="position:absolute; bottom:16px; right:16px;">
+    <div style="position:absolute; bottom:22px; right:16px;">
       <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
         <img
           src="https://api.consentbit.com/BrandImage.svg"
           alt="ConsentBit brand logo"
-          style="max-width: 90px; height: auto;"
+          style="max-width: 80%; height: auto;"
         />
       </a>
     </div>
