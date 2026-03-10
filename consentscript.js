@@ -46,7 +46,7 @@ const ccpaTranslations = {
     heading: "Préférence de Désinscription",
     description:
       "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences",
-    doNotShare: ".Ne Pas Partager Mes Informations Personnelles.",
+    doNotShare: "Ne Pas Partager Mes Informations Personnelles.",
     savePreference: "Enregistrer Mes Préférences",
     cancel: "Annuler",
   },
