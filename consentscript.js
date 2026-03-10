@@ -15,14 +15,14 @@ console.log(rawConfig);
 
 console.log(siteId);
 const moreInfoTranslations = {
-  English: "More Info",
-  Spanish: "Más Información",
-  French: "Plus d'Informations",
-  German: "Weitere Informationen",
-  Italian: "Maggiori Informazioni",
-  Portuguese: "Mais Informações",
-  Swedish: "Mer Info",
-  Dutch: "Meer Info",
+  English: "More info.",
+  Spanish: "Más información.",
+  French: "Plus d'informations. ",
+  German: "Weitere informationen.",
+  Italian: "Maggiori informazioni.",
+  Portuguese: "Mais informações.",
+  Swedish: "Mer info.",
+  Dutch: "Meer info.",
 };
 
 const ccpaTranslations = {
@@ -492,10 +492,10 @@ const fontWeight = fontWeightMap[custom.weight] || 400;
 
   let positionStyles =
     custom.bannerAlignment === "center"
-      ? "left:50%; transform:translateX(-50%);"
+      ? "left:50%; right:auto; transform:translateX(-50%);"
       : custom.bannerAlignment === "left"
-      ? "left:23px; transform:none;"
-      : "right:23px; transform:none;";
+      ? "left:23px; right:auto; transform:none;"
+      : "right:23px; left:auto; transform:none;";
 
   positionStyles =
     custom.bannerStyle === "style5" ? "left:auto;right:0px;" : positionStyles;
@@ -886,7 +886,7 @@ div#banner-code {
 
   .close-consent {
     z-index: 99;
-    color: #000;
+    color: ${custom.colors.title};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1035,7 +1035,7 @@ div#banner-code {
   .consentbit-change-preference {
     z-index: 999;
     cursor: pointer;
-    background-image: url("https://script-5qu.pages.dev/67ebf5ee639d12979361f2bc_consent.webp");
+    background-image: url("https://api.consentbit.com/logo.webp");
     background-position: 50%;
     background-size: cover;
     border-radius: 50%;
@@ -1048,7 +1048,7 @@ div#banner-code {
 
   .consentbit-close {
     z-index: 99;
-    color: #000;
+    color: ${custom.colors.title};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1149,7 +1149,7 @@ div#banner-code {
 
   .close-consentbit {
     z-index: 99;
-    color: #000;
+    color: ${custom.colors.title};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1288,7 +1288,7 @@ div#banner-code {
 }
   .consent-close {
     z-index: 99;
-    color: #000;
+    color: ${custom.colors.title};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1429,7 +1429,7 @@ id="consent-banner"
 >
  ${
    settings.showCloseButton
-     ? `<p consentbit="close" class="close-consent">X</p>`
+    ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
      : ""
  }
   <div
@@ -1521,7 +1521,7 @@ ${
 >
    ${
      settings.showCloseButton
-       ? `<p consentbit="close" class="close-consent">X</p>`
+      ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
        : ""
    }
   <div
@@ -1663,9 +1663,18 @@ ${
 </a
       >
     </div>
+    <div style="margin-top: 16px; width: 100%; text-align: center;">
+      <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
+        <img
+          src="https://api.consentbit.com/BrandImage.webp"
+          alt="ConsentBit brand logo"
+          style="max-width: 120px; height: auto;"
+        />
+      </a>
+    </div>
     ${
       settings.showCloseButton
-        ? `<p consentbit="close" class="consentbit-close">X</p>`
+      ? `<p consentbit="close" class="consentbit-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
         : ""
     }
   </div>
@@ -1751,7 +1760,16 @@ ${
       > ${ccpaTranslations[settings.language]?.cancel}</a
     >
   </div>
-  <p consentbit="close" class="consent-close">X</p>
+  <div style="margin-top: 16px; width: 100%; text-align: center;">
+    <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
+      <img
+        src="https://api.consentbit.com/BrandImage.webp"
+        alt="ConsentBit brand logo"
+        style="max-width: 120px; height: auto;"
+      />
+    </a>
+  </div>
+  <p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>
 </div>`
 }
 <div id="consensite-id" style="display:none">${siteId}</div>
@@ -1774,3 +1792,4 @@ if (document.readyState === 'loading') {
   
   injectBanner();
 }
+
