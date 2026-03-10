@@ -659,12 +659,12 @@ div#banner-code {
 @keyframes slideRightBottom{ from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* ===========================
-   Preference Animations (Center Origin)
+   Preference Animations (Center Origin) — no translate(-50%,-50%) in final state to avoid text blur
    =========================== */
-@keyframes slideUpCenter   { from { top:50%; left:50%; transform: translate(-50%, 100%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
-@keyframes slideDownCenter { from { top:50%; left:50%; transform: translate(-50%, -200%); opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
-@keyframes slideLeftCenter { from { top:50%; left:50%; transform: translate(100%, -50%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
-@keyframes slideRightCenter{ from { top:50%; left:50%; transform: translate(-200%,-50%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
+@keyframes slideUpCenter   { from { transform: translateY(100%); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes slideDownCenter { from { transform: translateY(-100%); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes slideLeftCenter { from { transform: translateX(100%); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes slideRightCenter{ from { transform: translateX(-100%); opacity:0; } to { transform: none; opacity:1; } }
 
 
 @keyframes fadeIn {
@@ -682,11 +682,11 @@ div#banner-code {
 @keyframes fadeCenterIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) translateY(10px) scale(0.98);
+    transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) translateY(0) scale(1);
+    transform: none;
   }
 }
 .consentbit-banner-div[data-animation="slide-up"],
@@ -908,16 +908,13 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-    max-height: 520px;
+    max-height: min(510px, 80vh);
     padding: 20px 20px 20px;
     font-family: ${custom.font};
     position: relative;
-    top: 50%;
-    left: 50%;
     overflow-y: auto;
-    transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
-    max-height: 510px;
+    display: flex;
   }
 
   .consentbit-prefrence_text {
@@ -926,7 +923,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: ${custom.size}px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -1017,7 +1014,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: 500;
   }
 
@@ -1065,9 +1062,14 @@ div#banner-code {
 
   .consentbit-preference {
     z-index: 99999;
-    display: none;
+    display: flex;
     position: fixed;
-    inset: 0%;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  .consentbit-preference.hidden {
+    display: none !important;
   }
 
   .consentbit-ccpa-banner-div {
@@ -1166,35 +1168,39 @@ div#banner-code {
 
   .consentbit-ccpa_preference {
     z-index: 99999;
-   border-radius:${custom.radius.container}px;
-  	background-color:${custom.colors.bannerBg};
-  	color:${custom.colors.body};
+    border-radius: ${custom.radius.container}px;
+    background-color: ${custom.colors.bannerBg};
+    color: ${custom.colors.body};
     flex-direction: column;
     justify-content: flex-start;
-  	align-items: center;
-  	max-width: 435px;
-  	max-height: 500px;
-  	padding: 20px 20px 20px;
-    font-family: Montserrat, sans-serif;
+    align-items: center;
+    max-width: 435px;
+    max-height: min(500px, 80vh);
+    padding: 20px 20px 20px;
+    font-family: ${custom.font};
     display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
-  	overflow-y: auto;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    width: 90%;
+    height: max-content;
+    margin: auto;
+    overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
   }
 
   .consentbit-ccpa_prefrence_text {
-    color:${custom.colors.body};
+    color: ${custom.colors.body};
     text-align: left;
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.5;
+    font-size: ${Math.max(custom.size, 14)}px;
+    font-weight: 500;
+    line-height: 1.6;
     display: block;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0.01em;
   }
 
   .consentbit-ccpa-formblock {
@@ -1280,7 +1286,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: 500;
   }
 [customtoggle="true"]{
