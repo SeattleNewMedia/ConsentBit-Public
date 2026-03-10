@@ -29,6 +29,7 @@ window.gtag('consent', 'default', {
   
   // Main consent management script (can load asynchronously)
   (function () {
+    console.log('loaded testscript')
     // Emergent: hide all consent banners from first paint (no banner on load for EU or US)
     var h = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname.replace(/^www\./, '') : '';
     var isEmergentHost = !!(h && (h.indexOf('emergent-website.webflow.io') !== -1 || h.indexOf('emergent.tech') !== -1 || h.indexOf('emergent-website') !== -1));
