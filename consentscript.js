@@ -915,6 +915,7 @@ div#banner-code {
     overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
     display: flex;
+    margin: auto;
   }
 
   .consentbit-prefrence_text {
@@ -1064,9 +1065,16 @@ div#banner-code {
     z-index: 99999;
     display: flex;
     position: fixed;
-    inset: 0;
-    align-items: center;
-    justify-content: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0;
+    padding: 0;
   }
   .consentbit-preference.hidden {
     display: none !important;
@@ -1180,8 +1188,12 @@ div#banner-code {
     font-family: ${custom.font};
     display: none;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 90%;
+    max-width: 435px;
     height: max-content;
     margin: auto;
     overflow-y: auto;
