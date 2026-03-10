@@ -1057,9 +1057,9 @@ div#banner-code {
     font-family: Montserrat, sans-serif;
     display: flex;
     position: absolute;
-    top: 5%;
+    top: 16px;
     left: auto;
-    right: 10px;
+    right: 16px;
   }
 
   .consentbit-preference {
@@ -1297,9 +1297,9 @@ div#banner-code {
     font-family: Montserrat, sans-serif;
     display: flex;
     position: absolute;
-    top: 10px;
+    top: 16px;
     left: auto;
-    right: 0;
+    right: 16px;
   }
 
   .div-block {
@@ -1663,12 +1663,12 @@ ${
 </a
       >
     </div>
-    <div style="margin-top: 16px; width: 100%; text-align: center;">
+    <div style="position:absolute; bottom:16px; right:16px;">
       <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
         <img
           src="https://api.consentbit.com/BrandImage.webp"
           alt="ConsentBit brand logo"
-          style="max-width: 120px; height: auto;"
+          style="max-width: 90px; height: auto;"
         />
       </a>
     </div>
@@ -1760,12 +1760,12 @@ ${
       > ${ccpaTranslations[settings.language]?.cancel}</a
     >
   </div>
-  <div style="margin-top: 16px; width: 100%; text-align: center;">
+  <div style="position:absolute; bottom:16px; right:16px;">
     <a href="https://www.consentbit.com/" target="_blank" rel="noopener noreferrer">
       <img
         src="https://api.consentbit.com/BrandImage.webp"
         alt="ConsentBit brand logo"
-        style="max-width: 120px; height: auto;"
+        style="max-width: 90px; height: auto;"
       />
     </a>
   </div>
