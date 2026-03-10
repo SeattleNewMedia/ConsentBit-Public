@@ -1925,7 +1925,9 @@ function clearConsentState() {
       });
     }
     function isStagingHostname() {
+      
       const hostname = window.location.hostname;
+      console.log(hostname);
       return hostname.includes('.webflow.io') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
     }
   
@@ -2144,6 +2146,7 @@ function clearConsentState() {
     }
   
     document.addEventListener('DOMContentLoaded', async function () {
+      console.log('DOMContentLoaded');
       // Emergent: hide all banners immediately on load (no banner on load for EU or US)
       if (isEmergent()) {
         await hideAllBanners();
@@ -2154,6 +2157,7 @@ function clearConsentState() {
 
       // STEP 1: Check if consent is already given - if yes, don't do banner/location logic
       const consentGiven = localStorage.getItem("_cb_cg_");
+      console.log(consentGiven);
         if (isConsentExpired()) {
          clearConsentState();
         }
@@ -2181,6 +2185,7 @@ function clearConsentState() {
   }
           // Ensure token exists before showing banner (needed for location detection)
           let token = localStorage.getItem('_cb_vst_');
+          console.log('token', token);
           if (!token && !consentGiven) {
             // Generate token if not available
             try {
