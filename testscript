@@ -60,12 +60,25 @@ window.gtag('consent', 'default', {
     window.locationData = null;
     let locationDetectionPromise = null; // Promise to prevent multiple simultaneous detections
 
-    // --- Debug timings (disabled by default) ---
+    // --- Debug timings (optional, very short logs) ---
     // Enable with: localStorage.setItem('__cb_debug_timings__','1') then refresh
-    // Or set: window.__CB_DEBUG_TIMINGS__ = true (before this script runs)
-    // Debug timing logger removed (no console statements)
-    function __cbTiming() {}
-    function __cbNow() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+    // Or: window.__CB_DEBUG_TIMINGS__ = true (before this script runs)
+    const __CB_DEBUG_TIMINGS__ =
+      (typeof window !== 'undefined' && window.__CB_DEBUG_TIMINGS__ === true) ||
+      (typeof localStorage !== 'undefined' && localStorage.getItem('__cb_debug_timings__') === '1');
+    function __cbTiming(label, data) {
+      if (!__CB_DEBUG_TIMINGS__ || typeof console === 'undefined' || !console.log) return;
+      if (data !== undefined) {
+        console.log('[CB]', label, data);
+      } else {
+        console.log('[CB]', label);
+      }
+    }
+    function __cbNow() {
+      return (typeof performance !== 'undefined' && performance.now)
+        ? performance.now()
+        : Date.now();
+    }
   
   
     function setConsentCookie(name, value, days) {
@@ -680,7 +693,7 @@ window.gtag('consent', 'default', {
     }
     function showBanner(banner) {
       if (banner) {
-        __cbTiming('showBanner:start', { id: banner.id || null, className: banner.className || null });
+        __cbTiming('banner:show', { id: banner.id || null });
         banner.style.setProperty("display", "block", "important");
         banner.style.setProperty("visibility", "visible", "important");
         banner.style.setProperty("opacity", "1", "important");
@@ -883,6 +896,8 @@ window.gtag('consent', 'default', {
   
     let tokenRequestInProgress = false;
     async function getVisitorSessionToken() {
+      const __tStart = __cbNow();
+      __cbTiming('token:start');
       try {
         // Check retry count - maximum 5 requests
         const retryCount = parseInt(localStorage.getItem('_cb_rtc_') || '0', 10);
@@ -976,9 +991,11 @@ window.gtag('consent', 'default', {
         localStorage.setItem('_cb_vst_', data.token);
         // Reset retry count on success
         localStorage.removeItem('_cb_rtc_');
+        __cbTiming('token:ok', { ms: Math.round(__cbNow() - __tStart) });
         return data.token;
     
       } catch (error) {
+        __cbTiming('token:error', { message: (error && error.message) ? error.message : String(error) });
         return null;
       } finally {
         tokenRequestInProgress = false;
@@ -1390,9 +1407,9 @@ window.gtag('consent', 'default', {
   }, true);
 
 async function showAppropriateBanner() { 
-  __cbTiming('showAppropriateBanner:start');
+  __cbTiming('banner:start');
   await hideAllBanners();
-  __cbTiming('showAppropriateBanner:afterHideAll');
+  __cbTiming('banner:afterHideAll');
 
 
   const allBannersElement = document.querySelector('[data-all-banners]');
@@ -1412,18 +1429,18 @@ async function showAppropriateBanner() {
     hostname.includes('emergent.tech');
   // 1) data-all-banners="false" → ALWAYS GDPR, never CCPA
   if (isEmergentOnly || isEmergentSungreen) {
-  __cbTiming('showAppropriateBanner:skip', { reason: 'emergentOnlyOrSungreen' });
+  __cbTiming('banner:skip', { reason: 'emergentOnlyOrSungreen' });
   await hideAllBanners();
   return;  // do not run any other banner logic
 }
   if (hasAllBannersAttribute && allBannersValue === 'false') {
-    __cbTiming('showAppropriateBanner:forcedGDPR');
+    __cbTiming('banner:forcedGDPR');
     showGDPRBanner();
 
     setTimeout(async () => {
-      __cbTiming('showAppropriateBanner:forcedGDPR:location:start');
+      __cbTiming('banner:forcedGDPR:location:start');
       const detectedLocation = await window.getLocationData();
-      __cbTiming('showAppropriateBanner:forcedGDPR:location:end', detectedLocation || null);
+      __cbTiming('banner:forcedGDPR:location:end', detectedLocation || null);
       if (detectedLocation) {
         window.locationData = {
           country: detectedLocation.country || 'EU',
@@ -1451,12 +1468,12 @@ async function showAppropriateBanner() {
   }
 
   // 3) Attribute missing or "true" → use location for non‑Emergent
-  __cbTiming('showAppropriateBanner:location:start');
+  __cbTiming('banner:location:start');
   const locationData = await window.getLocationData();
-  __cbTiming('showAppropriateBanner:location:end', locationData || null);
+  __cbTiming('banner:location:end', locationData || null);
   if (!locationData || !locationData.bannerType) {
     // Detection failed → show nothing
-    __cbTiming('showAppropriateBanner:noLocationOrBannerType');
+    __cbTiming('banner:noLocationOrBannerType');
     return;
   }
 
@@ -1842,9 +1859,12 @@ function clearConsentState() {
     }
   
     async function checkPublishingStatus() {
+      const __pStart = __cbNow();
+      __cbTiming('publish:start');
       try {
         const sessionToken = localStorage.getItem('_cb_vst_');
         if (!sessionToken) {
+          __cbTiming('publish:noToken');
           return false;
         }
         const siteDomain = window.location.hostname;
@@ -1883,8 +1903,11 @@ function clearConsentState() {
           return false;
         }
         const data = await response.json();
-        return data.canPublishToCustomDomain === true;
+        const ok = data && data.canPublishToCustomDomain === true;
+        __cbTiming('publish:done', { ok, ms: Math.round(__cbNow() - __pStart) });
+        return ok;
       } catch (error) {
+        __cbTiming('publish:error', { message: (error && error.message) ? error.message : String(error) });
         return false;
       }
     }
