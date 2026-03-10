@@ -10,8 +10,10 @@ settings,
 } = JSON.parse(rawConfig);
 
 
+console.log(rawConfig);
 
 
+console.log(siteId);
 const moreInfoTranslations = {
   English: "More Info",
   Spanish: "Más Información",
