@@ -909,7 +909,7 @@ div#banner-code {
     align-items: center;
     max-width: 435px;
    
-    padding: 20px;
+    padding: 20px 20px 80px;
     font-family: ${custom.font};
     position: relative;
     top: 50%;
@@ -1170,8 +1170,8 @@ div#banner-code {
   	color:${custom.colors.body};
     flex-direction: column;
     justify-content: flex-start;
-    align-items: center;
-    padding: 20px;
+  	align-items: center;
+  	padding: 20px 20px 80px;
     font-family: Montserrat, sans-serif;
     display: none;
     position: fixed;
