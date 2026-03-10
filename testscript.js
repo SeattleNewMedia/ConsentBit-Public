@@ -2144,8 +2144,8 @@ function clearConsentState() {
       // Initial check on load
       checkAndUpdateScroll();
     }
-  
-    document.addEventListener('DOMContentLoaded', async function () {
+      
+    async function initConsentBit() {
       console.log('DOMContentLoaded');
       // Emergent: hide all banners immediately on load (no banner on load for EU or US)
       if (isEmergent()) {
@@ -3854,8 +3854,13 @@ function clearConsentState() {
      
       initializeWebflowAnalytics();      
       monitorConsentChanges();
-    });
+    };
   
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initConsentBit);
+      } else {
+      initConsentBit();
+      }
     
     function unblockScriptsWithDataCategory() {
       unblockGoogleScripts();
