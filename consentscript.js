@@ -908,6 +908,7 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
+    width: 90%;
     max-height: min(510px, 80vh);
     padding: 20px 20px 20px;
     font-family: ${custom.font};
@@ -915,7 +916,9 @@ div#banner-code {
     overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
     display: flex;
-    margin: auto;
+    margin: auto !important;
+    flex-shrink: 0;
+    align-self: center;
   }
 
   .consentbit-prefrence_text {
@@ -1063,18 +1066,21 @@ div#banner-code {
 
   .consentbit-preference {
     z-index: 99999;
-    display: flex;
+    display: flex !important;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    min-width: 100vw;
+    min-height: 100vh;
     align-items: center !important;
     justify-content: center !important;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
   }
   .consentbit-preference.hidden {
     display: none !important;
@@ -1733,6 +1739,10 @@ ${
   class="consentbit-ccpa_preference hidden"
   style="visibility: visible !important; opacity: 1 !important"
 >
+  <div
+  data-animation="${settings.animation}"
+  class="consentbit-ccpa_preference"
+  >
   <h4 class="consebit-ccpa-prefrence-heading">${
     ccpaTranslations[settings.language]?.heading || "CCPA Preferences"
   }</h4>
