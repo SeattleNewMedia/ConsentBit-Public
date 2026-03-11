@@ -11,7 +11,7 @@ settings,
 
 
 console.log(rawConfig);
-console.log("load again");
+
 
 console.log(siteId);
 const moreInfoTranslations = {
@@ -1065,21 +1065,9 @@ div#banner-code {
 
   .consentbit-preference {
     z-index: 99999;
-    display: flex !important;
+    display: none;
     position: fixed;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    min-width: 100vw;
-    min-height: 100vh;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box;
+    inset: 0%;
   }
   .consentbit-preference.show-banner {
     display: flex !important;
