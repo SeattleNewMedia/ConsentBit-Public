@@ -1705,98 +1705,85 @@ ${
   compliance.length === 1 && compliance.includes("gdpr")
     ? ""
     : `<div
-  id="main-consent-banner"
-  data-animation="${settings.animation}"
-   ${settings.disableScroll ? "data-cookie-banner= true" : ""}
-  class="consentbit-ccpa_preference hidden"
-  style="visibility: visible !important; opacity: 1 !important"
->
-  <div
-  data-animation="${settings.animation}"
-  class="consentbit-ccpa_preference"
+    id="main-consent-banner"
+    data-animation="${settings.animation}"
+     ${settings.disableScroll ? "data-cookie-banner= true" : ""}
+    class="consentbit-ccpa_preference hidden"
+    style="visibility: visible !important; opacity: 1 !important"
   >
-  <h4 class="consebit-ccpa-prefrence-heading">${
-    ccpaTranslations[settings.language]?.heading || "CCPA Preferences"
-  }</h4>
-  <p class="consentbit-ccpa_prefrence_text">
-    ${ccpaTranslations[settings.language]?.description}  ${
-        settings.privacyUrl.length > 0
-          ? `<a href="${settings.privacyUrl}" target="_blank">${
-              moreInfoTranslations[settings.language]
-            }</a>`
-          : ""
-      }
-  </p>
-  <div class="consentbit-ccpa-prefrence-block">
+    <h4 class="consebit-ccpa-prefrence-heading">${
+      ccpaTranslations[settings.language]?.heading || "CCPA Preferences"
+    }</h4>
+    <p class="consentbit-ccpa_prefrence_text">
+      ${ccpaTranslations[settings.language]?.description}  ${
+          settings.privacyUrl.length > 0
+            ? `<a href="${settings.privacyUrl}" target="_blank">${
+                moreInfoTranslations[settings.language]
+              }</a>`
+            : ""
+        }
+    </p>
     <div class="consentbit-ccpa-prefrence-block">
-      <div class="w-form">
-        <form
-          id="email-form-2"
-          name="email-form-2"
-          data-name="Email Form 2"
-          method="get"
-          data-wf-page-id="68adcbabbd0941faf8b0f6e3"
-          data-wf-element-id="7030da06-8426-da3e-f39d-32e7c521fafd"
-          data-turnstile-sitekey="0x4AAAAAAAQTptj2So4dx43e"
-          aria-label="Email Form 2"
-        >
-          <div class="consentbit-ccpa-prefrence-toggle">
-            <p class="consentbit-ccpa_prefrence_text">
-              ${ccpaTranslations[settings.language]?.doNotShare}
-            </p>
-            <label
-              id="do-not-share-checkbox"
-              class="w-checkbox consentbit-toggle"
-              ><input
-                type="checkbox"
-                id="checkbox-4"
-                name="checkbox-4"
-                data-name="Checkbox 4"
-                data-consent-id="do-not-share-checkbox"
-                class="w-checkbox-input" /><span
-                class="w-form-label"
-                for="checkbox-4"
-              ></span
-            ></label>
-          </div>
-          <div>
-            <div>
-              <input
-                type="hidden"
-                name="cf-turnstile-response"
-                id="cf-chl-widget-0o4xi_response"
-                value="0.V_8gszRqeGk1-ht5eYtUjq6rKSmITfnuGoM51eBszGdNoT5APYq9LNeKRL4ZzD5ju-1PlvX5Vb9M7K9hyERJj9ABRsuu_jxoyAaIuc8Uc55EobcEm36rZnLcDzurAxx11tC_D4FWa1_J_fN5kgaQ0DTHdbVrvesVyfIwk7GsxDFMgngresvZfQmseTfNgUq22FgbKduu_nWORmNhUJ4rgrzvhqGzxu9jm3BP8qP0PeeilnVuThkiIB9BB9BBlNAwFX-zhx8_rIbThw7kHZCbWltu21JR-_5gQ5uXhdP2EXsZBssWbbK_QgFegYdF-kXLzzt-WnK99pJa7iQXavbvlZnLF_FxQocq_pjq1ZE9bc6tnJO4bY2TD7LTow4QCwaemzjKJserOGxUty7IpX6QcUl1tDzdDhQYRw2FRe8GTV9V5_wpcsQcSceLZuyPKqpwm2oQ3VZiqhfYwNMTgV3dIljTIMRFckC29AB3AL-ejkwrF2Ys6TmAQvxbSY6uVHYyYxh4Cbbc2_Y2kRetvm-Y3xRvi0aPfLQtkujaDbZspavh6QbPqxydE3T9kShy91NWCStXm-HfL6ju8INcsiKpagTaKv0ypq9mga2Z8xhcCAjIK-pZfpu2osVeWsMNeDRrzVhStQ3TLGSldtVoC7MMWpalTODNinCg45W7B2rDfQxkz-nI3jgK-rFXT8B_YbsRxVW57nnWf_pQd0i_fsmXmsengubaru_A8EM3nIVieK6kjtzXDCyJSF5-uZsSXTvTtsxpm6s_BiatTCd4q7GPe-Mk-kgLgeSN72uUc0MLs_WlMYeKi-g7SmD2Y1BPt0tm8SSRt10O9Iv7zpc42sCOcH3ahOyzDND4nEwZEuE3xfU1PS7u6N7UVgq2jB2NVk_d1UtReGExox_Oc-8alVkP9doNCvfcyhexmiaw-0pnEo9zqtoi8WNK5-RL0dcbWSw19zrykQTQqSg9CO8oyiTU0sF8aOH-Aj7Rbl1x8FqcvDU.deBXwvou6-uz-_VPirGS5w.10ecc4776b37fa6cb843c4811c9c22a71ed877121d5fd03980db6bc754783c97"
-              />
+      <div class="consentbit-ccpa-prefrence-block">
+        <div class="w-form">
+          <form
+            id="email-form-2"
+            name="email-form-2"
+            data-name="Email Form 2"
+            method="get"
+            data-wf-page-id="68adcbabbd0941faf8b0f6e3"
+            data-wf-element-id="7030da06-8426-da3e-f39d-32e7c521fafd"
+            data-turnstile-sitekey="0x4AAAAAAAQTptj2So4dx43e"
+            aria-label="Email Form 2"
+          >
+            <div class="consentbit-ccpa-prefrence-toggle">
+              <p class="consentbit-ccpa_prefrence_text">
+                ${ccpaTranslations[settings.language]?.doNotShare}
+              </p>
+              <label
+                id="do-not-share-checkbox"
+                class="w-checkbox consentbit-toggle"
+                ><input
+                  type="checkbox"
+                  id="checkbox-4"
+                  name="checkbox-4"
+                  data-name="Checkbox 4"
+                  data-consent-id="do-not-share-checkbox"
+                  class="w-checkbox-input" /><span
+                  class="w-form-label"
+                  for="checkbox-4"
+                ></span
+              ></label>
             </div>
-          </div>
-        </form>
-       
-       
+            <div>
+              <div>
+                <input
+                  type="hidden"
+                  name="cf-turnstile-response"
+                  id="cf-chl-widget-0o4xi_response"
+                  value="0.V_8gszRqeGk1-ht5eYtUjq6rKSmITfnuGoM51eBszGdNoT5APYq9LNeKRL4ZzD5ju-1PlvX5Vb9M7K9hyERJj9ABRsuu_jxoyAaIuc8Uc55EobcEm36rZnLcDzurAxx11tC_D4FWa1_J_fN5kgaQ0DTHdbVrvesVyfIwk7GsxDFMgngresvZfQmseTfNgUq22FgbKduu_nWORmNhUJ4rgrzvhqGzxu9jm3BP8qP0PeeilnVuThkiIB9BB9BBlNAwFX-zhx8_rIbThw7kHZCbWltu21JR-_5gQ5uXhdP2EXsZBssWbbK_QgFegYdF-kXLzzt-WnK99pJa7iQXavbvlZnLF_FxQocq_pjq1ZE9bc6tnJO4bY2TD7LTow4QCwaemzjKJserOGxUty7IpX6QcUl1tDzdDhQYRw2FRe8GTV9V5_wpcsQcSceLZuyPKqpwm2oQ3VZiqhfYwNMTgV3dIljTIMRFckC29AB3AL-ejkwrF2Ys6TmAQvxbSY6uVHYyYxh4Cbbc2_Y2kRetvm-Y3xRvi0aPfLQtkujaDbZspavh6QbPqxydE3T9kShy91NWCStXm-HfL6ju8INcsiKpagTaKv0ypq9mga2Z8xhcCAjIK-pZfpu2osVeWsMNeDRrzVhStQ3TLGSldtVoC7MMWpalTODNinCg45W7B2rDfQxkz-nI3jgK-rFXT8B_YbsRxVW57nnWf_pQd0i_fsmXmsengubaru_A8EM3nIVieK6kjtzXDCyJSF5-uZsSXTvTtsxpm6s_BiatTCd4q7GPe-Mk-kgLgeSN72uUc0MLs_WlMYeKi-g7SmD2Y1BPt0tm8SSRt10O9Iv7zpc42sCOcH3ahOyzDND4nEwZEuE3xfU1PS7u6N7UVgq2jB2NVk_d1UtReGExox_Oc-8alVkP9doNCvfcyhexmiaw-0pnEo9zqtoi8WNK5-RL0dcbWSw19zrykQTQqSg9CO8oyiTU0sF8aOH-Aj7Rbl1x8FqcvDU.deBXwvou6-uz-_VPirGS5w.10ecc4776b37fa6cb843c4811c9c22a71ed877121d5fd03980db6bc754783c97"
+                />
+              </div>
+            </div>
+          </form>
+         
+         
+        </div>
       </div>
     </div>
-  </div>
-  <div class="consebit-ccpa-prefrence-container">
-    <a id="save-btn" href="#" class="consebit-ccpa-prefrence-accept w-button"
-      > ${ccpaTranslations[settings.language]?.savePreference}</a
-    ><a
-      id="close-consent-banner"
-      href="#"
-      class="consebit-ccpa-prefrence-decline w-button"
-      > ${ccpaTranslations[settings.language]?.cancel}</a
-    >
-  </div>
-  <div class="consentbrandwrapper">
-    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
-      <img
-        src="https://api.consentbit.com/BrandImage.svg"
-        alt="ConsentBit brand logo"
-        class="consentbrandimage"
-      />
-    </a>
-  </div>
-  <p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>
-</div>`
-}
+    <div class="consebit-ccpa-prefrence-container">
+      <a id="save-btn" href="#" class="consebit-ccpa-prefrence-accept w-button"
+        > ${ccpaTranslations[settings.language]?.savePreference}</a
+      ><a
+        id="close-consent-banner"
+        href="#"
+        class="consebit-ccpa-prefrence-decline w-button"
+        > ${ccpaTranslations[settings.language]?.cancel}</a
+      >
+    </div>
+    <p consentbit="close" class="consent-close">X</p>
+  </div>`
+  }
 <div id="consensite-id" style="display:none">${siteId}</div>
 <div id="consensite-banner-type" style="display:none">${
     compliance.length === 1 && compliance.includes("gdpr") ? "gdpr" : "ccpa"
