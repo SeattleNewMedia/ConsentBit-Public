@@ -10,7 +10,8 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-console.log("loading new script");
+console.log(rawConfig);
+
 
 console.log(siteId);
 const moreInfoTranslations = {
@@ -1068,14 +1069,7 @@ div#banner-code {
     position: fixed;
     inset: 0%;
   }
-  .consentbit-preference.show-banner {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  .consentbit-preference.hidden {
-    display: none !important;
-  }
+  
 
   .consentbit-ccpa-banner-div {
     z-index: 99999;
