@@ -916,7 +916,7 @@ div#banner-code {
     top: 50%;
     left: 50%;
     overflow-y: scroll;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%)!important;
     box-shadow: 2px 2px 20px #00000082;
   }
 
