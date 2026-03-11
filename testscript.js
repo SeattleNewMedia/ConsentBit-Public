@@ -1004,29 +1004,24 @@ window.gtag('consent', 'default', {
     }
   
   
-    async function fetchCookieExpirationDays() {
-      const sessionToken = localStorage.getItem("_cb_vst_");
-      if (!sessionToken) return 180;
-      try {
-        const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-        const apiUrl = `https://app.consentbit.com/api/app-data?siteName=${encodeURIComponent(siteName)}`;
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${sessionToken}`,
-            "Accept": "application/json"
-          }
-        });
-        if (!response.ok) return 180;
-        const data = await response.json();
-        if (data && data.cookieExpiration !== null && data.cookieExpiration !== undefined) {
-          return parseInt(data.cookieExpiration, 10);
-        }
-        return 180;
-      } catch {
-        return 180;
-      }
+ async function fetchCookieExpirationDays() {
+  try {
+    const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+    const apiUrl = `https://app.consentbit.com/api/app-data?siteName=${encodeURIComponent(siteName)}`;
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+    if (!response.ok) return 180;
+    const data = await response.json();
+    if (data && data.cookieExpiration != null) {
+      return parseInt(data.cookieExpiration, 10);
     }
+    return 180;
+  } catch {
+    return 180;
+  }
+}
   
   
   
