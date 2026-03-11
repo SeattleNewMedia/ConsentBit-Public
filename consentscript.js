@@ -985,11 +985,13 @@ div#banner-code {
   }
 
   .consebit-prefrence-accept {
-    color: #fff;
+    color: ${custom.colors.btnPrimaryText};
     text-align: center;
     cursor: pointer;
-    background-color: #000;
-    border-radius: 3px;
+    background-color: ${custom.colors.btnPrimaryBg};
+    border-radius: ${custom.radius.button}px;
+    font-size: ${custom.size}px;
+    padding: 7px 14px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1001,8 +1003,10 @@ div#banner-code {
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
     cursor: pointer;
-    background-color: ${custom.colors.btnPrimaryBg};
+    background-color: ${custom.colors.btnSecondaryBg};
     border-radius: ${custom.radius.button}px;
+    font-size: ${custom.size}px;
+    padding: 7px 14px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1067,6 +1071,7 @@ div#banner-code {
     display: none;
     position: fixed;
     inset: 0%;
+    overflow-y: auto;
   }
 
   .consentbit-ccpa-banner-div {
