@@ -1305,6 +1305,27 @@ div#banner-code {
   .div-block {
     display: none;
   }
+  .consentbrandwrapper {
+    align-self: flex-end;
+    width: 40%;
+    height: auto;
+    margin-top: 12px;
+    margin-left: auto;
+    display: block;
+  }
+
+  .consentbrandimage {
+    object-fit: contain;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  img {
+    vertical-align: middle;
+    max-width: 100%;
+    display: inline-block;
+  }
 
 
   .consentbit-prefrence-decline
@@ -1429,7 +1450,7 @@ id="consent-banner"
 >
  ${
    settings.showCloseButton
-     ? `<p consentbit="close" class="close-consent">X</p>`
+    ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
      : ""
  }
   <div
@@ -1521,7 +1542,7 @@ ${
 >
    ${
      settings.showCloseButton
-       ? `<p consentbit="close" class="close-consent">X</p>`
+      ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
        : ""
    }
   <div
@@ -1663,9 +1684,18 @@ ${
 </a
       >
     </div>
+    <div class="consentbrandwrapper">
+      <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
+        <img
+          src="https://api.consentbit.com/BrandImage.svg"
+          alt="ConsentBit brand logo"
+          class="consentbrandimage"
+        />
+      </a>
+    </div>
     ${
       settings.showCloseButton
-        ? `<p consentbit="close" class="consentbit-close">X</p>`
+      ? `<p consentbit="close" class="consentbit-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
         : ""
     }
   </div>
@@ -1681,6 +1711,10 @@ ${
   class="consentbit-ccpa_preference hidden"
   style="visibility: visible !important; opacity: 1 !important"
 >
+  <div
+  data-animation="${settings.animation}"
+  class="consentbit-ccpa_preference"
+  >
   <h4 class="consebit-ccpa-prefrence-heading">${
     ccpaTranslations[settings.language]?.heading || "CCPA Preferences"
   }</h4>
@@ -1751,7 +1785,16 @@ ${
       > ${ccpaTranslations[settings.language]?.cancel}</a
     >
   </div>
-  <p consentbit="close" class="consent-close">X</p>
+  <div class="consentbrandwrapper">
+    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
+      <img
+        src="https://api.consentbit.com/BrandImage.svg"
+        alt="ConsentBit brand logo"
+        class="consentbrandimage"
+      />
+    </a>
+  </div>
+  <p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>
 </div>`
 }
 <div id="consensite-id" style="display:none">${siteId}</div>
@@ -1774,3 +1817,4 @@ if (document.readyState === 'loading') {
   
   injectBanner();
 }
+
