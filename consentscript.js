@@ -908,13 +908,13 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-   
+    max-height: 530px;
     padding: 20px;
     font-family: ${custom.font};
     position: relative;
     top: 50%;
     left: 50%;
-    overflow-y: scroll;
+    overflow-y: auto;
     transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
@@ -1790,7 +1790,7 @@ ${
       />
     </a>
   </div>
-    <p consentbit="close" class="consent-close">X</p>
+    <p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>
   </div>`
   }
 <div id="consensite-id" style="display:none">${siteId}</div>
