@@ -17,12 +17,12 @@ console.log(siteId);
 const moreInfoTranslations = {
   English: "More info.",
   Spanish: "Más información.",
-  French: "Plus d'informations. ",
-  German: "Weitere informationen.",
-  Italian: "Maggiori informazioni.",
-  Portuguese: "Mais informações.",
-  Swedish: "Mer info.",
-  Dutch: "Meer info.",
+  French: "Plus d'Informations",
+  German: "Weitere Informationen",
+  Italian: "Maggiori Informazioni",
+  Portuguese: "Mais Informações",
+  Swedish: "Mer Info",
+  Dutch: "Meer Info",
 };
 
 const ccpaTranslations = {
@@ -492,10 +492,10 @@ const fontWeight = fontWeightMap[custom.weight] || 400;
 
   let positionStyles =
     custom.bannerAlignment === "center"
-      ? "left:50%; right:auto; transform:translateX(-50%);"
+      ? "left:50%; transform:translateX(-50%);"
       : custom.bannerAlignment === "left"
-      ? "left:23px; right:auto; transform:none;"
-      : "right:23px; left:auto; transform:none;";
+      ? "left:23px; transform:none;"
+      : "right:23px; transform:none;";
 
   positionStyles =
     custom.bannerStyle === "style5" ? "left:auto;right:0px;" : positionStyles;
@@ -659,12 +659,12 @@ div#banner-code {
 @keyframes slideRightBottom{ from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* ===========================
-   Preference Animations (Center Origin) — no translate(-50%,-50%) in final state to avoid text blur
+   Preference Animations (Center Origin)
    =========================== */
-@keyframes slideUpCenter   { from { transform: translateY(100%); opacity:0; } to { transform: none; opacity:1; } }
-@keyframes slideDownCenter { from { transform: translateY(-100%); opacity:0; } to { transform: none; opacity:1; } }
-@keyframes slideLeftCenter { from { transform: translateX(100%); opacity:0; } to { transform: none; opacity:1; } }
-@keyframes slideRightCenter{ from { transform: translateX(-100%); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes slideUpCenter   { from { top:50%; left:50%; transform: translate(-50%, 100%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
+@keyframes slideDownCenter { from { top:50%; left:50%; transform: translate(-50%, -200%); opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
+@keyframes slideLeftCenter { from { top:50%; left:50%; transform: translate(100%, -50%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
+@keyframes slideRightCenter{ from { top:50%; left:50%; transform: translate(-200%,-50%);  opacity:0; } to { top:50%; left:50%; transform: translate(-50%, -50%); opacity:1; } }
 
 
 @keyframes fadeIn {
@@ -682,11 +682,11 @@ div#banner-code {
 @keyframes fadeCenterIn {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translate(-50%, -50%) translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: none;
+    transform: translate(-50%, -50%) translateY(0) scale(1);
   }
 }
 .consentbit-banner-div[data-animation="slide-up"],
@@ -886,7 +886,7 @@ div#banner-code {
 
   .close-consent {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: #000;
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -899,7 +899,6 @@ div#banner-code {
     left: auto;
     right: 2%;
   }
-
 
   .consentbit-preference_div {
     z-index: 99999;
@@ -916,7 +915,7 @@ div#banner-code {
     top: 50%;
     left: 50%;
     overflow-y: scroll;
-    transform: translate(-50%, -50%)!important;
+    transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
 
@@ -926,7 +925,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: ${custom.size}px;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -1017,7 +1016,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: 500;
   }
 
@@ -1036,7 +1035,7 @@ div#banner-code {
   .consentbit-change-preference {
     z-index: 999;
     cursor: pointer;
-    background-image: url("https://api.consentbit.com/logo.webp");
+    background-image: url("https://script-5qu.pages.dev/67ebf5ee639d12979361f2bc_consent.webp");
     background-position: 50%;
     background-size: cover;
     border-radius: 50%;
@@ -1049,7 +1048,7 @@ div#banner-code {
 
   .consentbit-close {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: #000;
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1058,9 +1057,9 @@ div#banner-code {
     font-family: Montserrat, sans-serif;
     display: flex;
     position: absolute;
-    top: 16px;
+    top: 5%;
     left: auto;
-    right: 16px;
+    right: 10px;
   }
 
   .consentbit-preference {
@@ -1069,7 +1068,6 @@ div#banner-code {
     position: fixed;
     inset: 0%;
   }
-  
 
   .consentbit-ccpa-banner-div {
     z-index: 99999;
@@ -1151,7 +1149,7 @@ div#banner-code {
 
   .close-consentbit {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: #000;
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1167,43 +1165,33 @@ div#banner-code {
 
   .consentbit-ccpa_preference {
     z-index: 99999;
-    border-radius: ${custom.radius.container}px;
-    background-color: ${custom.colors.bannerBg};
-    color: ${custom.colors.body};
+   border-radius:${custom.radius.container}px;
+  	background-color:${custom.colors.bannerBg};
+  	color:${custom.colors.body};
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    max-width: 435px;
-    max-height: min(500px, 80vh);
-    padding: 20px 20px 20px;
-    font-family: ${custom.font};
+    padding: 20px;
+    font-family: Montserrat, sans-serif;
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 90%;
-    max-width: 435px;
-    height: max-content;
-    margin: auto;
-    overflow-y: auto;
+    top: 50%;
+    left: 50%;
+    overflow-y: scroll;
+    transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
 
   .consentbit-ccpa_prefrence_text {
-    color: ${custom.colors.body};
+    color:${custom.colors.body};
     text-align: left;
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: ${Math.max(custom.size, 14)}px;
-    font-weight: 500;
-    line-height: 1.6;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
     display: block;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    letter-spacing: 0.01em;
   }
 
   .consentbit-ccpa-formblock {
@@ -1289,7 +1277,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: 500;
   }
 [customtoggle="true"]{
@@ -1300,7 +1288,7 @@ div#banner-code {
 }
   .consent-close {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: #000;
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1309,45 +1297,23 @@ div#banner-code {
     font-family: Montserrat, sans-serif;
     display: flex;
     position: absolute;
-    top: 16px;
+    top: 10px;
     left: auto;
-    right: 16px;
+    right: 0;
   }
 
   .div-block {
     display: none;
   }
 
-  .consentbrandwrapper {
-    align-self: flex-end;
-    width: 40%;
-    height: auto;
-    margin-top: 12px;
-    margin-left: auto;
-    display: block;
-  }
-
-  .consentbrandimage {
-    object-fit: contain;
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  img {
-    vertical-align: middle;
-    max-width: 100%;
-    display: inline-block;
-  }
-
 
   .consentbit-prefrence-decline
    {
-  	color: ${custom.colors.btnSecondaryText};
+  	color: #000;
   	text-align: center;
   	cursor: pointer;
-  	background-color: ${custom.colors.btnSecondaryBg};
-  	border-radius: ${custom.radius.button}px;
+  	background-color: #c9c9c9;
+  	border-radius: 3px;
   	justify-content: center;
   	min-width: 80px;
   	margin-left: 5px;
@@ -1463,7 +1429,7 @@ id="consent-banner"
 >
  ${
    settings.showCloseButton
-    ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+     ? `<p consentbit="close" class="close-consent">X</p>`
      : ""
  }
   <div
@@ -1555,7 +1521,7 @@ ${
 >
    ${
      settings.showCloseButton
-      ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+       ? `<p consentbit="close" class="close-consent">X</p>`
        : ""
    }
   <div
@@ -1697,18 +1663,9 @@ ${
 </a
       >
     </div>
-    <div class="consentbrandwrapper">
-      <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
-        <img
-          src="https://api.consentbit.com/BrandImage.svg"
-          alt="ConsentBit brand logo"
-          class="consentbrandimage"
-        />
-      </a>
-    </div>
     ${
       settings.showCloseButton
-      ? `<p consentbit="close" class="consentbit-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+        ? `<p consentbit="close" class="consentbit-close">X</p>`
         : ""
     }
   </div>
@@ -1724,10 +1681,6 @@ ${
   class="consentbit-ccpa_preference hidden"
   style="visibility: visible !important; opacity: 1 !important"
 >
-  <div
-  data-animation="${settings.animation}"
-  class="consentbit-ccpa_preference"
-  >
   <h4 class="consebit-ccpa-prefrence-heading">${
     ccpaTranslations[settings.language]?.heading || "CCPA Preferences"
   }</h4>
@@ -1798,16 +1751,7 @@ ${
       > ${ccpaTranslations[settings.language]?.cancel}</a
     >
   </div>
-  <div class="consentbrandwrapper">
-    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
-      <img
-        src="https://api.consentbit.com/BrandImage.svg"
-        alt="ConsentBit brand logo"
-        class="consentbrandimage"
-      />
-    </a>
-  </div>
-  <p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>
+  <p consentbit="close" class="consent-close">X</p>
 </div>`
 }
 <div id="consensite-id" style="display:none">${siteId}</div>
@@ -1830,4 +1774,3 @@ if (document.readyState === 'loading') {
   
   injectBanner();
 }
-
