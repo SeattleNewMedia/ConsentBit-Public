@@ -10,8 +10,7 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-console.log(rawConfig);
-
+console.log("loading new script");
 
 console.log(siteId);
 const moreInfoTranslations = {
