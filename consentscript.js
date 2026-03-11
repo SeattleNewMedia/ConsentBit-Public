@@ -1781,6 +1781,15 @@ ${
         > ${ccpaTranslations[settings.language]?.cancel}</a
       >
     </div>
+    <div class="consentbrandwrapper">
+    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
+      <img
+        src="https://api.consentbit.com/BrandImage.svg"
+        alt="ConsentBit brand logo"
+        class="consentbrandimage"
+      />
+    </a>
+  </div>
     <p consentbit="close" class="consent-close">X</p>
   </div>`
   }
