@@ -912,13 +912,13 @@ div#banner-code {
     max-height: min(510px, 80vh);
     padding: 20px 20px 20px;
     font-family: ${custom.font};
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
     display: flex;
-    margin: auto !important;
-    flex-shrink: 0;
-    align-self: center;
   }
 
   .consentbit-prefrence_text {
