@@ -1082,6 +1082,11 @@ div#banner-code {
     padding: 0 !important;
     box-sizing: border-box;
   }
+  .consentbit-preference.show-banner {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
   .consentbit-preference.hidden {
     display: none !important;
   }
