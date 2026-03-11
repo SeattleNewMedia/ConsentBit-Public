@@ -11,7 +11,7 @@ settings,
 
 
 console.log(rawConfig);
-
+console.log("load again");
 
 console.log(siteId);
 const moreInfoTranslations = {
@@ -900,6 +900,7 @@ div#banner-code {
     right: 2%;
   }
 
+
   .consentbit-preference_div {
     z-index: 99999;
     background-color: ${custom.colors.bannerBg};
@@ -908,17 +909,15 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-    width: 90%;
-    max-height: min(510px, 80vh);
-    padding: 20px 20px 20px;
+   
+    padding: 20px;
     font-family: ${custom.font};
-    position: absolute;
+    position: relative;
     top: 50%;
     left: 50%;
+    overflow-y: scroll;
     transform: translate(-50%, -50%);
-    overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
-    display: flex;
   }
 
   .consentbit-prefrence_text {
@@ -1363,11 +1362,11 @@ div#banner-code {
 
   .consentbit-prefrence-decline
    {
-  	color: #000;
+  	color: ${custom.colors.btnSecondaryText};
   	text-align: center;
   	cursor: pointer;
-  	background-color: #c9c9c9;
-  	border-radius: 3px;
+  	background-color: ${custom.colors.btnSecondaryBg};
+  	border-radius: ${custom.radius.button}px;
   	justify-content: center;
   	min-width: 80px;
   	margin-left: 5px;
