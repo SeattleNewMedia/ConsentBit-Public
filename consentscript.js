@@ -10,7 +10,7 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-console.log(rawConfig);
+console.log("new one");
 
 
 console.log(siteId);
