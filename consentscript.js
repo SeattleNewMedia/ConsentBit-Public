@@ -29,8 +29,8 @@ const ccpaTranslations = {
   English: {
     heading: "Opt-out Preference",
     description:
-      "We use third-party cookies that help us analyze how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. We do not sell your information. However, you can opt out of these cookies by checking Do Not Share My Personal Information and clicking the Save My Preferences button. Once you opt out, you can opt in again at any time by unchecking Do Not Share My Personal Information and clicking the Save My Preferences button",
-    doNotShare: "Do not share my personal information.",
+      "We use third-party cookies that help us analyze how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. We do not sell your information. However, you can opt out of these cookies by checking Do Not Share My Personal Information and clicking the Save My Preferences button. Once you opt out, you can opt in again at any time by unchecking Do Not Share My Personal Information and clicking the Save My Preferences button.",
+    doNotShare: "Do not share my personal information",
     savePreference: "Save My Preference",
     cancel: "Cancel",
   },
@@ -38,7 +38,7 @@ const ccpaTranslations = {
     heading: "Preferencia de Exclusión",
     description:
       "Utilizamos cookies de terceros que nos ayudan a analizar cómo utiliza este sitio web, almacenar sus preferencias y proporcionar contenido y anuncios relevantes para usted. No vendemos su información. Sin embargo, puede optar por no recibir estas cookies marcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias. Una vez que opte por no participar, puede volver a participar en cualquier momento desmarcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias.",
-    doNotShare: "No compartir mi información personal.",
+    doNotShare: "No compartir mi información personal",
     savePreference: "Guardar Mi Preferencia",
     cancel: "Cancelar",
   },
@@ -46,7 +46,7 @@ const ccpaTranslations = {
     heading: "Préférence de Désinscription",
     description:
       "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences.",
-    doNotShare: "Ne pas partager mes informations personnelles.",
+    doNotShare: "Ne pas partager mes informations personnelles",
     savePreference: "Enregistrer Mes Préférences",
     cancel: "Annuler",
   },
@@ -1230,7 +1230,8 @@ div#banner-code {
     direction: rtl;
     color: #483999;
     flex-flow: row;
-    justify-content: space-between;
+    justify-content: flex-start;
+    column-gap: 8px;
     width: 100%;
     margin-top: 10px;
     display: flex;
