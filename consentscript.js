@@ -811,6 +811,8 @@ div#banner-code {
     align-items: center;
     width: ${widthHtml};
     padding: 20px 20px 12px;
+    max-height: 40vh;
+    overflow-y: auto;
     font-family: ${custom.font};
     display: none;
     position: fixed;
