@@ -17,12 +17,12 @@ console.log(siteId);
 const moreInfoTranslations = {
   English: "More info.",
   Spanish: "Más información.",
-  French: "Plus d'Informations",
-  German: "Weitere Informationen",
-  Italian: "Maggiori Informazioni",
-  Portuguese: "Mais Informações",
-  Swedish: "Mer Info",
-  Dutch: "Meer Info",
+  French: "Plus d'informations.",
+  German: "Weitere informationen.",
+  Italian: "Maggiori informazioni.",
+  Portuguese: "Mais informações.",
+  Swedish: "Mer info.",
+  Dutch: "Meer info.",
 };
 
 const ccpaTranslations = {
