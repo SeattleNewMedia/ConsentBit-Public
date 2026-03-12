@@ -17,12 +17,12 @@ console.log(siteId);
 const moreInfoTranslations = {
   English: "More info.",
   Spanish: "Más información.",
-  French: "Plus d'Informations",
-  German: "Weitere Informationen",
-  Italian: "Maggiori Informazioni",
-  Portuguese: "Mais Informações",
-  Swedish: "Mer Info",
-  Dutch: "Meer Info",
+  French: "Plus d'informations.",
+  German: "Weitere informationen.",
+  Italian: "Maggiori informazioni.",
+  Portuguese: "Mais informações.",
+  Swedish: "Mer info.",
+  Dutch: "Meer info.",
 };
 
 const ccpaTranslations = {
@@ -30,23 +30,23 @@ const ccpaTranslations = {
     heading: "Opt-out Preference",
     description:
       "We use third-party cookies that help us analyze how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. We do not sell your information. However, you can opt out of these cookies by checking Do Not Share My Personal Information and clicking the Save My Preferences button. Once you opt out, you can opt in again at any time by unchecking Do Not Share My Personal Information and clicking the Save My Preferences button",
-    doNotShare: ".Do Not Share My Personal Information",
+    doNotShare: "Do not share my personal information.",
     savePreference: "Save My Preference",
     cancel: "Cancel",
   },
   Spanish: {
     heading: "Preferencia de Exclusión",
     description:
-      "Utilizamos cookies de terceros que nos ayudan a analizar cómo utiliza este sitio web, almacenar sus preferencias y proporcionar contenido y anuncios relevantes para usted. No vendemos su información. Sin embargo, puede optar por no recibir estas cookies marcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias. Una vez que opte por no participar, puede volver a participar en cualquier momento desmarcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias",
-    doNotShare: ".No Compartir Mi Información Personal.",
+      "Utilizamos cookies de terceros que nos ayudan a analizar cómo utiliza este sitio web, almacenar sus preferencias y proporcionar contenido y anuncios relevantes para usted. No vendemos su información. Sin embargo, puede optar por no recibir estas cookies marcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias. Una vez que opte por no participar, puede volver a participar en cualquier momento desmarcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias.",
+    doNotShare: "No compartir mi información personal.",
     savePreference: "Guardar Mi Preferencia",
     cancel: "Cancelar",
   },
   French: {
     heading: "Préférence de Désinscription",
     description:
-      "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences",
-    doNotShare: ".Ne Pas Partager Mes Informations Personnelles.",
+      "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences.",
+    doNotShare: "Ne pas partager mes informations personnelles.",
     savePreference: "Enregistrer Mes Préférences",
     cancel: "Annuler",
   },
@@ -61,15 +61,15 @@ const ccpaTranslations = {
   Swedish: {
     heading: "Avregistreringspreferens",
     description:
-      "Vi använder tredjepartscookies som hjälper oss att analysera hur du använder denna webbplats, lagra dina preferenser och tillhandahålla innehåll och annonser som är relevanta för dig. Vi säljer inte din information. Du kan dock välja bort dessa cookies genom att kryssa i 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen. När du väljer bort kan du välja tillbaka när som helst genom att avmarkera 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen",
-    doNotShare: "Dela Inte Min Personliga Information",
+      "Vi använder tredjepartscookies som hjälper oss att analysera hur du använder denna webbplats, lagra dina preferenser och tillhandahålla innehåll och annonser som är relevanta för dig. Vi säljer inte din information. Du kan dock välja bort dessa cookies genom att kryssa i 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen. När du väljer bort kan du välja tillbaka när som helst genom att avmarkera 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen.",
+    doNotShare: "Dela inte min personliga information",
     savePreference: "Spara Mina Preferenser",
     cancel: "Avbryt",
   },
   Dutch: {
     heading: "Afmeldingsvoorkeur",
     description:
-      "We gebruiken cookies van derden die ons helpen bij het analyseren van hoe u deze website gebruikt, het opslaan van uw voorkeuren en het leveren van inhoud en advertenties die relevant voor u zijn. We verkopen uw informatie niet. U kunt deze cookies echter uitschakelen door 'Deel Mijn Persoonlijke Informatie Niet' aan te vinken en op de 'Sla Mijn Voorkeuren Op'-knop te klikken. Zodra u zich afmeldt, kunt u zich opnieuw aanmelden door het vinkje bij 'Deel Mijn Persoonlijke Informatie Niet' te verwijderen en op de 'Sla Mijn Voorkeuren Op'-knop te klikken",
+      "We gebruiken cookies van derden die ons helpen bij het analyseren van hoe u deze website gebruikt, het opslaan van uw voorkeuren en het leveren van inhoud en advertenties die relevant voor u zijn. We verkopen uw informatie niet. U kunt deze cookies echter uitschakelen door 'Deel Mijn Persoonlijke Informatie Niet' aan te vinken en op de 'Sla Mijn Voorkeuren Op'-knop te klikken. Zodra u zich afmeldt, kunt u zich opnieuw aanmelden door het vinkje bij 'Deel Mijn Persoonlijke Informatie Niet' te verwijderen en op de 'Sla Mijn Voorkeuren Op'-knop te klikken.",
     doNotShare: "Deel Mijn Persoonlijke Informatie Niet",
     savePreference: "Sla Mijn Voorkeuren Op",
     cancel: "Annuleren",
@@ -471,6 +471,20 @@ const custom = customization || {
     radius: { container: 12, button: 7 },
   };
 
+// Derive close icon color from background brightness (dark vs light)
+function getCloseIconColor(bg) {
+  if (!bg || typeof bg !== "string") return "#000000";
+  const hex = bg.replace("#", "");
+  if (hex.length !== 6) return "#000000";
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance < 0.5 ? "#ffffff" : "#000000";
+}
+
+const closeIconColor = getCloseIconColor(custom.colors.bannerBg);
+
  const fontWeightMap = {
   Light: 300,
   Regular: 400,
@@ -796,8 +810,7 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    
-    padding: 20px;
+    padding: 20px 20px 8px;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -886,7 +899,7 @@ div#banner-code {
 
   .close-consent {
     z-index: 99;
-    color: #000;
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1149,7 +1162,7 @@ div#banner-code {
 
   .close-consentbit {
     z-index: 99;
-    color: #000;
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1288,7 +1301,7 @@ div#banner-code {
 }
   .consent-close {
     z-index: 99;
-    color: #000;
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1476,7 +1489,7 @@ id="consent-banner"
     }
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;"
     >
       ${translations[settings.language].heading}
     </div>
@@ -1570,7 +1583,7 @@ ${
     
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
     >
     ${translations[settings.language].ccpa.heading}
     </div>
@@ -1585,7 +1598,7 @@ ${
     </div>
     <div
       class="cookie-btn-row"
-      style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};"
+      style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};font-size:${custom.size + 2}px;"
     >
       <a id="do-not-share-link" class="consentbit-ccpa-linkblock w-inline-block"
         >  ${translations[settings.language].ccpa.doNotShare}</a
