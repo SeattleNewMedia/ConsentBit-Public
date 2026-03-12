@@ -10,7 +10,7 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-console.log("new one");
+console.log(rawConfig);
 
 
 console.log(siteId);
@@ -810,7 +810,7 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    padding: 20px 20px 8px;
+    padding: 20px 20px 12px;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -1061,7 +1061,7 @@ div#banner-code {
 
   .consentbit-close {
     z-index: 99;
-    color: #000;
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1069,6 +1069,9 @@ div#banner-code {
     height: 25px;
     font-family: Montserrat, sans-serif;
     display: flex;
+    position: absolute;
+    top: 20px;
+    right: 20px;
     position: absolute;
     top: 5%;
     left: auto;
