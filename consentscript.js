@@ -1229,11 +1229,11 @@ div#banner-code {
   }
 
   .consentbit-ccpa-prefrence-toggle {
-    direction: rtl;
     color: #483999;
     flex-flow: row;
     justify-content: flex-start;
     column-gap: 8px;
+    align-items: center;
     width: 100%;
     margin-top: 10px;
     display: flex;
@@ -1604,7 +1604,7 @@ ${
     </div>
     <div
       class="cookie-btn-row"
-      style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};font-size:${custom.size + 2}px;"
+      style="margin-top:16px; display:flex;gap:8px;justify-content:flex-start;font-size:${custom.size + 2}px;"
     >
       <a id="do-not-share-link" class="consentbit-ccpa-linkblock w-inline-block"
         >  ${translations[settings.language].ccpa.doNotShare}</a
