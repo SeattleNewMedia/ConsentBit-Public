@@ -471,6 +471,20 @@ const custom = customization || {
     radius: { container: 12, button: 7 },
   };
 
+// Derive close icon color from background brightness (dark vs light)
+function getCloseIconColor(bg) {
+  if (!bg || typeof bg !== "string") return "#000000";
+  const hex = bg.replace("#", "");
+  if (hex.length !== 6) return "#000000";
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance < 0.5 ? "#ffffff" : "#000000";
+}
+
+const closeIconColor = getCloseIconColor(custom.colors.bannerBg);
+
  const fontWeightMap = {
   Light: 300,
   Regular: 400,
@@ -796,8 +810,7 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    
-    padding: 20px;
+    padding: 20px 20px 8px;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -857,7 +870,7 @@ div#banner-code {
 
   .consentbit-banner_headings {
     color: #000;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: Regular;
     text-align: left;
     width: 100%;
@@ -886,7 +899,7 @@ div#banner-code {
 
   .close-consent {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1020,7 +1033,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: 500;
   }
 
@@ -1083,8 +1096,7 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    
-    padding: 20px;
+    padding: 20px 20px 8px;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -1115,7 +1127,7 @@ div#banner-code {
 
   .consentbit-ccpa-banner-heading {
     color: #000;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: Regular;
     text-align: left;
     width: 100%;
@@ -1126,7 +1138,7 @@ div#banner-code {
   .consentbit-ccpa-linkblock {
     color: #483999;
     cursor: pointer;
-
+    font-size: ${custom.size + 2}px;
     border-radius: 48px;
     min-width: 80px;
     margin-left: 5px;
@@ -1154,7 +1166,7 @@ div#banner-code {
 
   .close-consentbit {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1180,10 +1192,14 @@ div#banner-code {
     font-family: ${custom.font};
     display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    overflow-y: scroll;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 435px;
+    max-height: 530px;
+    margin: auto;
+    overflow-y: auto;
     box-shadow: 2px 2px 20px #00000082;
   }
 
@@ -1282,7 +1298,7 @@ div#banner-code {
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: 20px;
+    font-size: ${custom.size + 4}px;
     font-weight: 500;
   }
 [customtoggle="true"]{
@@ -1293,7 +1309,7 @@ div#banner-code {
 }
   .consent-close {
     z-index: 99;
-    color: ${custom.colors.title};
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1481,7 +1497,7 @@ id="consent-banner"
     }
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
     >
       ${translations[settings.language].heading}
     </div>
@@ -1575,7 +1591,7 @@ ${
     
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
     >
     ${translations[settings.language].ccpa.heading}
     </div>
