@@ -29,24 +29,24 @@ const ccpaTranslations = {
   English: {
     heading: "Opt-out Preference",
     description:
-      "We use third-party cookies that help us analyze how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. We do not sell your information. However, you can opt out of these cookies by checking Do Not Share My Personal Information and clicking the Save My Preferences button. Once you opt out, you can opt in again at any time by unchecking Do Not Share My Personal Information and clicking the Save My Preferences button",
-    doNotShare: ".Do Not Share My Personal Information",
+      "We use third-party cookies that help us analyze how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. We do not sell your information. However, you can opt out of these cookies by checking Do Not Share My Personal Information and clicking the Save My Preferences button. Once you opt out, you can opt in again at any time by unchecking Do Not Share My Personal Information and clicking the Save My Preferences button.",
+    doNotShare: "Do not share my personal information",
     savePreference: "Save My Preference",
     cancel: "Cancel",
   },
   Spanish: {
     heading: "Preferencia de Exclusión",
     description:
-      "Utilizamos cookies de terceros que nos ayudan a analizar cómo utiliza este sitio web, almacenar sus preferencias y proporcionar contenido y anuncios relevantes para usted. No vendemos su información. Sin embargo, puede optar por no recibir estas cookies marcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias. Una vez que opte por no participar, puede volver a participar en cualquier momento desmarcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias",
-    doNotShare: ".No Compartir Mi Información Personal.",
+      "Utilizamos cookies de terceros que nos ayudan a analizar cómo utiliza este sitio web, almacenar sus preferencias y proporcionar contenido y anuncios relevantes para usted. No vendemos su información. Sin embargo, puede optar por no recibir estas cookies marcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias. Una vez que opte por no participar, puede volver a participar en cualquier momento desmarcando No Compartir Mi Información Personal y haciendo clic en el botón Guardar Mis Preferencias.",
+    doNotShare: "No compartir mi información personal",
     savePreference: "Guardar Mi Preferencia",
     cancel: "Cancelar",
   },
   French: {
     heading: "Préférence de Désinscription",
     description:
-      "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences",
-    doNotShare: ".Ne Pas Partager Mes Informations Personnelles.",
+      "Nous utilisons des cookies tiers qui nous aident à analyser votre utilisation de ce site web, à stocker vos préférences et à fournir du contenu et des publicités pertinents pour vous. Nous ne vendons pas vos informations. Cependant, vous pouvez désactiver ces cookies en cochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences. Une fois désactivé, vous pouvez réactiver à tout moment en décochant Ne Pas Partager Mes Informations Personnelles et en cliquant sur le bouton Enregistrer Mes Préférences.",
+    doNotShare: "Ne pas partager mes informations personnelles",
     savePreference: "Enregistrer Mes Préférences",
     cancel: "Annuler",
   },
@@ -61,15 +61,15 @@ const ccpaTranslations = {
   Swedish: {
     heading: "Avregistreringspreferens",
     description:
-      "Vi använder tredjepartscookies som hjälper oss att analysera hur du använder denna webbplats, lagra dina preferenser och tillhandahålla innehåll och annonser som är relevanta för dig. Vi säljer inte din information. Du kan dock välja bort dessa cookies genom att kryssa i 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen. När du väljer bort kan du välja tillbaka när som helst genom att avmarkera 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen",
-    doNotShare: "Dela Inte Min Personliga Information",
+      "Vi använder tredjepartscookies som hjälper oss att analysera hur du använder denna webbplats, lagra dina preferenser och tillhandahålla innehåll och annonser som är relevanta för dig. Vi säljer inte din information. Du kan dock välja bort dessa cookies genom att kryssa i 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen. När du väljer bort kan du välja tillbaka när som helst genom att avmarkera 'Dela Inte Min Personliga Information' och klicka på 'Spara Mina Preferenser'-knappen.",
+    doNotShare: "Dela inte min personliga information",
     savePreference: "Spara Mina Preferenser",
     cancel: "Avbryt",
   },
   Dutch: {
     heading: "Afmeldingsvoorkeur",
     description:
-      "We gebruiken cookies van derden die ons helpen bij het analyseren van hoe u deze website gebruikt, het opslaan van uw voorkeuren en het leveren van inhoud en advertenties die relevant voor u zijn. We verkopen uw informatie niet. U kunt deze cookies echter uitschakelen door 'Deel Mijn Persoonlijke Informatie Niet' aan te vinken en op de 'Sla Mijn Voorkeuren Op'-knop te klikken. Zodra u zich afmeldt, kunt u zich opnieuw aanmelden door het vinkje bij 'Deel Mijn Persoonlijke Informatie Niet' te verwijderen en op de 'Sla Mijn Voorkeuren Op'-knop te klikken",
+      "We gebruiken cookies van derden die ons helpen bij het analyseren van hoe u deze website gebruikt, het opslaan van uw voorkeuren en het leveren van inhoud en advertenties die relevant voor u zijn. We verkopen uw informatie niet. U kunt deze cookies echter uitschakelen door 'Deel Mijn Persoonlijke Informatie Niet' aan te vinken en op de 'Sla Mijn Voorkeuren Op'-knop te klikken. Zodra u zich afmeldt, kunt u zich opnieuw aanmelden door het vinkje bij 'Deel Mijn Persoonlijke Informatie Niet' te verwijderen en op de 'Sla Mijn Voorkeuren Op'-knop te klikken.",
     doNotShare: "Deel Mijn Persoonlijke Informatie Niet",
     savePreference: "Sla Mijn Voorkeuren Op",
     cancel: "Annuleren",
@@ -810,7 +810,9 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    padding: 20px 20px 8px;
+    padding: 20px 20px 12px;
+    max-height: 40vh;
+    overflow-y: auto;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -870,7 +872,7 @@ div#banner-code {
 
   .consentbit-banner_headings {
     color: #000;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: Regular;
     text-align: left;
     width: 100%;
@@ -921,13 +923,13 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     max-width: 435px;
-    max-height: 530px;
+   
     padding: 20px;
     font-family: ${custom.font};
     position: relative;
     top: 50%;
     left: 50%;
-    overflow-y: auto;
+    overflow-y: scroll;
     transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
@@ -938,7 +940,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: ${custom.size}px;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -977,7 +979,7 @@ div#banner-code {
 
   .consentbit-button-preference {
     color: #483999;
-    font-size: ${custom.size + 2}px;
+    font-size: 18px;
     font-weight: 500;
   }
 .consentbit-prefrence-container a {
@@ -998,13 +1000,11 @@ div#banner-code {
   }
 
   .consebit-prefrence-accept {
-    color: ${custom.colors.btnPrimaryText};
+    color: #fff;
     text-align: center;
     cursor: pointer;
-    background-color: ${custom.colors.btnPrimaryBg};
-    border-radius: ${custom.radius.button}px;
-    font-size: ${custom.size}px;
-    padding: 7px 14px;
+    background-color: #000;
+    border-radius: 3px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1016,10 +1016,8 @@ div#banner-code {
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
     cursor: pointer;
-    background-color: ${custom.colors.btnSecondaryBg};
+    background-color: ${custom.colors.btnPrimaryBg};
     border-radius: ${custom.radius.button}px;
-    font-size: ${custom.size}px;
-    padding: 7px 14px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1028,12 +1026,12 @@ div#banner-code {
   }
 
   .consebit-prefrence-heading {
-    color: ${custom.colors.title};
+    color: #000;
     text-align: left;
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: 500;
   }
 
@@ -1065,7 +1063,7 @@ div#banner-code {
 
   .consentbit-close {
     z-index: 99;
-    color: #000;
+    color: ${closeIconColor};
     cursor: pointer;
     justify-content: center;
     align-items: center;
@@ -1073,6 +1071,9 @@ div#banner-code {
     height: 25px;
     font-family: Montserrat, sans-serif;
     display: flex;
+    position: absolute;
+    top: 20px;
+    right: 20px;
     position: absolute;
     top: 5%;
     left: auto;
@@ -1084,7 +1085,6 @@ div#banner-code {
     display: none;
     position: fixed;
     inset: 0%;
-    overflow-y: auto;
   }
 
   .consentbit-ccpa-banner-div {
@@ -1096,7 +1096,8 @@ div#banner-code {
     justify-content: center;
     align-items: center;
     width: ${widthHtml};
-    padding: 20px 20px 8px;
+    
+    padding: 20px;
     font-family: ${custom.font};
     display: none;
     position: fixed;
@@ -1127,7 +1128,7 @@ div#banner-code {
 
   .consentbit-ccpa-banner-heading {
     color: #000;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: Regular;
     text-align: left;
     width: 100%;
@@ -1138,7 +1139,7 @@ div#banner-code {
   .consentbit-ccpa-linkblock {
     color: #483999;
     cursor: pointer;
-    font-size: ${custom.size + 2}px;
+
     border-radius: 48px;
     min-width: 80px;
     margin-left: 5px;
@@ -1187,19 +1188,15 @@ div#banner-code {
   	color:${custom.colors.body};
     flex-direction: column;
     justify-content: flex-start;
-   align-items: center;
+    align-items: center;
     padding: 20px;
-    font-family: ${custom.font};
+    font-family: Montserrat, sans-serif;
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    max-width: 435px;
-    max-height: 530px;
-    margin: auto;
-    overflow-y: auto;
+    top: 50%;
+    left: 50%;
+    overflow-y: scroll;
+    transform: translate(-50%, -50%);
     box-shadow: 2px 2px 20px #00000082;
   }
 
@@ -1209,7 +1206,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: ${custom.size}px;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -1294,12 +1291,12 @@ div#banner-code {
   }
 
   .consebit-ccpa-prefrence-heading {
-    color: ${custom.colors.title};
+    color: #000;
     text-align: left;
     width: 100%;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: ${custom.size + 4}px;
+    font-size: 20px;
     font-weight: 500;
   }
 [customtoggle="true"]{
@@ -1498,7 +1495,7 @@ id="consent-banner"
     }
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;"
     >
       ${translations[settings.language].heading}
     </div>
@@ -1607,7 +1604,7 @@ ${
     </div>
     <div
       class="cookie-btn-row"
-      style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};"
+      style="margin-top:16px; display:flex;gap:8px;justify-content:flex-start;font-size:${custom.size + 2}px;"
     >
       <a id="do-not-share-link" class="consentbit-ccpa-linkblock w-inline-block"
         >  ${translations[settings.language].ccpa.doNotShare}</a
@@ -1812,11 +1809,7 @@ ${
       />
     </a>
   </div>
-    ${
-      settings.showCloseButton
-      ? `<p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
-        : ""
-    }
+    <p consentbit="close" class="consent-close">X</p>
   </div>`
   }
 <div id="consensite-id" style="display:none">${siteId}</div>
