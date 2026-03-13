@@ -940,7 +940,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: ${custom.size}px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -1027,6 +1027,12 @@ div#banner-code {
     margin-left: 5px;
     margin-right: 5px;
     display: flex;
+  }
+
+  .consentbit-prefrence-decline:hover,
+  .consentbit-prefrence-decline:focus {
+    color: ${custom.colors.btnSecondaryText};
+    background-color: ${custom.colors.btnSecondaryBg};
   }
 
   .consebit-prefrence-heading {
@@ -1195,7 +1201,7 @@ div#banner-code {
     justify-content: flex-start;
     align-items: center;
     padding: 20px;
-    font-family: Montserrat, sans-serif;
+    font-family: ${custom.font};
     display: none;
     position: fixed;
     top: 50%;
@@ -1211,7 +1217,7 @@ div#banner-code {
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: ${custom.size}px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
@@ -1299,6 +1305,12 @@ div#banner-code {
     margin-left: 5px;
     margin-right: 5px;
     display: flex;
+  }
+
+  .consebit-ccpa-prefrence-decline:hover,
+  .consebit-ccpa-prefrence-decline:focus {
+    color: ${custom.colors.btnSecondaryText};
+    background-color: ${custom.colors.btnSecondaryBg};
   }
 
   .consebit-ccpa-prefrence-heading {
@@ -1835,7 +1847,11 @@ ${
       />
     </a>
   </div>
-    <p consentbit="close" class="consent-close">X</p>
+    ${
+      settings.showCloseButton
+      ? `<p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+        : ""
+    }
   </div>`
   }
 <div id="consensite-id" style="display:none">${siteId}</div>
