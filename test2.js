@@ -1239,6 +1239,16 @@ div#banner-code {
     display: flex;
   }
 
+  /* Align CCPA opt‑out checkbox and label on a single line */
+  #do-not-share-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: ${custom.font};
+    font-size: ${custom.size}px;
+    color: ${custom.colors.body};
+  }
+
   .consentbit-ccpa-prefrence-toggle {
     color: #483999;
     flex-flow: row;
