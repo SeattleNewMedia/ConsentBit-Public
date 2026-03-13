@@ -1000,11 +1000,13 @@ div#banner-code {
   }
 
   .consebit-prefrence-accept {
-    color: #fff;
+    color: ${custom.colors.btnPrimaryText};
     text-align: center;
     cursor: pointer;
-    background-color: #000;
-    border-radius: 3px;
+    background-color: ${custom.colors.btnPrimaryBg};
+    border-radius: ${custom.radius.button}px;
+    font-size: ${custom.size}px;
+    padding: 7px 14px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1016,8 +1018,10 @@ div#banner-code {
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
     cursor: pointer;
-    background-color: ${custom.colors.btnPrimaryBg};
+    background-color: ${custom.colors.btnSecondaryBg};
     border-radius: ${custom.radius.button}px;
+    font-size: ${custom.size}px;
+    padding: 7px 14px;
     justify-content: center;
     min-width: 80px;
     margin-left: 5px;
@@ -1347,20 +1351,18 @@ div#banner-code {
   }
 
 
-  .consentbit-prefrence-decline
-   {
-  	color: #000;
-  	text-align: center;
-  	cursor: pointer;
-  	background-color: #c9c9c9;
-  	border-radius: 3px;
-  	justify-content: center;
-  	min-width: 80px;
-  	margin-left: 5px;
-  	margin-right: 5px;
-  	display: flex
-  ;
-  padding: 9px 15px;
+  .consentbit-prefrence-decline {
+    color: ${custom.colors.btnSecondaryText};
+    text-align: center;
+    cursor: pointer;
+    background-color: ${custom.colors.btnSecondaryBg};
+    border-radius: ${custom.radius.button}px;
+    justify-content: center;
+    min-width: 80px;
+    margin-left: 5px;
+    margin-right: 5px;
+    display: flex;
+    padding: 9px 15px;
   }
   .consebit-ccpa-prefrence-container a {
     text-decoration: none;
