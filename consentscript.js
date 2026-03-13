@@ -1224,7 +1224,7 @@ div#banner-code {
   .consentbit-ccpa-prefrence-block {
     flex-direction: column;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 2px;
     display: flex;
   }
 
