@@ -1769,9 +1769,7 @@ ${
                 aria-label="Email Form 2"
               >
                 <div class="consentbit-ccpa-prefrence-toggle">
-                  <p class="consentbit-ccpa_prefrence_text">
-                    ${ccpaTranslations[settings.language]?.doNotShare}
-                  </p>
+                 
                   <label
                     id="do-not-share-checkbox"
                     class="w-checkbox consentbit-toggle"
@@ -1786,6 +1784,9 @@ ${
                       for="checkbox-4"
                     ></span
                   ></label>
+                  <p class="consentbit-ccpa_prefrence_text">
+                  ${ccpaTranslations[settings.language]?.doNotShare}
+                </p>
                 </div>
                 <div>
                   <div>
