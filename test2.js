@@ -1065,7 +1065,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     position: relative;
   }
 
-  ${cbRoot} .cb-change-preference {
+  .cb-change-preference {
     z-index: 999;
     cursor: pointer;
     background-image: url("https://script-5qu.pages.dev/67ebf5ee639d12979361f2bc_consent.webp");
