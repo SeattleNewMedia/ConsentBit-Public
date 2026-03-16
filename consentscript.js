@@ -10,7 +10,7 @@ settings,
 } = JSON.parse(rawConfig);
 
 
-console.log(rawConfig);
+
 
 
 console.log(siteId);
@@ -210,7 +210,7 @@ const finalTranslations = {
   English: {
     heading: "Cookie Preferences",
     description:
-      "By clicking, you agree to store cookies on your device to enhance navigation, analyze usage, and support marketing",
+      "By clicking, you agree to store cookies on your device to enhance navigation, analyze usage, and support marketing.",
     acceptAll: "Save Preference",
     reject: "Reject",
     changePreference: "Change Preference",
@@ -330,7 +330,7 @@ const finalTranslations = {
   Italian: {
     heading: "Preferenze sui Cookie",
     description:
-      "Cliccando, accetti di memorizzare i cookie sul tuo dispositivo per migliorare la navigazione, analizzare l'utilizzo e supportare il marketing",
+      "Cliccando, accetti di memorizzare i cookie sul tuo dispositivo per migliorare la navigazione, analizzare l'utilizzo e supportare il marketing.",
     acceptAll: "Salva Preferenze",
     reject: "Rifiuta",
     changePreference: "Cambia Preferenze",
@@ -360,7 +360,7 @@ const finalTranslations = {
   Portuguese: {
     heading: "Preferências de Cookies",
     description:
-      "Ao clicar, você concorda em armazenar cookies no seu dispositivo para melhorar a navegação, analisar o uso e apoiar o marketing",
+      "Ao clicar, você concorda em armazenar cookies no seu dispositivo para melhorar a navegação, analisar o uso e apoiar o marketing.",
     acceptAll: "Salvar Preferências",
     reject: "Rejeitar",
     changePreference: "Alterar Preferências",
@@ -390,7 +390,7 @@ const finalTranslations = {
   Swedish: {
     heading: "Cookie-inställningar",
     description:
-      "Genom att klicka godkänner du att lagra cookies på din enhet för att förbättra navigering, analysera användning och stödja marknadsföring",
+      "Genom att klicka godkänner du att lagra cookies på din enhet för att förbättra navigering, analysera användning och stödja marknadsföring.",
     acceptAll: "Spara Inställningar",
     reject: "Avvisa",
     changePreference: "Ändra Inställningar",
@@ -420,7 +420,7 @@ const finalTranslations = {
   Dutch: {
     heading: "Cookie-instellingen",
     description:
-      "Door te klikken stemt u in met het opslaan van cookies op uw apparaat om navigatie te verbeteren, gebruik te analyseren en marketing te ondersteunen",
+      "Door te klikken stemt u in met het opslaan van cookies op uw apparaat om navigatie te verbeteren, gebruik te analyseren en marketing te ondersteunen.",
     acceptAll: "Instellingen Opslaan",
     reject: "Weigeren",
     changePreference: "Instellingen Wijzigen",
@@ -513,6 +513,7 @@ const fontWeight = fontWeightMap[custom.weight] || 400;
 
   positionStyles =
     custom.bannerStyle === "style5" ? "left:auto;right:0px;" : positionStyles;
+  const cbRoot = "#banner-code.consentbit-cb-root";
   const width =
     custom.bannerStyle === "style1"
       ? 318
@@ -573,15 +574,15 @@ const prefrenceHtml = `${
                 <label
                   id="analytics-checkbox"
                    ${settings.customtoggle ? `customtoggle="true"` : ""}
-                  class="w-checkbox consentbit-toggle"
+                  class="consentbit-toggle"
                   ><input
                     type="checkbox"
                     id="checkbox-2"
                     name="checkbox-2"
                     data-name="Checkbox 2"
                     data-consent-id="analytics-checkbox"
-                    class="w-checkbox-input" /><span
-                    class="w-form-label"
+                    class="consentbit-toggle-input" /><span
+                    class="consentbit-toggle-label"
                     for="checkbox-2"
                   ></span
                 ></label>
@@ -603,15 +604,15 @@ const prefrenceHtml = `${
                 <label
                   id="marketing-checkbox"
                 ${settings.customtoggle ? `customtoggle="true"` : ""}
-                  class="w-checkbox consentbit-toggle"
+                  class="consentbit-toggle"
                   ><input
                     type="checkbox"
                     id="checkbox-3"
                     name="checkbox-3"
                     data-name="Checkbox 3"
                     data-consent-id="marketing-checkbox"
-                    class="w-checkbox-input" /><span
-                    class="w-form-label"
+                    class="consentbit-toggle-input" /><span
+                    class="consentbit-toggle-label"
                     for="checkbox-3"
                   ></span
                 ></label>
@@ -633,15 +634,15 @@ const prefrenceHtml = `${
                 <label
                   id="personalization-checkbox"
                    ${settings.customtoggle ? `customtoggle="true"` : ""}
-                  class="w-checkbox consentbit-toggle"
+                  class="consentbit-toggle"
                   ><input
                     type="checkbox"
                     id="checkbox-5"
                     name="checkbox-5"
                     data-name="Checkbox 5"
                     data-consent-id="personalization-checkbox"
-                    class="w-checkbox-input" /><span
-                    class="w-form-label"
+                    class="consentbit-toggle-input" /><span
+                    class="consentbit-toggle-label"
                     for="checkbox-5"
                   ></span
                 ></label>
@@ -661,11 +662,18 @@ const prefrenceHtml = `${
 
 
 
-<div id="banner-code">
+<div id="banner-code" class="consentbit-cb-root">
 
 <style>
-div#banner-code {
- font-family: ${custom.font};
+/* Isolate banner from host (e.g. Webflow) inherited styles */
+${cbRoot} {
+  font-family: ${custom.font} !important;
+  box-sizing: border-box !important;
+}
+${cbRoot} *,
+${cbRoot} *::before,
+${cbRoot} *::after {
+  box-sizing: border-box !important;
 }
 @keyframes slideUpBottom   { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes slideDownBottom { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -703,55 +711,55 @@ div#banner-code {
     transform: translate(-50%, -50%) translateY(0) scale(1);
   }
 }
-.consentbit-banner-div[data-animation="slide-up"],
-.consentbit-ccpa-banner-div[data-animation="slide-up"],
-.consentbit-ccpa_banner_div[data-animation="slide-up"],
-.consentbit-gdpr-banner-div[data-animation="slide-up"],
-.consentbit-gdpr_banner_div[data-animation="slide-up"] {
+${cbRoot} .cb-banner-div[data-animation="slide-up"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-up"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-up"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-up"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-up"] {
   animation: slideUpBottom 0.6s ease-out forwards;
 }
 
-.consentbit-banner-div[data-animation="slide-down"],
-.consentbit-ccpa-banner-div[data-animation="slide-down"],
-.consentbit-ccpa_banner_div[data-animation="slide-down"],
-.consentbit-gdpr-banner-div[data-animation="slide-down"],
-.consentbit-gdpr_banner_div[data-animation="slide-down"] {
+${cbRoot} .cb-banner-div[data-animation="slide-down"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-down"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-down"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-down"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-down"] {
   animation: slideDownBottom 0.6s ease-out forwards;
 }
 
-.consentbit-banner-div[data-animation="slide-left"],
-.consentbit-ccpa-banner-div[data-animation="slide-left"],
-.consentbit-ccpa_banner_div[data-animation="slide-left"],
-.consentbit-gdpr-banner-div[data-animation="slide-left"],
-.consentbit-gdpr_banner_div[data-animation="slide-left"] {
+${cbRoot} .cb-banner-div[data-animation="slide-left"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-left"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-left"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-left"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-left"] {
   animation: slideLeftBottom 0.6s ease-out forwards;
 }
 
-.consentbit-banner-div[data-animation="slide-right"],
-.consentbit-ccpa-banner-div[data-animation="slide-right"],
-.consentbit-ccpa_banner_div[data-animation="slide-right"],
-.consentbit-gdpr-banner-div[data-animation="slide-right"],
-.consentbit-gdpr_banner_div[data-animation="slide-right"] {
+${cbRoot} .cb-banner-div[data-animation="slide-right"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-right"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-right"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-right"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-right"] {
   animation: slideRightBottom 0.6s ease-out forwards;
 }
 
 /* BANNER FADE (enter) — matches .cookie-banner.fade example */
-.consentbit-banner-div[data-animation="fade"],
-.consentbit-ccpa-banner-div[data-animation="fade"],
-.consentbit-ccpa_banner_div[data-animation="fade"],
-.consentbit-gdpr-banner-div[data-animation="fade"],
-.consentbit-gdpr_banner_div[data-animation="fade"] {
+${cbRoot} .cb-banner-div[data-animation="fade"],
+${cbRoot} .cb-ccpa-banner[data-animation="fade"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="fade"],
+${cbRoot} .cb-gdpr-banner[data-animation="fade"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="fade"] {
   opacity: 0;                       /* start transparent */
   will-change: opacity, transform;  /* hint for smoother anim */
   animation: fadeIn 0.5s ease-out forwards;
 }
 
 /* OPTIONAL: BANNER FADE-IN-OUT (toast-like) */
-.consentbit-banner-div[data-animation="fade-in-out"],
-.consentbit-ccpa-banner-div[data-animation="fade-in-out"],
-.consentbit-ccpa_banner_div[data-animation="fade-in-out"],
-.consentbit-gdpr-banner-div[data-animation="fade-in-out"],
-.consentbit-gdpr_banner_div[data-animation="fade-in-out"] {
+${cbRoot} .cb-banner-div[data-animation="fade-in-out"],
+${cbRoot} .cb-ccpa-banner[data-animation="fade-in-out"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="fade-in-out"],
+${cbRoot} .cb-gdpr-banner[data-animation="fade-in-out"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="fade-in-out"] {
   opacity: 0;
   will-change: opacity, transform;
   animation: fadeInOut 1.2s ease-in-out forwards;
@@ -760,39 +768,39 @@ div#banner-code {
 /* ===========================
    Preference assignments
    =========================== */
-.consentbit-preference-div[data-animation="slide-up"],
-.consentbit-preference_div[data-animation="slide-up"],
-.consentbit-ccpa-preference-div[data-animation="slide-up"],
-.consentbit-ccpa_preference[data-animation="slide-up"] {
+${cbRoot} .cb-preference-div[data-animation="slide-up"],
+${cbRoot} .consentbit-preference_div[data-animation="slide-up"],
+${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-up"],
+${cbRoot} .cb-ccpa_preference[data-animation="slide-up"] {
   animation: slideUpCenter 0.6s ease-out forwards;
 }
 
-.consentbit-preference-div[data-animation="slide-down"],
-.consentbit-preference_div[data-animation="slide-down"],
-.consentbit-ccpa-preference-div[data-animation="slide-down"],
-.consentbit-ccpa_preference[data-animation="slide-down"] {
+${cbRoot} .cb-preference-div[data-animation="slide-down"],
+${cbRoot} .consentbit-preference_div[data-animation="slide-down"],
+${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-down"],
+${cbRoot} .cb-ccpa_preference[data-animation="slide-down"] {
   animation: slideDownCenter 0.6s ease-out forwards;
 }
 
-.consentbit-preference-div[data-animation="slide-left"],
-.consentbit-preference_div[data-animation="slide-left"],
-.consentbit-ccpa-preference-div[data-animation="slide-left"],
-.consentbit-ccpa_preference[data-animation="slide-left"] {
+${cbRoot} .cb-preference-div[data-animation="slide-left"],
+${cbRoot} .consentbit-preference_div[data-animation="slide-left"],
+${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-left"],
+${cbRoot} .cb-ccpa_preference[data-animation="slide-left"] {
   animation: slideLeftCenter 0.6s ease-out forwards;
 }
 
-.consentbit-preference-div[data-animation="slide-right"],
-.consentbit-preference_div[data-animation="slide-right"],
-.consentbit-ccpa-preference-div[data-animation="slide-right"],
-.consentbit-ccpa_preference[data-animation="slide-right"] {
+${cbRoot} .cb-preference-div[data-animation="slide-right"],
+${cbRoot} .consentbit-preference_div[data-animation="slide-right"],
+${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-right"],
+${cbRoot} .cb-ccpa_preference[data-animation="slide-right"] {
   animation: slideRightCenter 0.6s ease-out forwards;
 }
 
 /* Smooth fade-in for centered preference modal */
-.consentbit-preference-div[data-animation="fade"],
-.consentbit-preference_div[data-animation="fade"],
-.consentbit-ccpa-preference-div[data-animation="fade"],
-.consentbit-ccpa_preference[data-animation="fade"] {
+${cbRoot} .cb-preference-div[data-animation="fade"],
+${cbRoot} .consentbit-preference_div[data-animation="fade"],
+${cbRoot} .consentbit-ccpa-preference-div[data-animation="fade"],
+${cbRoot} .cb-ccpa_preference[data-animation="fade"] {
   opacity: 0;
   will-change: opacity, transform;
   animation: fadeCenterIn 0.5s ease-out forwards;
@@ -801,30 +809,27 @@ div#banner-code {
 
 
 
-  .consentbit-gdpr_banner_div {
-    z-index: 99999;
+  ${cbRoot} .cb-gdpr_banner_div {
+    z-index: 99999 !important;
     transform-style: preserve-3d;
-    background-color: ${custom.colors.bannerBg};
-    border-radius: ${custom.radius.container}px;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: ${widthHtml};
-    padding: 20px 20px 12px;
-    max-height: 40vh;
-    overflow-y: auto;
-    font-family: ${custom.font};
-    display: none;
-    position: fixed;
-    bottom: ${custom.bannerStyle === "style5" ? "0" : "6%"};
-    left: auto;
-    right: ${custom.bannerStyle === "style5" ? "0" : "3%"};
-    transform: translate3d(0, 0, 0);
-    box-shadow: 2px 2px 20px #00000082;
+    background-color: ${custom.colors.bannerBg} !important;
+    border-radius: ${custom.radius.container}px !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: ${widthHtml} !important;
+    padding: 20px 20px 20px !important;
+    max-height: 40vh !important;
+    overflow-y: auto !important;
+    font-family: ${custom.font} !important;
+    display: none !important;
+    position: fixed !important;
+    bottom: ${custom.bannerStyle === "style5" ? "0" : "6%"} !important;
+    box-shadow: 2px 2px 20px #00000082 !important;
    ${positionStyles}
   }
 
-  .consentbit-gdpr_banner_text {
+  ${cbRoot} .consentbit-gdpr_banner_text {
     color: #4c4a66;
     font-size: 16px;
     line-height: 1.5;
@@ -835,14 +840,14 @@ div#banner-code {
     display: block;
   }
 
-  .consentbit-banner_button_container {
+  ${cbRoot} .consentbit-banner_button_container {
     justify-content: right;
     width: 100%;
     margin-top: 10px;
     display: flex;
   }
 
-  .consentbit-banner_button_preference, .consentbit-banner_button_decline {
+  ${cbRoot} .consentbit-banner_button_preference, ${cbRoot} .consentbit-banner_button_decline {
     color: #000;
     text-align: center;
     cursor: pointer;
@@ -856,7 +861,7 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-banner_accept {
+  ${cbRoot} .consentbit-banner_accept {
     color: #fff;
     text-align: center;
     cursor: pointer;
@@ -870,7 +875,7 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-banner_headings {
+  ${cbRoot} .consentbit-banner_headings {
     color: #000;
     font-size: 20px;
     font-weight: Regular;
@@ -880,13 +885,13 @@ div#banner-code {
     margin-bottom: 10px;
   }
 
-  .consentbit-innerdiv {
+  ${cbRoot} .consentbit-innerdiv {
     max-width: 877px;
     margin-left: auto;
     margin-right: auto;
   }
 
-  .consentbit-banner_second-bg {
+  ${cbRoot} .consentbit-banner_second-bg {
     z-index: -3;
     opacity: .3;
     background-color: ${custom.colors.bannerBg2};
@@ -899,7 +904,7 @@ div#banner-code {
     right: 0;
   }
 
-  .close-consent {
+  ${cbRoot} .cb-close-consent {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -915,38 +920,47 @@ div#banner-code {
     right: 2%;
   }
 
-  .consentbit-preference_div {
-    z-index: 99999;
-    background-color: ${custom.colors.bannerBg};
-    border-radius: ${custom.radius.container}px;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    max-width: 435px;
-   
-    padding: 20px;
-    font-family: ${custom.font};
-    position: relative;
-    top: 50%;
-    left: 50%;
-    overflow-y: scroll;
-    transform: translate(-50%, -50%);
-    box-shadow: 2px 2px 20px #00000082;
+  ${cbRoot} .cb-preference_div {
+    z-index: 99999 !important;
+    background-color: ${custom.colors.bannerBg} !important;
+    border-radius: ${custom.radius.container}px !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    max-width: 435px !important;
+    max-height: 530px !important;
+    padding: 20px !important;
+    font-family: ${custom.font} !important;
+    position: relative !important;
+    top: 50% !important;
+    left: 50% !important;
+    overflow-y: auto !important;
+    transform: translate(-50%, -50%) !important;
+    box-shadow: 2px 2px 20px #00000082 !important;
   }
 
-  .consentbit-prefrence_text {
+  ${cbRoot} .consentbit-prefrence_text {
     color: ${custom.colors.body};
     text-align: left;
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: ${custom.size}px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
   }
 
-  .consentbit-formblock {
+  /* Ensure "More info" link matches body text styling */
+  ${cbRoot} .cookie-desc a,
+  ${cbRoot} .consentbit-prefrence_text a,
+  ${cbRoot} .consentbit-ccpa_prefrence_text a {
+    color: inherit !important;
+    font: inherit !important;
+    text-decoration: underline !important;
+  }
+
+  ${cbRoot} .consentbit-formblock {
     background-color: #fff;
     border-radius: 8px;
     flex-direction: column;
@@ -955,14 +969,14 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-prefrence_block {
+  ${cbRoot} .consentbit-prefrence_block {
     flex-direction: column;
     width: 100%;
     margin-top: 10px;
     display: flex;
   }
 
-  .consentbit-prefrence_toggle {
+  ${cbRoot} .consentbit-prefrence_toggle {
     color: #10d68a00;
     justify-content: space-between;
     width: 100%;
@@ -970,23 +984,23 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-prefrence-container {
+  ${cbRoot} .consentbit-prefrence-container {
     justify-content: right;
     width: 100%;
     margin-top: 10px;
     display: flex;
   }
 
-  .consentbit-button-preference {
+  ${cbRoot} .consentbit-button-preference {
     color: #483999;
     font-size: 18px;
     font-weight: 500;
   }
-.consentbit-prefrence-container a {
+${cbRoot} .consentbit-prefrence-container a {
     text-decoration: none;
      cursor: pointer;
 }
-  .consentbit-checkbox-label {
+  ${cbRoot} .consentbit-checkbox-label {
     color: #000;
     text-align: center;
     cursor: pointer;
@@ -999,7 +1013,7 @@ div#banner-code {
     display: flex;
   }
 
-  .consebit-prefrence-accept {
+  ${cbRoot} .consebit-prefrence-accept {
     color: ${custom.colors.btnPrimaryText};
     text-align: center;
     cursor: pointer;
@@ -1014,7 +1028,7 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-prefrence-decline {
+  ${cbRoot} .consentbit-prefrence-decline {
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
     cursor: pointer;
@@ -1029,7 +1043,13 @@ div#banner-code {
     display: flex;
   }
 
-  .consebit-prefrence-heading {
+  ${cbRoot} .consentbit-prefrence-decline:hover,
+  ${cbRoot} .consentbit-prefrence-decline:focus {
+    color: ${custom.colors.btnSecondaryText};
+    background-color: ${custom.colors.btnSecondaryBg};
+  }
+
+  ${cbRoot} .consebit-prefrence-heading {
     color: #000;
     text-align: left;
     width: 100%;
@@ -1039,7 +1059,7 @@ div#banner-code {
     font-weight: 500;
   }
 
-  .consentbit-toggle {
+  ${cbRoot} .consentbit-toggle {
     cursor: pointer;
     -webkit-appearance: none;
     appearance: none;
@@ -1051,7 +1071,7 @@ div#banner-code {
     position: relative;
   }
 
-  .consentbit-change-preference {
+  .cb-change-preference {
     z-index: 999;
     cursor: pointer;
     background-image: url("https://script-5qu.pages.dev/67ebf5ee639d12979361f2bc_consent.webp");
@@ -1065,7 +1085,7 @@ div#banner-code {
     left: 2%;
   }
 
-  .consentbit-close {
+  ${cbRoot} .cb-preference-close {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1084,35 +1104,32 @@ div#banner-code {
     right: 10px;
   }
 
-  .consentbit-preference {
-    z-index: 99999;
-    display: none;
-    position: fixed;
-    inset: 0%;
+  ${cbRoot} .consentbit-preference {
+    z-index: 99999 !important;
+    display: none !important;
+    position: fixed !important;
+    inset: 0% !important;
+    overflow-y: auto !important;
   }
 
-  .consentbit-ccpa-banner-div {
-    z-index: 99999;
+  ${cbRoot} .cb-ccpa-banner {
+    z-index: 99999 !important;
     transform-style: preserve-3d;
-    background-color: ${custom.colors.bannerBg};
-    border-radius: ${custom.radius.container}px;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: ${widthHtml};
-    
-    padding: 20px;
-    font-family: ${custom.font};
-    display: none;
-    position: fixed;
-    bottom: ${custom.bannerStyle === "style5" ? "0" : "3%"};
-    left: auto;
-    right: 3%;
-    transform: translate3d(0, 0, 0);
-    box-shadow: 2px 2px 20px #00000082;
+    background-color: ${custom.colors.bannerBg} !important;
+    border-radius: ${custom.radius.container}px !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: ${widthHtml} !important;
+    padding: 20px !important;
+    font-family: ${custom.font} !important;
+    display: none !important;
+    position: fixed !important;
+    bottom: ${custom.bannerStyle === "style5" ? "0" : "3%"} !important;
+    box-shadow: 2px 2px 20px #00000082 !important;
   }
 
-  .consentbit-ccpa-banner-text {
+  ${cbRoot} .consentbit-ccpa-banner-text {
     color: #4c4a66;
     font-size: 16px;
     line-height: 1.5;
@@ -1123,14 +1140,14 @@ div#banner-code {
     display: block;
   }
 
-  .consentbit-ccpa-button-container {
+  ${cbRoot} .consentbit-ccpa-button-container {
     justify-content: left;
     width: 100%;
     margin-top: 10px;
     display: flex;
   }
 
-  .consentbit-ccpa-banner-heading {
+  ${cbRoot} .consentbit-ccpa-banner-heading {
     color: #000;
     font-size: 20px;
     font-weight: Regular;
@@ -1140,23 +1157,23 @@ div#banner-code {
     margin-bottom: 10px;
   }
 
-  .consentbit-ccpa-linkblock {
-    color: #483999;
-    cursor: pointer;
-
-    border-radius: 48px;
+  ${cbRoot} .consentbit-ccpa-linkblock {
+    color: #483999 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    border-radius: 48px !important;
     min-width: 80px;
     margin-left: 5px;
     margin-right: 5px;
   }
 
-  .consentbit-ccpa-innerdiv {
+  ${cbRoot} .consentbit-ccpa-innerdiv {
     max-width: 877px;
     margin-left: auto;
     margin-right: auto;
   }
 
-  .consentbit-banner-ccpasecond-bg {
+  ${cbRoot} .consentbit-banner-ccpasecond-bg {
     z-index: -3;
     opacity: .3;
     background-color: #798eff;
@@ -1169,7 +1186,7 @@ div#banner-code {
     right: 0;
   }
 
-  .close-consentbit {
+  ${cbRoot} .cb-close-consentbit {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1185,38 +1202,38 @@ div#banner-code {
     right: 2%;
   }
 
-  .consentbit-ccpa_preference {
-    z-index: 99999;
-   border-radius:${custom.radius.container}px;
-  	background-color:${custom.colors.bannerBg};
-  	color:${custom.colors.body};
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 20px;
-    font-family: Montserrat, sans-serif;
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    overflow-y: scroll;
-    transform: translate(-50%, -50%);
-    box-shadow: 2px 2px 20px #00000082;
+  ${cbRoot} .cb-ccpa_preference {
+    z-index: 99999 !important;
+    border-radius: ${custom.radius.container}px !important;
+    background-color: ${custom.colors.bannerBg} !important;
+    color: ${custom.colors.body} !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding: 20px !important;
+    font-family: ${custom.font} !important;
+    display: none !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    overflow-y: scroll !important;
+    transform: translate(-50%, -50%) !important;
+    box-shadow: 2px 2px 20px #00000082 !important;
   }
 
-  .consentbit-ccpa_prefrence_text {
+  ${cbRoot} .consentbit-ccpa_prefrence_text {
     color:${custom.colors.body};
     text-align: left;
     width: 100%;
     max-width: 400px;
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: ${custom.size}px;
     font-weight: 400;
     line-height: 1.5;
     display: block;
   }
 
-  .consentbit-ccpa-formblock {
+  ${cbRoot} .consentbit-ccpa-formblock {
     background-color: #fff;
     border-radius: 8px;
     flex-direction: column;
@@ -1225,14 +1242,24 @@ div#banner-code {
     display: flex;
   }
 
-  .consentbit-ccpa-prefrence-block {
+  ${cbRoot} .consentbit-ccpa-prefrence-block {
     flex-direction: column;
     width: 100%;
     margin-top: 2px;
     display: flex;
   }
 
-  .consentbit-ccpa-prefrence-toggle {
+  /* Align CCPA opt‑out checkbox and label on a single line */
+  ${cbRoot} #do-not-share-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: ${custom.font};
+    font-size: ${custom.size}px;
+    color: ${custom.colors.body};
+  }
+
+  ${cbRoot} .consentbit-ccpa-prefrence-toggle {
     color: #483999;
     flex-flow: row;
     justify-content: flex-start;
@@ -1243,16 +1270,16 @@ div#banner-code {
     display: flex;
   }
 
-  .consebit-ccpa-prefrence-container {
+  ${cbRoot} .consebit-ccpa-prefrence-container {
     justify-content: right;
     width: 100%;
     margin-top: 10px;
     display: flex;
   }
-.cookie-btn-row button {
+  ${cbRoot} .cb-cookie-btn-row button {
     cursor: pointer;
 }
-  .consentbit-ccpa-button-preference {
+  ${cbRoot} .consentbit-ccpa-button-preference {
     color: #000;
     text-align: center;
     cursor: pointer;
@@ -1266,7 +1293,7 @@ div#banner-code {
   	padding: 9px 15px;
   }
 
-  .consebit-ccpa-prefrence-accept {
+  ${cbRoot} .consebit-ccpa-prefrence-accept {
     color: ${custom.colors.btnPrimaryText};
     text-align: center;
     cursor: pointer;
@@ -1280,7 +1307,13 @@ div#banner-code {
     display: flex;
   }
 
-  .consebit-ccpa-prefrence-decline {
+  ${cbRoot} .consebit-ccpa-prefrence-accept:hover,
+  ${cbRoot} .consebit-ccpa-prefrence-accept:focus {
+    color: ${custom.colors.btnPrimaryText};
+    background-color: ${custom.colors.btnPrimaryBg};
+  }
+
+  ${cbRoot} .consebit-ccpa-prefrence-decline {
     padding: 9px 15px;
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
@@ -1294,7 +1327,13 @@ div#banner-code {
     display: flex;
   }
 
-  .consebit-ccpa-prefrence-heading {
+  ${cbRoot} .consebit-ccpa-prefrence-decline:hover,
+  ${cbRoot} .consebit-ccpa-prefrence-decline:focus {
+    color: ${custom.colors.btnSecondaryText};
+    background-color: ${custom.colors.btnSecondaryBg};
+  }
+
+  ${cbRoot} .consebit-ccpa-prefrence-heading {
     color: #000;
     text-align: left;
     width: 100%;
@@ -1303,13 +1342,13 @@ div#banner-code {
     font-size: 20px;
     font-weight: 500;
   }
-[customtoggle="true"]{
+${cbRoot} [customtoggle="true"]{
     position: relative;
     display: inline-block;
     width: 49px;
     height: 24px;
 }
-  .consent-close {
+  ${cbRoot} .cb-consent-close {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1325,11 +1364,11 @@ div#banner-code {
     right: 0;
   }
 
-  .div-block {
+  ${cbRoot} .div-block {
     display: none;
   }
-  .consentbrandwrapper {
-    align-self: flex-end;
+  ${cbRoot} .cb-logo-wrapper {
+h    align-self: flex-end;
     width: 40%;
     height: auto;
     margin-top: 12px;
@@ -1337,21 +1376,21 @@ div#banner-code {
     display: block;
   }
 
-  .consentbrandimage {
+  ${cbRoot} .cb-logo {
     object-fit: contain;
     width: 100%;
     height: auto;
     display: block;
   }
 
-  img {
+  ${cbRoot} img {
     vertical-align: middle;
     max-width: 100%;
     display: inline-block;
   }
 
 
-  .consentbit-prefrence-decline {
+  ${cbRoot} .consentbit-prefrence-decline {
     color: ${custom.colors.btnSecondaryText};
     text-align: center;
     cursor: pointer;
@@ -1364,11 +1403,11 @@ div#banner-code {
     display: flex;
     padding: 9px 15px;
   }
-  .consebit-ccpa-prefrence-container a {
+  ${cbRoot} .consebit-ccpa-prefrence-container a {
     text-decoration: none;
     cursor: pointer;
 }
-  .consebit-prefrence-accept {
+  ${cbRoot} .consebit-prefrence-accept {
   	color: ${custom.colors.btnPrimaryText};
   	text-align: center;
   	cursor: pointer;
@@ -1382,22 +1421,27 @@ div#banner-code {
   	padding: 9px 15px;
 
   }
+  ${cbRoot} .consebit-prefrence-accept:hover,
+  ${cbRoot} .consebit-prefrence-accept:focus {
+    color: ${custom.colors.btnPrimaryText};
+    background-color: ${custom.colors.btnPrimaryBg};
+  }
   @media screen and (max-width: 991px) {
-    .consentbit-preference_div, .consentbit-ccpa_preference {
+    ${cbRoot} .cb-preference_div, ${cbRoot} .cb-ccpa_preference {
   	width: 100%;
   	max-width: 23.5rem;
     }
   }
 
   @media screen and (max-width: 767px) {
-    .consentbit-gdpr_banner_div {
+    ${cbRoot} .cb-gdpr_banner_div {
   	width: 100%;
   	max-width: 100%;
   	inset: auto 0 0;
   	transform: none;
     }
 
-    .consentbit-banner_button_container {
+    ${cbRoot} .consentbit-banner_button_container {
   	text-align: center;
   	flex-direction: column;
   	justify-content: center;
@@ -1406,7 +1450,7 @@ div#banner-code {
   	display: flex;
     }
 
-    .consentbit-ccpa-banner-div {
+    ${cbRoot} .cb-ccpa-banner {
   	width: 100%;
   	max-width: 100%;
   	inset: auto 0 0;
@@ -1414,20 +1458,20 @@ div#banner-code {
     }
   }
 
-  [customtoggle="true"] {
+  ${cbRoot} [customtoggle="true"] {
     position: relative;
     display: inline-block;
     width: 49px;
     height: 24px
 }
 
-[customtoggle="true"] .w-checkbox-input {
+${cbRoot} [customtoggle="true"] .consentbit-toggle-input {
     opacity: 0;
     width: 0;
     height: 0
 }
 
-[customtoggle="true"] .w-form-label {
+${cbRoot} [customtoggle="true"] .consentbit-toggle-label {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -1439,7 +1483,7 @@ div#banner-code {
     transition: .4s
 }
 
-[customtoggle="true"] .w-form-label:before {
+${cbRoot} [customtoggle="true"] .consentbit-toggle-label:before {
     position: absolute;
     content: "";
     height: 20px;
@@ -1451,11 +1495,11 @@ div#banner-code {
     transition: .4s
 }
 
-[customtoggle="true"] .w-checkbox-input:checked + .w-form-label {
+${cbRoot} [customtoggle="true"] .consentbit-toggle-input:checked + .consentbit-toggle-label {
     background-color: #4A00E0
 }
 
-[customtoggle="true"] .w-checkbox-input:checked + .w-form-label:before {
+${cbRoot} [customtoggle="true"] .consentbit-toggle-input:checked + .consentbit-toggle-label:before {
     transform: translateX(26px)
 }
 
@@ -1464,21 +1508,20 @@ div#banner-code {
 <span style="font-family:${custom.font}; position:absolute; opacity:0; left:-9999px;">font-preload</span>
 <div
 id="consent-banner"
-  class="cookie-preview  consentbit-gdpr-banner-div hidden consentbit-gdpr_banner_div"
+  class="cb-cookie-preview cb-gdpr-banner hidden cb-gdpr_banner_div"
   ${settings.disableScroll ? "data-cookie-banner= true" : ""}
  data-animation="${settings.animation.toLowerCase()}"
   style=" position:fixed;  z-index:9999999;${positionStyles}"
 >
  ${
    settings.showCloseButton
-    ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+    ? `<p consentbit="close" class="cb-close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
      : ""
  }
   <div
-    class="cookie-preview-popup consentbit-innerdiv"
+    class="cb-cookie-preview-popup consentbit-innerdiv"
     style="
-		text-align:${custom.textAlignment};
-
+		text-align:left;
 		width: 100%;
 	
 		font-weight:${fontWeight};
@@ -1497,11 +1540,11 @@ id="consent-banner"
     }
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;text-align:${custom.bannerStyle === "style4" ? "center" : "left"};"
     >
       ${translations[settings.language].heading}
     </div>
-    <div class="cookie-desc">
+    <div class="cookie-desc" style="text-align:${custom.textAlignment};">
       ${translations[settings.language].description}  ${
     settings.privacyUrl.length > 0
       ? `<a href="${settings.privacyUrl}" target="_blank">${
@@ -1511,12 +1554,12 @@ id="consent-banner"
   }
     </div>
     <div
-      class="cookie-btn-row"
+      class="cb-cookie-btn-row"
       style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};"
     >
       <button
        id="preferences-btn"
-        class="cookie-pref-btn"
+        class="cb-cookie-pref-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnSecondaryText
   };background-color:${custom.colors.btnSecondaryBg};border-radius:${
@@ -1527,7 +1570,7 @@ id="consent-banner"
       </button>
       <button
       id="decline-btn"
-        class="cookie-reject-btn"
+        class="cb-cookie-reject-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnSecondaryText
   };background-color:${custom.colors.btnSecondaryBg};border-radius:${
@@ -1538,7 +1581,7 @@ id="consent-banner"
       </button>
       <button
        id="accept-btn"
-        class="cookie-accept-btn"
+        class="cb-cookie-accept-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnPrimaryText
   };background-color:${custom.colors.btnPrimaryBg};border-radius:${
@@ -1555,7 +1598,7 @@ ${
   compliance.length === 1 && compliance.includes("gdpr")
     ? ""
     : `<div
-  class="cookie-preview-CCPA-banner hidden consentbit-ccpa-banner-div"
+  class="cb-cookie-preview-CCPA-banner hidden cb-ccpa-banner"
   data-animation="${settings.animation}"
     ${settings.disableScroll ? "data-cookie-banner= true" : ""}
   id="initial-consent-banner"
@@ -1563,13 +1606,13 @@ ${
 >
    ${
      settings.showCloseButton
-      ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+      ? `<p consentbit="close" class="cb-close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
        : ""
    }
   <div
-    class="cookie-preview-popup consentbit-innerdiv"
+    class="cb-cookie-preview-popup consentbit-innerdiv"
     style="
-		text-align:${custom.textAlignment};
+		text-align:left;
 		max-width:${widthHtml};
 		width: 100%;
 		
@@ -1591,11 +1634,11 @@ ${
     
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;text-align:${custom.bannerStyle === "style4" ? "center" : "left"};"
     >
     ${translations[settings.language].ccpa.heading}
     </div>
-    <div class="cookie-desc">
+    <div class="cookie-desc" style="text-align:${custom.textAlignment};">
      ${translations[settings.language].ccpa.description} ${
         settings.privacyUrl.length > 0
           ? `<a href="${settings.privacyUrl}" target="_blank">${
@@ -1605,10 +1648,10 @@ ${
       }
     </div>
     <div
-      class="cookie-btn-row"
+      class="cb-cookie-btn-row"
       style="margin-top:16px; display:flex;gap:8px;justify-content:flex-start;font-size:${custom.size + 2}px;"
     >
-      <a id="do-not-share-link" class="consentbit-ccpa-linkblock w-inline-block"
+      <a id="do-not-share-link" class="consentbit-ccpa-linkblock"
         >  ${translations[settings.language].ccpa.doNotShare}</a
       >
     </div>
@@ -1622,7 +1665,7 @@ ${
 
   
     data-animation="${settings.animation}"
-    class="consentbit-preference_div hidden"
+    class="cb-preference_div hidden"
   >
     <h4 class="consebit-prefrence-heading">${
       finalTranslations[settings.language].heading
@@ -1637,8 +1680,8 @@ ${
   }
     </p>
     <div id="consentbit-preference_div" class="consentbit-prefrence_block">
-      <div class="consentbit-prefrence_block">
-        <div class="w-form">
+   <div class="consentbit-prefrence_block">
+        <div>
           <form
             id="email-form"
             name="email-form"
@@ -1657,16 +1700,16 @@ ${
                 <label
                   id="necessary-checkbox"
                   ${settings.customtoggle ? `customtoggle="true"` : ""}
-                  class="w-checkbox consentbit-toggle"
+                  class="consentbit-toggle"
                   ><input
                     type="checkbox"
                     id="checkbox"
                     name="checkbox"
                     data-name="Checkbox"
                     data-consent-id="necessary-checkbox"
-                    class="w-checkbox-input"
+                    class="consentbit-toggle-input"
                     disabled="" /><span
-                    class="w-form-label"
+                    class="consentbit-toggle-label"
                     for="checkbox"
                   ></span
                 ></label>
@@ -1698,25 +1741,25 @@ ${
       <a
         id="save-preferences-btn"
         href="#"
-        class="consebit-prefrence-accept w-button"
+        class="consebit-prefrence-accept"
         >   ${finalTranslations[settings.language].acceptAll}</a
-      ><a id="cancel-btn" href="#" class="consentbit-prefrence-decline w-button"
+      ><a id="cancel-btn" href="#" class="consentbit-prefrence-decline"
         >               ${finalTranslations[settings.language].reject}
 </a
       >
     </div>
-    <div class="consentbrandwrapper">
-      <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
+    <div class="cb-logo-wrapper">
+      <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink" rel="noopener noreferrer">
         <img
           src="https://api.consentbit.com/BrandImage.svg"
-          alt="ConsentBit brand logo"
-          class="consentbrandimage"
+          alt="ConsentBit logo"
+          class="cb-logo"
         />
       </a>
     </div>
     ${
       settings.showCloseButton
-      ? `<p consentbit="close" class="consentbit-close" style="cursor: pointer; top:3%"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+      ? `<p consentbit="close" class="cb-preference-close" style="cursor: pointer; top:3%"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
         : ""
     }
   </div>
@@ -1729,7 +1772,7 @@ ${
     id="main-consent-banner"
     data-animation="${settings.animation}"
      ${settings.disableScroll ? "data-cookie-banner= true" : ""}
-    class="consentbit-ccpa_preference hidden"
+    class="cb-ccpa_preference hidden"
     style="visibility: visible !important; opacity: 1 !important"
   >
     <h4 class="consebit-ccpa-prefrence-heading">${
@@ -1745,107 +1788,113 @@ ${
         }
     </p>
     <div class="consentbit-ccpa-prefrence-block">
-      <div class="consentbit-ccpa-prefrence-block">
-        <div class="w-form">
-          <form
-            id="email-form-2"
-            name="email-form-2"
-            data-name="Email Form 2"
-            method="get"
-            data-wf-page-id="68adcbabbd0941faf8b0f6e3"
-            data-wf-element-id="7030da06-8426-da3e-f39d-32e7c521fafd"
-            data-turnstile-sitekey="0x4AAAAAAAQTptj2So4dx43e"
-            aria-label="Email Form 2"
-          >
-          <div class="consentbit-ccpa-prefrence-block">
-          <div class="consentbit-ccpa-prefrence-block">
-            <div class="w-form">
-              <form
-                id="email-form-2"
-                name="email-form-2"
-                data-name="Email Form 2"
-                method="get"
-                data-wf-page-id="68adcbabbd0941faf8b0f6e3"
-                data-wf-element-id="7030da06-8426-da3e-f39d-32e7c521fafd"
-                data-turnstile-sitekey="0x4AAAAAAAQTptj2So4dx43e"
-                aria-label="Email Form 2"
-              >
-                <div class="consentbit-ccpa-prefrence-toggle">
-                 
-                  <label
-                    id="do-not-share-checkbox"
-                    class="w-checkbox consentbit-toggle"
-                    ><input
-                      type="checkbox"
-                      id="checkbox-4"
-                      name="checkbox-4"
-                      data-name="Checkbox 4"
-                      data-consent-id="do-not-share-checkbox"
-                      class="w-checkbox-input" /><span
-                      class="w-form-label"
-                      for="checkbox-4"
-                    ></span
-                  ></label>
-                  <p class="consentbit-ccpa_prefrence_text">
-                  ${ccpaTranslations[settings.language]?.doNotShare}
-                </p>
-                </div>
-                <div>
-                  <div>
-                    <input
-                      type="hidden"
-                      name="cf-turnstile-response"
-                      id="cf-chl-widget-0o4xi_response"
-                      value="0.V_8gszRqeGk1-ht5eYtUjq6rKSmITfnuGoM51eBszGdNoT5APYq9LNeKRL4ZzD5ju-1PlvX5Vb9M7K9hyERJj9ABRsuu_jxoyAaIuc8Uc55EobcEm36rZnLcDzurAxx11tC_D4FWa1_J_fN5kgaQ0DTHdbVrvesVyfIwk7GsxDFMgngresvZfQmseTfNgUq22FgbKduu_nWORmNhUJ4rgrzvhqGzxu9jm3BP8qP0PeeilnVuThkiIB9BB9BBlNAwFX-zhx8_rIbThw7kHZCbWltu21JR-_5gQ5uXhdP2EXsZBssWbbK_QgFegYdF-kXLzzt-WnK99pJa7iQXavbvlZnLF_FxQocq_pjq1ZE9bc6tnJO4bY2TD7LTow4QCwaemzjKJserOGxUty7IpX6QcUl1tDzdDhQYRw2FRe8GTV9V5_wpcsQcSceLZuyPKqpwm2oQ3VZiqhfYwNMTgV3dIljTIMRFckC29AB3AL-ejkwrF2Ys6TmAQvxbSY6uVHYyYxh4Cbbc2_Y2kRetvm-Y3xRvi0aPfLQtkujaDbZspavh6QbPqxydE3T9kShy91NWCStXm-HfL6ju8INcsiKpagTaKv0ypq9mga2Z8xhcCAjIK-pZfpu2osVeWsMNeDRrzVhStQ3TLGSldtVoC7MMWpalTODNinCg45W7B2rDfQxkz-nI3jgK-rFXT8B_YbsRxVW57nnWf_pQd0i_fsmXmsengubaru_A8EM3nIVieK6kjtzXDCyJSF5-uZsSXTvTtsxpm6s_BiatTCd4q7GPe-Mk-kgLgeSN72uUc0MLs_WlMYeKi-g7SmD2Y1BPt0tm8SSRt10O9Iv7zpc42sCOcH3ahOyzDND4nEwZEuE3xfU1PS7u6N7UVgq2jB2NVk_d1UtReGExox_Oc-8alVkP9doNCvfcyhexmiaw-0pnEo9zqtoi8WNK5-RL0dcbWSw19zrykQTQqSg9CO8oyiTU0sF8aOH-Aj7Rbl1x8FqcvDU.deBXwvou6-uz-_VPirGS5w.10ecc4776b37fa6cb843c4811c9c22a71ed877121d5fd03980db6bc754783c97"
-                    />
-                  </div>
-                </div>
-              </form>
-             
-             
-            </div>
-          </div>
-    </div>
+      <label id="do-not-share-checkbox">
+        <input
+          type="checkbox"
+          id="checkbox-4"
+          name="checkbox-4"
+          data-name="Checkbox 4"
+          data-consent-id="do-not-share-checkbox"
+        />
+        ${ccpaTranslations[settings.language]?.doNotShare}
+      </label>
     <div class="consebit-ccpa-prefrence-container">
-      <a id="save-btn" href="#" class="consebit-ccpa-prefrence-accept w-button"
+      <a id="save-btn" href="#" class="consebit-ccpa-prefrence-accept"
         > ${ccpaTranslations[settings.language]?.savePreference}</a
       ><a
         id="close-consent-banner"
         href="#"
-        class="consebit-ccpa-prefrence-decline w-button"
+        class="consebit-ccpa-prefrence-decline"
         > ${ccpaTranslations[settings.language]?.cancel}</a
       >
     </div>
-    <div class="consentbrandwrapper">
-    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink w-inline-block" rel="noopener noreferrer">
+    <div class="cb-logo-wrapper">
+    <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink" rel="noopener noreferrer">
       <img
         src="https://api.consentbit.com/BrandImage.svg"
-        alt="ConsentBit brand logo"
-        class="consentbrandimage"
+        alt="ConsentBit logo"
+        class="cb-logo"
       />
     </a>
   </div>
-    <p consentbit="close" class="consent-close">X</p>
+    ${
+      settings.showCloseButton
+      ? `<p consentbit="close" class="cb-consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+        : ""
+    }
   </div>`
   }
 <div id="consensite-id" style="display:none">${siteId}</div>
 <div id="consensite-banner-type" style="display:none">${
     compliance.length === 1 && compliance.includes("gdpr") ? "gdpr" : "ccpa"
   }</div>
-${!(settings?.hideLogo ?? false) ?`<div id="toggle-consent-btn"   scroll-control="true" class="consentbit-change-preference " style="
-    display: none;
-"></div>`: ` `}
 
 <div>
 `;
 function injectBanner() {
   document.body.insertAdjacentHTML('beforeend', cookiePreviewHTML);
+
+  // Create the bottom‑left toggle button outside any banner container
+  if (!(settings?.hideLogo ?? false)) {
+    if (!document.getElementById('toggle-consent-btn')) {
+      const toggle = document.createElement('div');
+      toggle.id = 'toggle-consent-btn';
+      toggle.className = 'cb-change-preference';
+      toggle.setAttribute('scroll-control', 'true');
+      document.body.appendChild(toggle);
+    }
+  }
+
+  // Implement disableScroll by looking for banners marked with data-cookie-banner
+  try {
+    const banners = document.querySelectorAll('[data-cookie-banner="true"]');
+
+    if (banners.length) {
+      const lockScroll = () => {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      };
+      const unlockScroll = () => {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      };
+
+      // Lock scroll if any cookie-banner element is visible
+      const anyVisible = Array.from(banners).some((el) => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      });
+      if (anyVisible) {
+        lockScroll();
+      }
+
+      // Unlock when user accepts / rejects / closes / saves / cancels
+      const selectors = [
+        '#accept-btn',
+        '#decline-btn',
+        '#preferences-btn',
+        '#save-preferences-btn',
+        '#cancel-btn',
+        '#close-consent-banner',
+        '[consentbit="close"]',
+      ];
+
+      selectors.forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => {
+          el.addEventListener('click', unlockScroll);
+        });
+      });
+    }
+  } catch (e) {
+    // Fail‑safe: never leave the page locked if something fails
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  }
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', injectBanner);
 } else {
-  
   injectBanner();
 }
 
