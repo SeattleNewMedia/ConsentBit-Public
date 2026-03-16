@@ -825,9 +825,6 @@ ${cbRoot} .cb-ccpa_preference[data-animation="fade"] {
     display: none !important;
     position: fixed !important;
     bottom: ${custom.bannerStyle === "style5" ? "0" : "6%"} !important;
-    left: auto !important;
-    right: ${custom.bannerStyle === "style5" ? "0" : "3%"} !important;
-    transform: translate3d(0, 0, 0) !important;
     box-shadow: 2px 2px 20px #00000082 !important;
    ${positionStyles}
   }
@@ -1120,9 +1117,6 @@ ${cbRoot} .consentbit-prefrence-container a {
     display: none !important;
     position: fixed !important;
     bottom: ${custom.bannerStyle === "style5" ? "0" : "3%"} !important;
-    left: auto !important;
-    right: 3% !important;
-    transform: translate3d(0, 0, 0) !important;
     box-shadow: 2px 2px 20px #00000082 !important;
   }
 
