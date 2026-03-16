@@ -1506,7 +1506,7 @@ id="consent-banner"
 >
  ${
    settings.showCloseButton
-    ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+    ? `<p consentbit="close" class="cb-close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
      : ""
  }
   <div
@@ -1597,7 +1597,7 @@ ${
 >
    ${
      settings.showCloseButton
-      ? `<p consentbit="close" class="close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+      ? `<p consentbit="close" class="cb-close-consent"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
        : ""
    }
   <div
@@ -1750,7 +1750,7 @@ ${
     </div>
     ${
       settings.showCloseButton
-      ? `<p consentbit="close" class="consentbit-close" style="cursor: pointer; top:3%"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+      ? `<p consentbit="close" class="cb-preference-close" style="cursor: pointer; top:3%"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
         : ""
     }
   </div>
@@ -1810,7 +1810,7 @@ ${
   </div>
     ${
       settings.showCloseButton
-      ? `<p consentbit="close" class="consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
+      ? `<p consentbit="close" class="cb-consent-close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></p>`
         : ""
     }
   </div>`
