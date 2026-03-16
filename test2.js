@@ -815,10 +815,10 @@ ${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
     background-color: ${custom.colors.bannerBg} !important;
     border-radius: ${custom.radius.container}px !important;
     flex-direction: column !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     align-items: center !important;
     width: ${widthHtml} !important;
-    padding: 20px 20px 8px !important;
+    padding: 20px 20px 6px !important;
     max-height: 40vh !important;
     overflow-y: auto !important;
     font-family: ${custom.font} !important;
