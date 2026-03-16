@@ -711,55 +711,55 @@ ${cbRoot} *::after {
     transform: translate(-50%, -50%) translateY(0) scale(1);
   }
 }
-${cbRoot} .consentbit-banner-div[data-animation="slide-up"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="slide-up"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="slide-up"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="slide-up"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="slide-up"] {
+${cbRoot} .cb-banner-div[data-animation="slide-up"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-up"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-up"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-up"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-up"] {
   animation: slideUpBottom 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-banner-div[data-animation="slide-down"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="slide-down"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="slide-down"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="slide-down"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="slide-down"] {
+${cbRoot} .cb-banner-div[data-animation="slide-down"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-down"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-down"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-down"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-down"] {
   animation: slideDownBottom 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-banner-div[data-animation="slide-left"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="slide-left"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="slide-left"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="slide-left"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="slide-left"] {
+${cbRoot} .cb-banner-div[data-animation="slide-left"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-left"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-left"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-left"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-left"] {
   animation: slideLeftBottom 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-banner-div[data-animation="slide-right"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="slide-right"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="slide-right"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="slide-right"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="slide-right"] {
+${cbRoot} .cb-banner-div[data-animation="slide-right"],
+${cbRoot} .cb-ccpa-banner[data-animation="slide-right"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="slide-right"],
+${cbRoot} .cb-gdpr-banner[data-animation="slide-right"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="slide-right"] {
   animation: slideRightBottom 0.6s ease-out forwards;
 }
 
 /* BANNER FADE (enter) — matches .cookie-banner.fade example */
-${cbRoot} .consentbit-banner-div[data-animation="fade"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="fade"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="fade"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="fade"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="fade"] {
+${cbRoot} .cb-banner-div[data-animation="fade"],
+${cbRoot} .cb-ccpa-banner[data-animation="fade"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="fade"],
+${cbRoot} .cb-gdpr-banner[data-animation="fade"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="fade"] {
   opacity: 0;                       /* start transparent */
   will-change: opacity, transform;  /* hint for smoother anim */
   animation: fadeIn 0.5s ease-out forwards;
 }
 
 /* OPTIONAL: BANNER FADE-IN-OUT (toast-like) */
-${cbRoot} .consentbit-banner-div[data-animation="fade-in-out"],
-${cbRoot} .consentbit-ccpa-banner-div[data-animation="fade-in-out"],
-${cbRoot} .consentbit-ccpa_banner_div[data-animation="fade-in-out"],
-${cbRoot} .consentbit-gdpr-banner-div[data-animation="fade-in-out"],
-${cbRoot} .consentbit-gdpr_banner_div[data-animation="fade-in-out"] {
+${cbRoot} .cb-banner-div[data-animation="fade-in-out"],
+${cbRoot} .cb-ccpa-banner[data-animation="fade-in-out"],
+${cbRoot} .cb-ccpa_banner_div[data-animation="fade-in-out"],
+${cbRoot} .cb-gdpr-banner[data-animation="fade-in-out"],
+${cbRoot} .cb-gdpr_banner_div[data-animation="fade-in-out"] {
   opacity: 0;
   will-change: opacity, transform;
   animation: fadeInOut 1.2s ease-in-out forwards;
@@ -768,39 +768,39 @@ ${cbRoot} .consentbit-gdpr_banner_div[data-animation="fade-in-out"] {
 /* ===========================
    Preference assignments
    =========================== */
-${cbRoot} .consentbit-preference-div[data-animation="slide-up"],
+${cbRoot} .cb-preference-div[data-animation="slide-up"],
 ${cbRoot} .consentbit-preference_div[data-animation="slide-up"],
 ${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-up"],
-${cbRoot} .consentbit-ccpa_preference[data-animation="slide-up"] {
+${cbRoot} .cb-ccpa_preference[data-animation="slide-up"] {
   animation: slideUpCenter 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-preference-div[data-animation="slide-down"],
+${cbRoot} .cb-preference-div[data-animation="slide-down"],
 ${cbRoot} .consentbit-preference_div[data-animation="slide-down"],
 ${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-down"],
-${cbRoot} .consentbit-ccpa_preference[data-animation="slide-down"] {
+${cbRoot} .cb-ccpa_preference[data-animation="slide-down"] {
   animation: slideDownCenter 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-preference-div[data-animation="slide-left"],
+${cbRoot} .cb-preference-div[data-animation="slide-left"],
 ${cbRoot} .consentbit-preference_div[data-animation="slide-left"],
 ${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-left"],
-${cbRoot} .consentbit-ccpa_preference[data-animation="slide-left"] {
+${cbRoot} .cb-ccpa_preference[data-animation="slide-left"] {
   animation: slideLeftCenter 0.6s ease-out forwards;
 }
 
-${cbRoot} .consentbit-preference-div[data-animation="slide-right"],
+${cbRoot} .cb-preference-div[data-animation="slide-right"],
 ${cbRoot} .consentbit-preference_div[data-animation="slide-right"],
 ${cbRoot} .consentbit-ccpa-preference-div[data-animation="slide-right"],
-${cbRoot} .consentbit-ccpa_preference[data-animation="slide-right"] {
+${cbRoot} .cb-ccpa_preference[data-animation="slide-right"] {
   animation: slideRightCenter 0.6s ease-out forwards;
 }
 
 /* Smooth fade-in for centered preference modal */
-${cbRoot} .consentbit-preference-div[data-animation="fade"],
+${cbRoot} .cb-preference-div[data-animation="fade"],
 ${cbRoot} .consentbit-preference_div[data-animation="fade"],
 ${cbRoot} .consentbit-ccpa-preference-div[data-animation="fade"],
-${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
+${cbRoot} .cb-ccpa_preference[data-animation="fade"] {
   opacity: 0;
   will-change: opacity, transform;
   animation: fadeCenterIn 0.5s ease-out forwards;
@@ -809,7 +809,7 @@ ${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
 
 
 
-  ${cbRoot} .consentbit-gdpr_banner_div {
+  ${cbRoot} .cb-gdpr_banner_div {
     z-index: 99999 !important;
     transform-style: preserve-3d;
     background-color: ${custom.colors.bannerBg} !important;
@@ -818,7 +818,7 @@ ${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
     justify-content: center !important;
     align-items: center !important;
     width: ${widthHtml} !important;
-    padding: 20px 20px 6px !important;
+    padding: 20px 20px 20px !important;
     max-height: 40vh !important;
     overflow-y: auto !important;
     font-family: ${custom.font} !important;
@@ -923,7 +923,7 @@ ${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
     right: 2%;
   }
 
-  ${cbRoot} .consentbit-preference_div {
+  ${cbRoot} .cb-preference_div {
     z-index: 99999 !important;
     background-color: ${custom.colors.bannerBg} !important;
     border-radius: ${custom.radius.container}px !important;
@@ -1065,7 +1065,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     position: relative;
   }
 
-  ${cbRoot} .consentbit-change-preference {
+  ${cbRoot} .cb-change-preference {
     z-index: 999;
     cursor: pointer;
     background-image: url("https://script-5qu.pages.dev/67ebf5ee639d12979361f2bc_consent.webp");
@@ -1106,7 +1106,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     overflow-y: auto !important;
   }
 
-  ${cbRoot} .consentbit-ccpa-banner-div {
+  ${cbRoot} .cb-ccpa-banner {
     z-index: 99999 !important;
     transform-style: preserve-3d;
     background-color: ${custom.colors.bannerBg} !important;
@@ -1199,7 +1199,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     right: 2%;
   }
 
-  ${cbRoot} .consentbit-ccpa_preference {
+  ${cbRoot} .cb-ccpa_preference {
     z-index: 99999 !important;
     border-radius: ${custom.radius.container}px !important;
     background-color: ${custom.colors.bannerBg} !important;
@@ -1273,7 +1273,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     margin-top: 10px;
     display: flex;
   }
-${cbRoot} .cookie-btn-row button {
+  ${cbRoot} .cb-cookie-btn-row button {
     cursor: pointer;
 }
   ${cbRoot} .consentbit-ccpa-button-preference {
@@ -1364,8 +1364,8 @@ ${cbRoot} [customtoggle="true"]{
   ${cbRoot} .div-block {
     display: none;
   }
-  ${cbRoot} .consentbrandwrapper {
-    align-self: flex-end;
+  ${cbRoot} .cb-logo-wrapper {
+h    align-self: flex-end;
     width: 40%;
     height: auto;
     margin-top: 12px;
@@ -1373,7 +1373,7 @@ ${cbRoot} [customtoggle="true"]{
     display: block;
   }
 
-  ${cbRoot} .consentbrandimage {
+  ${cbRoot} .cb-logo {
     object-fit: contain;
     width: 100%;
     height: auto;
@@ -1424,14 +1424,14 @@ ${cbRoot} [customtoggle="true"]{
     background-color: ${custom.colors.btnPrimaryBg};
   }
   @media screen and (max-width: 991px) {
-    ${cbRoot} .consentbit-preference_div, ${cbRoot} .consentbit-ccpa_preference {
+    ${cbRoot} .cb-preference_div, ${cbRoot} .cb-ccpa_preference {
   	width: 100%;
   	max-width: 23.5rem;
     }
   }
 
   @media screen and (max-width: 767px) {
-    ${cbRoot} .consentbit-gdpr_banner_div {
+    ${cbRoot} .cb-gdpr_banner_div {
   	width: 100%;
   	max-width: 100%;
   	inset: auto 0 0;
@@ -1447,7 +1447,7 @@ ${cbRoot} [customtoggle="true"]{
   	display: flex;
     }
 
-    ${cbRoot} .consentbit-ccpa-banner-div {
+    ${cbRoot} .cb-ccpa-banner {
   	width: 100%;
   	max-width: 100%;
   	inset: auto 0 0;
@@ -1505,7 +1505,7 @@ ${cbRoot} [customtoggle="true"] .consentbit-toggle-input:checked + .consentbit-t
 <span style="font-family:${custom.font}; position:absolute; opacity:0; left:-9999px;">font-preload</span>
 <div
 id="consent-banner"
-  class="cookie-preview  consentbit-gdpr-banner-div hidden consentbit-gdpr_banner_div"
+  class="cb-cookie-preview cb-gdpr-banner hidden cb-gdpr_banner_div"
   ${settings.disableScroll ? "data-cookie-banner= true" : ""}
  data-animation="${settings.animation.toLowerCase()}"
   style=" position:fixed;  z-index:9999999;${positionStyles}"
@@ -1516,7 +1516,7 @@ id="consent-banner"
      : ""
  }
   <div
-    class="cookie-preview-popup consentbit-innerdiv"
+    class="cb-cookie-preview-popup consentbit-innerdiv"
     style="
 		text-align:left;
 		width: 100%;
@@ -1551,12 +1551,12 @@ id="consent-banner"
   }
     </div>
     <div
-      class="cookie-btn-row"
+      class="cb-cookie-btn-row"
       style="margin-top:16px; display:flex;gap:8px;justify-content:${buttonAlignment};"
     >
       <button
        id="preferences-btn"
-        class="cookie-pref-btn"
+        class="cb-cookie-pref-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnSecondaryText
   };background-color:${custom.colors.btnSecondaryBg};border-radius:${
@@ -1567,7 +1567,7 @@ id="consent-banner"
       </button>
       <button
       id="decline-btn"
-        class="cookie-reject-btn"
+        class="cb-cookie-reject-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnSecondaryText
   };background-color:${custom.colors.btnSecondaryBg};border-radius:${
@@ -1578,7 +1578,7 @@ id="consent-banner"
       </button>
       <button
        id="accept-btn"
-        class="cookie-accept-btn"
+        class="cb-cookie-accept-btn"
         style="font-size:${custom.size}px;padding:7px 14px;border:none;color:${
     custom.colors.btnPrimaryText
   };background-color:${custom.colors.btnPrimaryBg};border-radius:${
@@ -1595,7 +1595,7 @@ ${
   compliance.length === 1 && compliance.includes("gdpr")
     ? ""
     : `<div
-  class="cookie-preview-CCPA-banner hidden consentbit-ccpa-banner-div"
+  class="cb-cookie-preview-CCPA-banner hidden cb-ccpa-banner"
   data-animation="${settings.animation}"
     ${settings.disableScroll ? "data-cookie-banner= true" : ""}
   id="initial-consent-banner"
@@ -1607,7 +1607,7 @@ ${
        : ""
    }
   <div
-    class="cookie-preview-popup consentbit-innerdiv"
+    class="cb-cookie-preview-popup consentbit-innerdiv"
     style="
 		text-align:left;
 		max-width:${widthHtml};
@@ -1645,7 +1645,7 @@ ${
       }
     </div>
     <div
-      class="cookie-btn-row"
+      class="cb-cookie-btn-row"
       style="margin-top:16px; display:flex;gap:8px;justify-content:flex-start;font-size:${custom.size + 2}px;"
     >
       <a id="do-not-share-link" class="consentbit-ccpa-linkblock"
@@ -1662,7 +1662,7 @@ ${
 
   
     data-animation="${settings.animation}"
-    class="consentbit-preference_div hidden"
+    class="cb-preference_div hidden"
   >
     <h4 class="consebit-prefrence-heading">${
       finalTranslations[settings.language].heading
@@ -1745,12 +1745,12 @@ ${
 </a
       >
     </div>
-    <div class="consentbrandwrapper">
+    <div class="cb-logo-wrapper">
       <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink" rel="noopener noreferrer">
         <img
           src="https://api.consentbit.com/BrandImage.svg"
-          alt="ConsentBit brand logo"
-          class="consentbrandimage"
+          alt="ConsentBit logo"
+          class="cb-logo"
         />
       </a>
     </div>
@@ -1769,7 +1769,7 @@ ${
     id="main-consent-banner"
     data-animation="${settings.animation}"
      ${settings.disableScroll ? "data-cookie-banner= true" : ""}
-    class="consentbit-ccpa_preference hidden"
+    class="cb-ccpa_preference hidden"
     style="visibility: visible !important; opacity: 1 !important"
   >
     <h4 class="consebit-ccpa-prefrence-heading">${
@@ -1805,12 +1805,12 @@ ${
         > ${ccpaTranslations[settings.language]?.cancel}</a
       >
     </div>
-    <div class="consentbrandwrapper">
+    <div class="cb-logo-wrapper">
     <a href="https://www.consentbit.com/" target="_blank" class="consentbrandlink" rel="noopener noreferrer">
       <img
         src="https://api.consentbit.com/BrandImage.svg"
-        alt="ConsentBit brand logo"
-        class="consentbrandimage"
+        alt="ConsentBit logo"
+        class="cb-logo"
       />
     </a>
   </div>
@@ -1836,7 +1836,7 @@ function injectBanner() {
     if (!document.getElementById('toggle-consent-btn')) {
       const toggle = document.createElement('div');
       toggle.id = 'toggle-consent-btn';
-      toggle.className = 'consentbit-change-preference';
+      toggle.className = 'cb-change-preference';
       toggle.setAttribute('scroll-control', 'true');
       document.body.appendChild(toggle);
     }
