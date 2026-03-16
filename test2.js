@@ -904,7 +904,7 @@ ${cbRoot} .cb-ccpa_preference[data-animation="fade"] {
     right: 0;
   }
 
-  ${cbRoot} .close-consent {
+  ${cbRoot} .cb-close-consent {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1076,7 +1076,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     left: 2%;
   }
 
-  ${cbRoot} .consentbit-close {
+  ${cbRoot} .cb-preference-close {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1177,7 +1177,7 @@ ${cbRoot} .consentbit-prefrence-container a {
     right: 0;
   }
 
-  ${cbRoot} .close-consentbit {
+  ${cbRoot} .cb-close-consentbit {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1339,7 +1339,7 @@ ${cbRoot} [customtoggle="true"]{
     width: 49px;
     height: 24px;
 }
-  ${cbRoot} .consent-close {
+  ${cbRoot} .cb-consent-close {
     z-index: 99;
     color: ${closeIconColor};
     cursor: pointer;
@@ -1531,7 +1531,7 @@ id="consent-banner"
     }
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size +4}px;text-align:${custom.bannerStyle === "style4" ? "center" : "left"};"
     >
       ${translations[settings.language].heading}
     </div>
@@ -1625,7 +1625,7 @@ ${
     
     <div
       class="cookie-title"
-      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;"
+      style="color:${custom.colors.title};font-weight:600;margin-bottom:16px;font-size:${custom.size + 4}px;text-align:${custom.bannerStyle === "style4" ? "center" : "left"};"
     >
     ${translations[settings.language].ccpa.heading}
     </div>
