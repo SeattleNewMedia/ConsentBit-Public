@@ -210,7 +210,7 @@ const finalTranslations = {
   English: {
     heading: "Cookie Preferences",
     description:
-      "By clicking, you agree to store cookies on your device to enhance navigation, analyze usage, and support marketing",
+      "By clicking, you agree to store cookies on your device to enhance navigation, analyze usage, and support marketing.",
     acceptAll: "Save Preference",
     reject: "Reject",
     changePreference: "Change Preference",
@@ -330,7 +330,7 @@ const finalTranslations = {
   Italian: {
     heading: "Preferenze sui Cookie",
     description:
-      "Cliccando, accetti di memorizzare i cookie sul tuo dispositivo per migliorare la navigazione, analizzare l'utilizzo e supportare il marketing",
+      "Cliccando, accetti di memorizzare i cookie sul tuo dispositivo per migliorare la navigazione, analizzare l'utilizzo e supportare il marketing.",
     acceptAll: "Salva Preferenze",
     reject: "Rifiuta",
     changePreference: "Cambia Preferenze",
@@ -360,7 +360,7 @@ const finalTranslations = {
   Portuguese: {
     heading: "Preferências de Cookies",
     description:
-      "Ao clicar, você concorda em armazenar cookies no seu dispositivo para melhorar a navegação, analisar o uso e apoiar o marketing",
+      "Ao clicar, você concorda em armazenar cookies no seu dispositivo para melhorar a navegação, analisar o uso e apoiar o marketing.",
     acceptAll: "Salvar Preferências",
     reject: "Rejeitar",
     changePreference: "Alterar Preferências",
@@ -390,7 +390,7 @@ const finalTranslations = {
   Swedish: {
     heading: "Cookie-inställningar",
     description:
-      "Genom att klicka godkänner du att lagra cookies på din enhet för att förbättra navigering, analysera användning och stödja marknadsföring",
+      "Genom att klicka godkänner du att lagra cookies på din enhet för att förbättra navigering, analysera användning och stödja marknadsföring.",
     acceptAll: "Spara Inställningar",
     reject: "Avvisa",
     changePreference: "Ändra Inställningar",
@@ -420,7 +420,7 @@ const finalTranslations = {
   Dutch: {
     heading: "Cookie-instellingen",
     description:
-      "Door te klikken stemt u in met het opslaan van cookies op uw apparaat om navigatie te verbeteren, gebruik te analyseren en marketing te ondersteunen",
+      "Door te klikken stemt u in met het opslaan van cookies op uw apparaat om navigatie te verbeteren, gebruik te analyseren en marketing te ondersteunen.",
     acceptAll: "Instellingen Opslaan",
     reject: "Weigeren",
     changePreference: "Instellingen Wijzigen",
