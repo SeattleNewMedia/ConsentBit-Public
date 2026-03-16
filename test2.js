@@ -951,6 +951,15 @@ ${cbRoot} .cb-ccpa_preference[data-animation="fade"] {
     display: block;
   }
 
+  /* Ensure "More info" link matches body text styling */
+  ${cbRoot} .cookie-desc a,
+  ${cbRoot} .consentbit-prefrence_text a,
+  ${cbRoot} .consentbit-ccpa_prefrence_text a {
+    color: inherit !important;
+    font: inherit !important;
+    text-decoration: underline !important;
+  }
+
   ${cbRoot} .consentbit-formblock {
     background-color: #fff;
     border-radius: 8px;
