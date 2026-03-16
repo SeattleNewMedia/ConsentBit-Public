@@ -824,7 +824,7 @@ ${cbRoot} .consentbit-ccpa_preference[data-animation="fade"] {
     font-family: ${custom.font} !important;
     display: none !important;
     position: fixed !important;
-    bottom: 0 !important;
+    bottom: ${custom.bannerStyle === "style5" ? "0" : "6%"} !important;
     left: auto !important;
     right: ${custom.bannerStyle === "style5" ? "0" : "3%"} !important;
     transform: translate3d(0, 0, 0) !important;
